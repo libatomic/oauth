@@ -6,7 +6,7 @@
  * workspace for details.
  */
 
-package server
+package rest
 
 func contains(in []string, value string) bool {
 	for _, v := range in {
@@ -45,4 +45,12 @@ func without(in []string, elements ...string) []string {
 	}
 
 	return r
+}
+
+func safestr(s *string) string {
+	if s == nil {
+		return ""
+	}
+
+	return *s
 }

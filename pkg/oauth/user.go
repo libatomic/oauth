@@ -18,7 +18,8 @@ import (
 // swagger:model User
 type User struct {
 
-	// The user's login name
+	// The user's login
+	//
 	// Required: true
 	Login string `json:"login"`
 

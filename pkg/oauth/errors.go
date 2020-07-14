@@ -22,4 +22,10 @@ var (
 
 	// ErrInvalidToken is returned when the token is not valid
 	ErrInvalidToken = errors.New("invalid token")
+
+	// ErrPasswordLen is returned when a password does not meet length requirements
+	ErrPasswordLen = errors.New("invalid password length")
+
+	// ErrPasswordComplexity is returned if the password does not meet complexity requirements
+	ErrPasswordComplexity = errors.New("password to simple")
 )

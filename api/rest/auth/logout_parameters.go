@@ -38,7 +38,7 @@ type LogoutParams struct {
 	/*The uri to redirect to after logout
 	  In: query
 	*/
-	LogoutURI *string
+	RedirectURI *string
 	/*Logout state
 	  In: query
 	*/
@@ -63,8 +63,8 @@ func (o *LogoutParams) BindRequest(r *http.Request) error {
 		res = append(res, err)
 	}
 
-	qLogoutURI, qhkLogoutURI, _ := qs.GetOK("logout_uri")
-	if err := o.bindLogoutURI(qLogoutURI, qhkLogoutURI, fmts); err != nil {
+	qRedirectURI, qhkRedirectURI, _ := qs.GetOK("redirect_uri")
+	if err := o.bindRedirectURI(qRedirectURI, qhkRedirectURI, fmts); err != nil {
 		res = append(res, err)
 	}
 
@@ -100,8 +100,8 @@ func (o *LogoutParams) bindClientID(rawData []string, hasKey bool, formats strfm
 	return nil
 }
 
-// bindLogoutURI binds and validates parameter LogoutURI from query.
-func (o *LogoutParams) bindLogoutURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindRedirectURI binds and validates parameter RedirectURI from query.
+func (o *LogoutParams) bindRedirectURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -113,7 +113,7 @@ func (o *LogoutParams) bindLogoutURI(rawData []string, hasKey bool, formats strf
 		return nil
 	}
 
-	o.LogoutURI = &raw
+	o.RedirectURI = &raw
 
 	return nil
 }

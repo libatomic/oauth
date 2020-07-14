@@ -15,15 +15,18 @@ swagger generate model -f api/swagger.yaml \
 	-n User
 
 swagger generate operation -f api/swagger.yaml \
-	-t api -a server -C api/swagger-gen.yaml \
+	-t api -a rest -C api/swagger-gen.yaml \
 	-T api/templates --skip-responses --skip-url-builder \
 	-n Authorize \
 	-n Login \
 	-n Token \
 	-n Logout \
-	-n UserInfo
+	-n UserInfoGet \
+	-n UserInfoUpdate \
+	-n Signup \
+	-n PasswordReset
 
 # generate the embedded spec file
 swagger generate server -f api/swagger.yaml \
-	-t api -s server -T api/templates -C api/swagger-gen.yaml \
+	-t api -s rest -T api/templates -C api/swagger-gen.yaml \
 	--skip-models --skip-operations --exclude-main

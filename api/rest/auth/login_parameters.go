@@ -35,6 +35,11 @@ type LoginParams struct {
 	  In: formData
 	*/
 	CodeVerifier string
+	/*The user login
+	  Required: true
+	  In: formData
+	*/
+	Login string
 	/*The user password
 	  Required: true
 	  In: formData
@@ -46,11 +51,6 @@ type LoginParams struct {
 	  In: formData
 	*/
 	RequestToken string
-	/*The user name
-	  Required: true
-	  In: formData
-	*/
-	Username string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -78,6 +78,11 @@ func (o *LoginParams) BindRequest(r *http.Request) error {
 		res = append(res, err)
 	}
 
+	fdLogin, fdhkLogin, _ := fds.GetOK("login")
+	if err := o.bindLogin(fdLogin, fdhkLogin, fmts); err != nil {
+		res = append(res, err)
+	}
+
 	fdPassword, fdhkPassword, _ := fds.GetOK("password")
 	if err := o.bindPassword(fdPassword, fdhkPassword, fmts); err != nil {
 		res = append(res, err)
@@ -85,11 +90,6 @@ func (o *LoginParams) BindRequest(r *http.Request) error {
 
 	fdRequestToken, fdhkRequestToken, _ := fds.GetOK("request_token")
 	if err := o.bindRequestToken(fdRequestToken, fdhkRequestToken, fmts); err != nil {
-		res = append(res, err)
-	}
-
-	fdUsername, fdhkUsername, _ := fds.GetOK("username")
-	if err := o.bindUsername(fdUsername, fdhkUsername, fmts); err != nil {
 		res = append(res, err)
 	}
 
@@ -116,6 +116,27 @@ func (o *LoginParams) bindCodeVerifier(rawData []string, hasKey bool, formats st
 	}
 
 	o.CodeVerifier = raw
+
+	return nil
+}
+
+// bindLogin binds and validates parameter Login from formData.
+func (o *LoginParams) bindLogin(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	if !hasKey {
+		return errors.Required("login", "formData", rawData)
+	}
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+
+	if err := validate.RequiredString("login", "formData", raw); err != nil {
+		return err
+	}
+
+	o.Login = raw
 
 	return nil
 }
@@ -158,27 +179,6 @@ func (o *LoginParams) bindRequestToken(rawData []string, hasKey bool, formats st
 	}
 
 	o.RequestToken = raw
-
-	return nil
-}
-
-// bindUsername binds and validates parameter Username from formData.
-func (o *LoginParams) bindUsername(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	if !hasKey {
-		return errors.Required("username", "formData", rawData)
-	}
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: true
-
-	if err := validate.RequiredString("username", "formData", raw); err != nil {
-		return err
-	}
-
-	o.Username = raw
 
 	return nil
 }

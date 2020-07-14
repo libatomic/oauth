@@ -27,6 +27,13 @@ type Application struct {
 	// Required: true
 	AllowedGrants []string `json:"allowed_grants"`
 
+	// This is an array of the application's allowed application uris. These are checked
+	// in the `/authorize` path to ensure the redirect is allowed by the application.
+	// This path on redirect will receive the following query parameters:
+	//   - `auth_request`: An encoded and signed request value to be forwarded to various posts.
+	//
+	AppUris []string `json:"app_uris"`
+
 	// The application client id used for oauth grants
 	// Read Only: true
 	ClientID string `json:"client_id,omitempty"`
@@ -37,18 +44,6 @@ type Application struct {
 
 	// The application description
 	Description string `json:"description,omitempty"`
-
-	// This is an array of the application's allowed login uris. These are checked
-	// in the `/authorize` path to ensure the login redirect is allowed by the application.
-	// This path on redirect will receive the following query parameters:
-	//   - `auth_request`: An encoded and signed request value to be forwarded with the login post.
-	//
-	LoginUris []string `json:"login_uris"`
-
-	// This is an array of the application's allowed logout uris. These are checked
-	// in the `/logout` path to ensure the logout redirect is allowed by the application.
-	//
-	LogoutUris []string `json:"logout_uris"`
 
 	// The application name
 	// Required: true

@@ -6,8 +6,8 @@
  * workspace for details.
  */
 
-// Package server provides an http api server
-package server
+// Package rest provides an http oauth REST API
+package rest
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/libatomic/oauth/pkg/memstore"
+	"github.com/libatomic/oauth/pkg/codestore/memstore"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/sirupsen/logrus"
 )
@@ -55,6 +55,8 @@ type (
 		srv             *http.Server
 		lock            sync.Mutex
 		jwks            []byte
+		allowSignup     bool
+		basePath        string
 
 		// cookie manages secure cookies
 		cookie *securecookie.SecureCookie
@@ -91,6 +93,7 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...Option) *Ser
 		router:          mux.NewRouter(),
 		addr:            defaultAddr,
 		codes:           memstore.New(time.Minute*5, time.Minute*10),
+		basePath:        SpecDoc.BasePath(),
 	}
 
 	// use the public key for hashing
@@ -123,13 +126,15 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...Option) *Ser
 	// we use this to generate secure values
 	s.cookie = securecookie.New(hash[0:32], block[0:32])
 
-	s.apiRouter = s.router.PathPrefix(SpecDoc.BasePath()).Subrouter()
+	s.apiRouter = s.router.PathPrefix(s.basePath).Subrouter()
 	s.apiRouter.Use(versionMiddleware)
 
 	// setup all of the routes
 	s.apiRouter.HandleFunc("/authorize", s.authorize).Methods(http.MethodGet)
 
 	s.apiRouter.HandleFunc("/login", s.login).Methods(http.MethodPost)
+
+	s.apiRouter.HandleFunc("/signup", s.signup).Methods(http.MethodPost)
 
 	s.apiRouter.HandleFunc("/token", s.token).Methods(http.MethodPost)
 
@@ -177,7 +182,7 @@ func WithAddr(addr string) Option {
 			s.addr = addr
 		}
 	}
-} 
+}
 
 // WithSessionStore sets the session store
 func WithSessionStore(store sessions.Store) Option {
@@ -190,6 +195,20 @@ func WithSessionStore(store sessions.Store) Option {
 func WithCodeStore(store oauth.CodeStore) Option {
 	return func(s *Server) {
 		s.codes = store
+	}
+}
+
+// WithBasepath sets the server basepath
+func WithBasepath(basePath string) Option {
+	return func(s *Server) {
+		s.basePath = basePath
+	}
+}
+
+// WithAllowSignup enables the signup/register paths
+func WithAllowSignup(allow bool) Option {
+	return func(s *Server) {
+		s.allowSignup = allow
 	}
 }
 

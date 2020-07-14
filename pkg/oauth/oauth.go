@@ -50,6 +50,12 @@ type (
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return the user object or error
 		UserAuthenticate(login string, password string) (*User, error)
+
+		// UserCreate will create the user
+		UserCreate(user *User, password string) error
+
+		// UserVerify will verify the user's email address
+		UserVerify(id string, code string) error
 	}
 
 	// Authorizer provides an interface for authorizing bearer tokens

@@ -6,7 +6,7 @@
  * workspace for details.
  */
 
-package server
+package rest
 
 import (
 	"bytes"
@@ -26,7 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/libatomic/oauth/api/server/auth"
+	"github.com/libatomic/oauth/api/rest/auth"
 	"github.com/libatomic/oauth/pkg/oauth"
 
 	"github.com/mitchellh/mapstructure"
@@ -108,7 +108,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.ctrl.UserAuthenticate(params.Username, params.Password)
+	user, err := s.ctrl.UserAuthenticate(params.Login, params.Password)
 	if err != nil {
 		s.log.Errorln(err)
 
@@ -118,6 +118,10 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		})
 
 		return
+	}
+
+	if len(req.Scope) == 0 {
+		req.Scope = user.Permissions
 	}
 
 	if !every(user.Permissions, req.Scope...) {
@@ -209,6 +213,47 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
+func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
+	if !s.allowSignup {
+		s.writeError(w, http.StatusForbidden, "user self-registration disabled")
+		return
+	}
+
+	params := auth.NewSignupParams()
+
+	if err := params.BindRequest(r); err != nil {
+		s.writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	req := &oauth.AuthRequest{}
+	if err := s.cookie.Decode(AuthRequestParam, params.RequestToken, req); err != nil {
+		s.writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
+		s.writeError(w, http.StatusForbidden, "expired request token")
+		return
+	}
+
+	user := &oauth.User{
+		Login: params.Login,
+		Profile: &oauth.Profile{
+			Name:  safestr(params.Name),
+			Email: params.Email,
+		},
+	}
+
+	if err := s.ctrl.UserCreate(user, params.Password); err != nil {
+		s.writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// pass the request login
+	s.login(w, r)
+}
+
 func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	params := auth.NewAuthorizeParams()
 
@@ -234,12 +279,6 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		params.RedirectURI = &app.RedirectUris[0]
 	}
 
-	// ensure the redirect uri is allowed
-	if !contains(app.RedirectUris, *params.RedirectURI) {
-		s.writeError(w, http.StatusForbidden, "unauthorized redirect uri")
-		return
-	}
-
 	// all errors should go to the redirect uri
 	u, err := url.Parse(*params.RedirectURI)
 	if err != nil {
@@ -247,20 +286,38 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if params.LoginURI == nil {
-		params.LoginURI = &app.LoginUris[0]
+	// ensure the redirect uri path is allowed
+	if !contains(app.RedirectUris, path.Join("/", u.Path)) {
+		s.writeError(w, http.StatusForbidden, "unauthorized redirect uri")
+		return
 	}
 
-	// ensure the login uri is allowed
-	if !contains(app.LoginUris, *params.LoginURI) {
-		s.log.Errorln(err)
+	if params.AppURI == nil {
+		params.AppURI = &app.AppUris[0]
+	}
 
-		s.redirectError(w, u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "unauthorized login uri",
-		})
+	{
+		// ensure the login uri is allowed
+		u, err := url.Parse(*params.AppURI)
+		if err != nil {
+			s.log.Errorln(err)
 
-		return
+			s.redirectError(w, u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "invalid app uri",
+			})
+
+			return
+		}
+
+		if !contains(app.AppUris, path.Join("/", u.Path)) {
+			s.redirectError(w, u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "unauthorized app uri",
+			})
+
+			return
+		}
 	}
 
 	// ensure the audience
@@ -276,23 +333,25 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check the scope against the app and audience
-	if !every(app.Permissions, params.Scope...) {
-		s.redirectError(w, u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "insufficient permissions",
-		})
+	if len(params.Scope) > 0 {
+		// check the scope against the app and audience
+		if !every(app.Permissions, params.Scope...) {
+			s.redirectError(w, u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "insufficient permissions",
+			})
 
-		return
-	}
+			return
+		}
 
-	if !every(aud.Permissions, params.Scope...) {
-		s.redirectError(w, u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "insufficient permissions",
-		})
+		if !every(aud.Permissions, params.Scope...) {
+			s.redirectError(w, u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "insufficient permissions",
+			})
 
-		return
+			return
+		}
 	}
 
 	req := &oauth.AuthRequest{
@@ -380,7 +439,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err = url.Parse(*params.LoginURI)
+	u, err = url.Parse(*params.AppURI)
 	if err != nil {
 		s.writeErr(w, http.StatusBadRequest, err)
 		return
@@ -616,6 +675,10 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if len(params.Scope) == 0 {
+			params.Scope = user.Permissions
+		}
+
 		// check the scope against the code
 		if !every(code.Scope, params.Scope...) {
 			s.writeError(w, http.StatusForbidden, "invalid scope")
@@ -740,19 +803,19 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if params.LogoutURI == nil {
-		params.LogoutURI = &app.LogoutUris[0]
-	}
-
-	// ensure the redirect uri is allowed
-	if !contains(app.LogoutUris, *params.LogoutURI) {
-		s.writeError(w, http.StatusForbidden, "unauthorized log out uri")
+	u, err := url.Parse(*params.RedirectURI)
+	if err != nil {
+		s.writeErr(w, http.StatusBadRequest, err)
 		return
 	}
 
-	u, err := url.Parse(*params.LogoutURI)
-	if err != nil {
-		s.writeErr(w, http.StatusBadRequest, err)
+	if params.RedirectURI == nil {
+		params.RedirectURI = &app.AppUris[0]
+	}
+
+	// ensure the redirect uri is allowed
+	if !contains(app.AppUris, path.Join("/", u.Path)) {
+		s.writeError(w, http.StatusForbidden, "unauthorized logout uri")
 		return
 	}
 

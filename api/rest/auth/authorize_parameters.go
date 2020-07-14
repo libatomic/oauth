@@ -39,6 +39,10 @@ type AuthorizeParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*The URL to which the authentication server redirects the browser for action
+	  In: query
+	*/
+	AppURI *string
 	/*
 	  Required: true
 	  In: query
@@ -61,10 +65,6 @@ type AuthorizeParams struct {
 	  Default: "S256"
 	*/
 	CodeChallengeMethod *string
-	/*The URL to which the authentication server redirects the browser for login
-	  In: query
-	*/
-	LoginURI *string
 	/*The URL to which the authentication server redirects the browser after authorization has been granted by the user
 	  In: query
 	*/
@@ -74,8 +74,8 @@ type AuthorizeParams struct {
 	  In: query
 	*/
 	ResponseType string
-	/*the requested scopes
-	  Required: true
+	/*The requested scopes, if empty will request all the user permissions.
+
 	  In: query
 	  Collection Format: ssv
 	*/
@@ -99,6 +99,11 @@ func (o *AuthorizeParams) BindRequest(r *http.Request) error {
 
 	qs := runtime.Values(r.URL.Query())
 
+	qAppURI, qhkAppURI, _ := qs.GetOK("app_uri")
+	if err := o.bindAppURI(qAppURI, qhkAppURI, fmts); err != nil {
+		res = append(res, err)
+	}
+
 	qAudience, qhkAudience, _ := qs.GetOK("audience")
 	if err := o.bindAudience(qAudience, qhkAudience, fmts); err != nil {
 		res = append(res, err)
@@ -116,11 +121,6 @@ func (o *AuthorizeParams) BindRequest(r *http.Request) error {
 
 	qCodeChallengeMethod, qhkCodeChallengeMethod, _ := qs.GetOK("code_challenge_method")
 	if err := o.bindCodeChallengeMethod(qCodeChallengeMethod, qhkCodeChallengeMethod, fmts); err != nil {
-		res = append(res, err)
-	}
-
-	qLoginURI, qhkLoginURI, _ := qs.GetOK("login_uri")
-	if err := o.bindLoginURI(qLoginURI, qhkLoginURI, fmts); err != nil {
 		res = append(res, err)
 	}
 
@@ -147,6 +147,24 @@ func (o *AuthorizeParams) BindRequest(r *http.Request) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAppURI binds and validates parameter AppURI from query.
+func (o *AuthorizeParams) bindAppURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.AppURI = &raw
+
 	return nil
 }
 
@@ -246,24 +264,6 @@ func (o *AuthorizeParams) validateCodeChallengeMethod(formats strfmt.Registry) e
 	return nil
 }
 
-// bindLoginURI binds and validates parameter LoginURI from query.
-func (o *AuthorizeParams) bindLoginURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-	// AllowEmptyValue: false
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-
-	o.LoginURI = &raw
-
-	return nil
-}
-
 // bindRedirectURI binds and validates parameter RedirectURI from query.
 func (o *AuthorizeParams) bindRedirectURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
@@ -321,9 +321,6 @@ func (o *AuthorizeParams) validateResponseType(formats strfmt.Registry) error {
 //
 // Arrays are parsed according to CollectionFormat: "ssv" (defaults to "csv" when empty).
 func (o *AuthorizeParams) bindScope(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	if !hasKey {
-		return errors.Required("scope", "query", rawData)
-	}
 
 	var qvScope string
 	if len(rawData) > 0 {
@@ -332,9 +329,8 @@ func (o *AuthorizeParams) bindScope(rawData []string, hasKey bool, formats strfm
 
 	// CollectionFormat: ssv
 	scopeIC := swag.SplitByFormat(qvScope, "ssv")
-
 	if len(scopeIC) == 0 {
-		return errors.Required("scope", "query", scopeIC)
+		return nil
 	}
 
 	var scopeIR []string
