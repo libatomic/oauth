@@ -1,7 +1,16 @@
-# Atomic OAuth 2.0 Provider
+# Atomic Auth Provider
 
-This provider implements a Simple OAuth 2.0 provider that attempts to remain simple and yet implement
-many of the common flows. You can use this template to create a more custom provider as needed.
+The `auth.AuthProvider` interface provides simple user, application, and audience management for api servers.
+
+This library does not implment this interface, which is outside the scope of its definition. Other services
+like (libatomic/atomic)[https://github.com/libatomic/atomic] provide examples this interface in the backend
+definition.
+
+## Auth Server
+
+This server implements a simple http auth server that attempts to remain simple and yet implement
+many of the common flows using the `auth.AuthProvider` interface. You can use this template to create a
+more custom provider as needed.
 
 This library is meant to be consumed by other services and does not provide an independent
 functionality.

@@ -6,14 +6,13 @@
  * workspace for details.
  */
 
-// Package oauth provides the base oauth interfaces
+// Package oauth provides the base auth interfaces
 package oauth
 
 import (
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/libatomic/oauth/api/types"
 )
 
 const (
@@ -37,20 +36,20 @@ const (
 )
 
 type (
-	// Controller is the interface implemented by consumers of the oauth service
+	// Controller is the interface implemented by consumers of the auth server
 	Controller interface {
 		// ApplicationGet should return an application for the specified client id
-		ApplicationGet(client string) (*types.Application, error)
+		ApplicationGet(id string) (*Application, error)
 
 		// AudienceGet should return an audience for the specified name
-		AudienceGet(name string) (*types.Audience, error)
+		AudienceGet(name string) (*Audience, error)
+
+		// UserGet returns a user by subject id
+		UserGet(id string) (*User, error)
 
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return the user object or error
-		UserAuthenticate(login string, password string) (*types.User, error)
-
-		// UserGet returns a user by subject
-		UserGet(sub string) (*types.User, error)
+		UserAuthenticate(login string, password string) (*User, error)
 	}
 
 	// Authorizer provides an interface for authorizing bearer tokens
@@ -64,10 +63,10 @@ type (
 	CodeStore interface {
 		// CodeCreate creates a new authcode from the request if code expires at is set
 		// the store should use that value, otherwise set the defaults
-		CodeCreate(req *types.AuthCode) error
+		CodeCreate(req *AuthCode) error
 
 		// CodeGet returns a code from the store
-		CodeGet(code string) (*types.AuthCode, error)
+		CodeGet(code string) (*AuthCode, error)
 
 		// CodeDestroy removes a code from the store
 		CodeDestroy(code string) error

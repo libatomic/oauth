@@ -2,7 +2,7 @@
 set -eu
 
 swagger generate model -f api/swagger.yaml \
-	-t api -m types -C api/swagger-gen.yaml \
+	-t pkg -m oauth -C api/swagger-gen.yaml \
 	-n ErrorResponse \
 	-n BearerToken \
 	-n AuthRequest \
@@ -15,7 +15,7 @@ swagger generate model -f api/swagger.yaml \
 	-n User
 
 swagger generate operation -f api/swagger.yaml \
-	-t api -a types -C api/swagger-gen.yaml \
+	-t api -a server -C api/swagger-gen.yaml \
 	-T api/templates --skip-responses --skip-url-builder \
 	-n Authorize \
 	-n Login \
@@ -23,7 +23,7 @@ swagger generate operation -f api/swagger.yaml \
 	-n Logout \
 	-n UserInfo
 
-# generate the embedde spec file
+# generate the embedded spec file
 swagger generate server -f api/swagger.yaml \
 	-t api -s server -T api/templates -C api/swagger-gen.yaml \
 	--skip-models --skip-operations --exclude-main

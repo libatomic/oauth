@@ -40,11 +40,11 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "description": "The OAuth API provides OAuth Bearer Token management as well as\nsession and cookie mangement for browser based flows.\n\n# Errors\n\nThe API uses standard HTTP status codes to indicate the success or failure\nof the API call. The body of the response will be JSON in the following\nformat:\n` + "`" + `` + "`" + `` + "`" + `\n{\n  \"message\": \"object not found\"\n}\n` + "`" + `` + "`" + `` + "`" + `\n",
+    "description": "The OAuth API provides OAuth Bearer Token management as well as\nsession and cookie mangement for browser based flows.\n\n# Errors\n\nThe API uses standard HTTP status codes to indicate the success or failure\nof the API call. The body of the response will be JSON in the following\nformat:\n` + "`" + `` + "`" + `` + "`" + `\n{\n  \"message\": \"object not found\"\n}\n` + "`" + `` + "`" + `` + "`" + `\n\n# Reference Definitions\n\n  This API provides reference definitions to be used by go projects to extend \n  the base types to suit the needs of the backend. For example:\n\n  definitions:\n    Application:\n      description: |\n        Applications are clients for the atomic API\n      allOf:\n        - $ref: '/go/src/github.com/libatomic/oauth/api/swagger.yaml#/definitions/ApplicationRef'\n        - type: 'object'\n          properties:\n            id:\n              type: 'string'\n              description: 'The application id'\n            created_at:\n              type: 'string'\n              description: 'The application creation date'\n              format: 'date-time'\n            updated_at:\n              type: 'string'\n              description: 'The last update date'\n              format: 'date-time'\n\n  This allows for cleaner go-code generatation as the based object will be embedded and directly\n  accessible.\n",
     "title": "OAuth API",
     "version": "1.0.0"
   },
-  "basePath": "/oauth",
+  "basePath": "/",
   "paths": {
     "/.well-known/jwks.json": {
       "get": {
@@ -180,7 +180,7 @@ func init() {
     },
     "/login": {
       "post": {
-        "description": "Authenticates a user the AuthController interface.\n",
+        "description": "Authenticates a user the ` + "`" + `oauth.Controller` + "`" + ` interface.\n",
         "consumes": [
           "application/x-www-form-urlencoded"
         ],
@@ -497,7 +497,7 @@ func init() {
       }
     },
     "Application": {
-      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\n\nApplications are manage by the ` + "`" + `AuthController` + "`" + `.\n",
+      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `.\n",
       "type": "object",
       "required": [
         "name",
@@ -531,7 +531,7 @@ func init() {
           "type": "string"
         },
         "login_uris": {
-          "description": "This is an array of the application's allowed login uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the login redirect is allowed by the application.\n\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded with the login post.\n",
+          "description": "This is an array of the application's allowed login uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the login redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded with the login post.\n",
           "type": "array",
           "items": {
             "type": "string"
@@ -557,7 +557,7 @@ func init() {
           }
         },
         "redirect_uris": {
-          "description": "This is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\n\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n",
+          "description": "This is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n",
           "type": "array",
           "items": {
             "type": "string"
@@ -577,6 +577,20 @@ func init() {
             "machine"
           ]
         }
+      }
+    },
+    "ApplicationRef": {
+      "description": "Application reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Application"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Application"
       }
     },
     "Audience": {
@@ -625,8 +639,22 @@ func init() {
         }
       }
     },
+    "AudienceRef": {
+      "description": "Audience reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Audience"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Audience"
+      }
+    },
     "AuthCode": {
-      "description": "Authcodes are used by client in browser based flows to request BearerTokens\n\nInternally Authcodes are assiciated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\n\nAdditionally, the library uses AuthCodes to store refresh tokens used when\na client request offline_access.\n",
+      "description": "Authcodes are used by client in browser based flows to request BearerTokens\nInternally Authcodes are assiciated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\nAdditionally, the library uses AuthCodes to store refresh tokens used when\na client request offline_access.\n",
       "allOf": [
         {
           "$ref": "#/definitions/AuthRequest"
@@ -664,7 +692,7 @@ func init() {
       ]
     },
     "AuthRequest": {
-      "description": "An AuthRequest is generated by the ` + "`" + `/authorize` + "`" + ` call and passed to the ` + "`" + `login_uri` + "`" + `.\n\nThe properties of AuthRequest map to the parameters of the ` + "`" + `/authorize` + "`" + ` operation.\n\nThis request is encoded and signed by the authorization service and must be passed\nin the POST to ` + "`" + `/login` + "`" + ` to validate the authentication request.\n",
+      "description": "An AuthRequest is generated by the ` + "`" + `/authorize` + "`" + ` call and passed to the ` + "`" + `login_uri` + "`" + `.\nThe properties of AuthRequest map to the parameters of the ` + "`" + `/authorize` + "`" + ` operation.\nThis request is encoded and signed by the authorization service and must be passed\nin the POST to ` + "`" + `/login` + "`" + ` to validate the authentication request.\n",
       "type": "object",
       "required": [
         "client_id",
@@ -720,7 +748,7 @@ func init() {
       }
     },
     "BearerToken": {
-      "description": "BearerTokens are returned by the ` + "`" + `/token` + "`" + ` method. These token always include\nan ` + "`" + `access_token` + "`" + ` which can be used to access api methods from a related service.\n\nThese are the only objects managed by the api itself. The integration is expected\nto implement the ` + "`" + `AuthController` + "`" + ` interface.\n",
+      "description": "BearerTokens are returned by the ` + "`" + `/token` + "`" + ` method. These token always include\nan ` + "`" + `access_token` + "`" + ` which can be used to access api methods from a related service.\nThese are the only objects managed by the api itself. The integration is expected\nto implement the ` + "`" + `oauth.Controller` + "`" + ` interface.\n",
       "type": "object",
       "required": [
         "token_type",
@@ -740,18 +768,18 @@ func init() {
           "x-nullable": false
         },
         "id_token": {
-          "description": "The idenity token contains claims about the users identity. This token is\nreturned if the ` + "`" + `openid` + "`" + ` scope was granted.\n\nIf the ` + "`" + `profile` + "`" + ` scope was granted, this will contain the user profile.\n\nThese scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
+          "description": "The idenity token contains claims about the users identity. This token is\nreturned if the ` + "`" + `openid` + "`" + ` scope was granted.\nIf the ` + "`" + `profile` + "`" + ` scope was granted, this will contain the user profile.\nThese scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
           "type": "string"
         },
         "refresh_token": {
-          "description": "The refresh token maybe used to generate a new access token so client\nand user credentials do not have to traverse the wire again.\n\nThe is provided if the ` + "`" + `offline_access` + "`" + ` scope is request.\n\nThis scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
+          "description": "The refresh token maybe used to generate a new access token so client\nand user credentials do not have to traverse the wire again.\nThe is provided if the ` + "`" + `offline_access` + "`" + ` scope is request.\nThis scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
           "type": "string"
         },
         "token_type": {
           "description": "The token type, always Bearer",
           "type": "string",
           "enum": [
-            "Bearer"
+            "bearer"
           ],
           "x-nullable": false
         }
@@ -924,6 +952,20 @@ func init() {
           "$ref": "#/definitions/Profile"
         }
       }
+    },
+    "UserRef": {
+      "description": "User reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/User"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "User"
+      }
     }
   },
   "securityDefinitions": {
@@ -933,6 +975,7 @@ func init() {
       "authorizationUrl": "https://auth.server.local/oauth2/authorize",
       "tokenUrl": "https://auth.server.local/oauth2/token",
       "scopes": {
+        "offline_access": "Used by clients to request permission to use refresh tokens",
         "openid": "Access a user's identity",
         "profile": "Access a user's profile"
       }
@@ -963,11 +1006,11 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "description": "The OAuth API provides OAuth Bearer Token management as well as\nsession and cookie mangement for browser based flows.\n\n# Errors\n\nThe API uses standard HTTP status codes to indicate the success or failure\nof the API call. The body of the response will be JSON in the following\nformat:\n` + "`" + `` + "`" + `` + "`" + `\n{\n  \"message\": \"object not found\"\n}\n` + "`" + `` + "`" + `` + "`" + `\n",
+    "description": "The OAuth API provides OAuth Bearer Token management as well as\nsession and cookie mangement for browser based flows.\n\n# Errors\n\nThe API uses standard HTTP status codes to indicate the success or failure\nof the API call. The body of the response will be JSON in the following\nformat:\n` + "`" + `` + "`" + `` + "`" + `\n{\n  \"message\": \"object not found\"\n}\n` + "`" + `` + "`" + `` + "`" + `\n\n# Reference Definitions\n\n  This API provides reference definitions to be used by go projects to extend \n  the base types to suit the needs of the backend. For example:\n\n  definitions:\n    Application:\n      description: |\n        Applications are clients for the atomic API\n      allOf:\n        - $ref: '/go/src/github.com/libatomic/oauth/api/swagger.yaml#/definitions/ApplicationRef'\n        - type: 'object'\n          properties:\n            id:\n              type: 'string'\n              description: 'The application id'\n            created_at:\n              type: 'string'\n              description: 'The application creation date'\n              format: 'date-time'\n            updated_at:\n              type: 'string'\n              description: 'The last update date'\n              format: 'date-time'\n\n  This allows for cleaner go-code generatation as the based object will be embedded and directly\n  accessible.\n",
     "title": "OAuth API",
     "version": "1.0.0"
   },
-  "basePath": "/oauth",
+  "basePath": "/",
   "paths": {
     "/.well-known/jwks.json": {
       "get": {
@@ -1103,7 +1146,7 @@ func init() {
     },
     "/login": {
       "post": {
-        "description": "Authenticates a user the AuthController interface.\n",
+        "description": "Authenticates a user the ` + "`" + `oauth.Controller` + "`" + ` interface.\n",
         "consumes": [
           "application/x-www-form-urlencoded"
         ],
@@ -1420,7 +1463,7 @@ func init() {
       }
     },
     "Application": {
-      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\n\nApplications are manage by the ` + "`" + `AuthController` + "`" + `.\n",
+      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `.\n",
       "type": "object",
       "required": [
         "name",
@@ -1454,7 +1497,7 @@ func init() {
           "type": "string"
         },
         "login_uris": {
-          "description": "This is an array of the application's allowed login uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the login redirect is allowed by the application.\n\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded with the login post.\n",
+          "description": "This is an array of the application's allowed login uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the login redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded with the login post.\n",
           "type": "array",
           "items": {
             "type": "string"
@@ -1480,7 +1523,7 @@ func init() {
           }
         },
         "redirect_uris": {
-          "description": "This is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\n\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n",
+          "description": "This is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n",
           "type": "array",
           "items": {
             "type": "string"
@@ -1500,6 +1543,20 @@ func init() {
             "machine"
           ]
         }
+      }
+    },
+    "ApplicationRef": {
+      "description": "Application reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Application"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Application"
       }
     },
     "Audience": {
@@ -1548,8 +1605,22 @@ func init() {
         }
       }
     },
+    "AudienceRef": {
+      "description": "Audience reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Audience"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Audience"
+      }
+    },
     "AuthCode": {
-      "description": "Authcodes are used by client in browser based flows to request BearerTokens\n\nInternally Authcodes are assiciated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\n\nAdditionally, the library uses AuthCodes to store refresh tokens used when\na client request offline_access.\n",
+      "description": "Authcodes are used by client in browser based flows to request BearerTokens\nInternally Authcodes are assiciated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\nAdditionally, the library uses AuthCodes to store refresh tokens used when\na client request offline_access.\n",
       "allOf": [
         {
           "$ref": "#/definitions/AuthRequest"
@@ -1587,7 +1658,7 @@ func init() {
       ]
     },
     "AuthRequest": {
-      "description": "An AuthRequest is generated by the ` + "`" + `/authorize` + "`" + ` call and passed to the ` + "`" + `login_uri` + "`" + `.\n\nThe properties of AuthRequest map to the parameters of the ` + "`" + `/authorize` + "`" + ` operation.\n\nThis request is encoded and signed by the authorization service and must be passed\nin the POST to ` + "`" + `/login` + "`" + ` to validate the authentication request.\n",
+      "description": "An AuthRequest is generated by the ` + "`" + `/authorize` + "`" + ` call and passed to the ` + "`" + `login_uri` + "`" + `.\nThe properties of AuthRequest map to the parameters of the ` + "`" + `/authorize` + "`" + ` operation.\nThis request is encoded and signed by the authorization service and must be passed\nin the POST to ` + "`" + `/login` + "`" + ` to validate the authentication request.\n",
       "type": "object",
       "required": [
         "client_id",
@@ -1643,7 +1714,7 @@ func init() {
       }
     },
     "BearerToken": {
-      "description": "BearerTokens are returned by the ` + "`" + `/token` + "`" + ` method. These token always include\nan ` + "`" + `access_token` + "`" + ` which can be used to access api methods from a related service.\n\nThese are the only objects managed by the api itself. The integration is expected\nto implement the ` + "`" + `AuthController` + "`" + ` interface.\n",
+      "description": "BearerTokens are returned by the ` + "`" + `/token` + "`" + ` method. These token always include\nan ` + "`" + `access_token` + "`" + ` which can be used to access api methods from a related service.\nThese are the only objects managed by the api itself. The integration is expected\nto implement the ` + "`" + `oauth.Controller` + "`" + ` interface.\n",
       "type": "object",
       "required": [
         "token_type",
@@ -1663,18 +1734,18 @@ func init() {
           "x-nullable": false
         },
         "id_token": {
-          "description": "The idenity token contains claims about the users identity. This token is\nreturned if the ` + "`" + `openid` + "`" + ` scope was granted.\n\nIf the ` + "`" + `profile` + "`" + ` scope was granted, this will contain the user profile.\n\nThese scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
+          "description": "The idenity token contains claims about the users identity. This token is\nreturned if the ` + "`" + `openid` + "`" + ` scope was granted.\nIf the ` + "`" + `profile` + "`" + ` scope was granted, this will contain the user profile.\nThese scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
           "type": "string"
         },
         "refresh_token": {
-          "description": "The refresh token maybe used to generate a new access token so client\nand user credentials do not have to traverse the wire again.\n\nThe is provided if the ` + "`" + `offline_access` + "`" + ` scope is request.\n\nThis scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
+          "description": "The refresh token maybe used to generate a new access token so client\nand user credentials do not have to traverse the wire again.\nThe is provided if the ` + "`" + `offline_access` + "`" + ` scope is request.\nThis scopes are outside of the context of this library, it is up to the\nprovider to maintain these scopes.\n",
           "type": "string"
         },
         "token_type": {
           "description": "The token type, always Bearer",
           "type": "string",
           "enum": [
-            "Bearer"
+            "bearer"
           ],
           "x-nullable": false
         }
@@ -1847,6 +1918,20 @@ func init() {
           "$ref": "#/definitions/Profile"
         }
       }
+    },
+    "UserRef": {
+      "description": "User reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/User"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "User"
+      }
     }
   },
   "securityDefinitions": {
@@ -1856,6 +1941,7 @@ func init() {
       "authorizationUrl": "https://auth.server.local/oauth2/authorize",
       "tokenUrl": "https://auth.server.local/oauth2/token",
       "scopes": {
+        "offline_access": "Used by clients to request permission to use refresh tokens",
         "openid": "Access a user's identity",
         "profile": "Access a user's profile"
       }

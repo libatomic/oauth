@@ -26,12 +26,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/libatomic/oauth/api/types"
-	"github.com/libatomic/oauth/api/types/auth"
+	"github.com/libatomic/oauth/api/server/auth"
 	"github.com/libatomic/oauth/pkg/oauth"
+
 	"github.com/mitchellh/mapstructure"
 	"github.com/mr-tron/base58"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -39,10 +38,7 @@ const (
 	AuthRequestParam = "request_token"
 
 	// SessionCookie is the name the session cookie
-	SessionCookie = "_tl_session"
-
-	// SessionTokenCookie is the parameter used to track the session activity
-	SessionTokenCookie = "_tl_session_token"
+	SessionCookie = "_atomic_session"
 )
 
 type (
@@ -52,36 +48,6 @@ type (
 	}
 )
 
-func wrap(val []string, without ...string) []interface{} {
-	out := make([]interface{}, 0)
-	for _, s := range val {
-		if !funk.Contains(without, s) {
-			out = append(out, s)
-		}
-	}
-	return out
-}
-
-func checkScope(scope []string, check ...[]string) bool {
-	for _, c := range check {
-		// check the scope against the app
-		if !funk.Every(c, wrap(scope)...) {
-			return false
-		}
-	}
-	return true
-}
-
-func without(s []string, w ...string) []string {
-	r := make([]string, 0)
-	for _, v := range s {
-		if !funk.Contains(w, v) {
-			r = append(r, v)
-		}
-	}
-	return r
-}
-
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	params := auth.NewLoginParams()
 
@@ -90,7 +56,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &types.AuthRequest{}
+	req := &oauth.AuthRequest{}
 	if err := s.cookie.Decode(AuthRequestParam, params.RequestToken, req); err != nil {
 		s.writeErr(w, http.StatusBadRequest, err)
 		return
@@ -154,7 +120,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !funk.Every(user.Permissions, wrap(req.Scope)...) {
+	if !every(user.Permissions, req.Scope...) {
 		s.redirectError(w, u, map[string]string{
 			"error":             "access_denied",
 			"error_description": "user authorization failed",
@@ -184,7 +150,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		sessionID = base58.Encode(id[:])
 	}
 
-	session.Values["state"] = &types.Session{
+	session.Values["state"] = &oauth.Session{
 		ID:        sessionID,
 		ClientID:  req.ClientID,
 		Subject:   user.Profile.Sub,
@@ -210,7 +176,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authCode := &types.AuthCode{
+	authCode := &oauth.AuthCode{
 		AuthRequest:       *req,
 		Subject:           user.Profile.Sub,
 		SessionID:         session.ID,
@@ -259,7 +225,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// enusure this app supports the authorization_code flow
-	if !funk.Contains(app.AllowedGrants, "authorization_code") {
+	if !contains(app.AllowedGrants, "authorization_code") {
 		s.writeError(w, http.StatusForbidden, "authorization_code grant not permitted")
 		return
 	}
@@ -269,7 +235,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ensure the redirect uri is allowed
-	if !funk.Contains(app.RedirectUris, *params.RedirectURI) {
+	if !contains(app.RedirectUris, *params.RedirectURI) {
 		s.writeError(w, http.StatusForbidden, "unauthorized redirect uri")
 		return
 	}
@@ -286,7 +252,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ensure the login uri is allowed
-	if !funk.Contains(app.LoginUris, *params.LoginURI) {
+	if !contains(app.LoginUris, *params.LoginURI) {
 		s.log.Errorln(err)
 
 		s.redirectError(w, u, map[string]string{
@@ -311,7 +277,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check the scope against the app and audience
-	if !checkScope(params.Scope, app.Permissions, aud.Permissions) {
+	if !every(app.Permissions, params.Scope...) {
 		s.redirectError(w, u, map[string]string{
 			"error":             "access_denied",
 			"error_description": "insufficient permissions",
@@ -320,7 +286,16 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &types.AuthRequest{
+	if !every(aud.Permissions, params.Scope...) {
+		s.redirectError(w, u, map[string]string{
+			"error":             "access_denied",
+			"error_description": "insufficient permissions",
+		})
+
+		return
+	}
+
+	req := &oauth.AuthRequest{
 		ClientID:            params.ClientID,
 		RedirectURI:         *params.RedirectURI,
 		Scope:               params.Scope,
@@ -363,7 +338,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		authCode := &types.AuthCode{
+		authCode := &oauth.AuthCode{
 			AuthRequest: *req,
 			Subject:     state.Subject,
 			SessionID:   session.ID,
@@ -392,17 +367,17 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, u.String(), http.StatusFound)
 
 		return
-	} else {
-		if err := s.destroySession(w, r); err != nil {
-			s.log.Errorln(err)
+	}
 
-			s.redirectError(w, u, map[string]string{
-				"error":             "server_error",
-				"error_description": err.Error(),
-			})
+	if err := s.destroySession(w, r); err != nil {
+		s.log.Errorln(err)
 
-			return
-		}
+		s.redirectError(w, u, map[string]string{
+			"error":             "server_error",
+			"error_description": err.Error(),
+		})
+
+		return
 	}
 
 	u, err = url.Parse(*params.LoginURI)
@@ -475,16 +450,16 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bearer := &types.BearerToken{
+	bearer := &oauth.BearerToken{
 		TokenType: "bearer",
 	}
 
-	if !funk.Contains(app.AllowedGrants, params.GrantType) {
+	if !contains(app.AllowedGrants, params.GrantType) {
 		s.writeError(w, http.StatusForbidden, "unauthorized grant")
 		return
 	}
 
-	var aud *types.Audience
+	var aud *oauth.Audience
 
 	signToken := func(claims jwt.MapClaims) (string, error) {
 		var token *jwt.Token
@@ -504,7 +479,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		return token.SignedString(key)
 	}
 
-	var code *types.AuthCode
+	var code *oauth.AuthCode
 
 	switch params.GrantType {
 	case oauth.GrantTypeClientCredentials:
@@ -513,7 +488,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !funk.Every(app.Permissions, wrap(params.Scope)...) {
+		if !every(app.Permissions, params.Scope...) {
 			s.writeError(w, http.StatusForbidden, "bad scope")
 			return
 		}
@@ -642,14 +617,24 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// check the scope against the code
-		if !funk.Every(code.Scope, wrap(params.Scope)...) {
+		if !every(code.Scope, params.Scope...) {
 			s.writeError(w, http.StatusForbidden, "invalid scope")
 
 			return
 		}
 
 		// check the scope against the app, audience and user permissions
-		if !checkScope(params.Scope, app.Permissions, aud.Permissions, user.Permissions) {
+		if !every(app.Permissions, params.Scope...) {
+			s.writeError(w, http.StatusForbidden, "invalid scope")
+
+			return
+		}
+		if !every(aud.Permissions, params.Scope...) {
+			s.writeError(w, http.StatusForbidden, "invalid scope")
+
+			return
+		}
+		if !every(user.Permissions, params.Scope...) {
 			s.writeError(w, http.StatusForbidden, "invalid scope")
 
 			return
@@ -677,7 +662,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		bearer.ExpiresIn = int64(exp - time.Now().Unix())
 
 		// check for offline_access
-		if funk.Contains(params.Scope, oauth.ScopeOffline) {
+		if contains(params.Scope, oauth.ScopeOffline) {
 			if params.RefreshNonce == nil || code.RefreshNonce == *params.RefreshNonce {
 				s.writeError(w, http.StatusForbidden, "invalid refresh nonce")
 				return
@@ -697,7 +682,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// check for id token request
-		if funk.Contains(params.Scope, oauth.ScopeOpenID) {
+		if contains(params.Scope, oauth.ScopeOpenID) {
 			claims := jwt.MapClaims{
 				"iat":       time.Now().Unix(),
 				"auth_time": state.CreatedAt,
@@ -708,7 +693,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 				"name":      user.Profile.Name,
 			}
 
-			if funk.Contains(params.Scope, oauth.ScopeProfile) {
+			if contains(params.Scope, oauth.ScopeProfile) {
 				dec, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 					TagName: "json",
 					Result:  &claims,
@@ -760,7 +745,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ensure the redirect uri is allowed
-	if !funk.Contains(app.LogoutUris, *params.LogoutURI) {
+	if !contains(app.LogoutUris, *params.LogoutURI) {
 		s.writeError(w, http.StatusForbidden, "unauthorized log out uri")
 		return
 	}
@@ -829,7 +814,7 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, user.Profile, true)
 }
 
-func (s *Server) getSession(r *http.Request) (*sessions.Session, *types.Session, error) {
+func (s *Server) getSession(r *http.Request) (*sessions.Session, *oauth.Session, error) {
 	c, err := s.sessions.Get(r, s.sessionCookie)
 	if err != nil {
 		return nil, nil, err
@@ -838,39 +823,39 @@ func (s *Server) getSession(r *http.Request) (*sessions.Session, *types.Session,
 	// check the session activity timeout
 	val, ok := c.Values["timeout"]
 	if !ok {
-		return c, &types.Session{}, nil
+		return c, &oauth.Session{}, nil
 	}
 
 	// ensure the token
 	to, ok := val.(sessionToken)
 	if ok {
 		if time.Unix(to.Timeout, 0).Before(time.Now()) {
-			return c, &types.Session{}, nil
+			return c, &oauth.Session{}, nil
 		}
 	} else {
-		return c, &types.Session{}, nil
+		return c, &oauth.Session{}, nil
 	}
 
 	// check for the state
 	val, ok = c.Values["state"]
 	if !ok {
-		return c, &types.Session{}, nil
+		return c, &oauth.Session{}, nil
 	}
 
 	// ensure the session object
-	state, ok := val.(types.Session)
+	state, ok := val.(oauth.Session)
 	if !ok {
-		return c, &types.Session{}, nil
+		return c, &oauth.Session{}, nil
 	}
 
 	// sanity check the token and the state
 	if state.ID != to.SessionID {
-		return c, &types.Session{}, nil
+		return c, &oauth.Session{}, nil
 	}
 
 	// sanity check the session expiration
 	if time.Unix(state.ExpiresAt, 0).Before(time.Now()) {
-		return c, &types.Session{}, nil
+		return c, &oauth.Session{}, nil
 	}
 
 	return c, &state, nil
@@ -882,7 +867,7 @@ func (s *Server) destroySession(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	c.Values["state"] = &types.Session{}
+	c.Values["state"] = &oauth.Session{}
 	c.Values["timeout"] = &sessionToken{}
 	c.Options.MaxAge = -1
 

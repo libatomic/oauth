@@ -26,17 +26,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/libatomic/oauth/api/types"
 	"github.com/libatomic/oauth/pkg/memstore"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 type (
 	// Server is an API server it can be used standalone vi Server() or integrared via Handler()
 	Server struct {
-		// ctrl is the oauth.Controller interface the server uses to complete requests
+		// ctrl is the auth.Controller interface the server uses to complete requests
 		ctrl oauth.Controller
 
 		// codes is the authcode store for the server
@@ -71,7 +69,7 @@ type (
 
 func init() {
 	// register the session type so the store can encode/decode it
-	gob.Register(types.Session{})
+	gob.Register(oauth.Session{})
 	gob.Register(sessionToken{})
 }
 
@@ -179,7 +177,7 @@ func WithAddr(addr string) Option {
 			s.addr = addr
 		}
 	}
-}
+} 
 
 // WithSessionStore sets the session store
 func WithSessionStore(store sessions.Store) Option {
@@ -241,7 +239,7 @@ func (s *Server) Router() *mux.Router {
 	return s.router
 }
 
-// AuthorizeRequest implements the oauth.Authorizer interface
+// AuthorizeRequest implements the auth.Authorizer interface
 func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, error) {
 	var claims jwt.MapClaims
 
@@ -277,7 +275,7 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 
 	allowed := false
 	for _, s := range scope {
-		if funk.Every(scopes, wrap(s)...) {
+		if every(scopes, s...) {
 			allowed = true
 			break
 		}
@@ -306,7 +304,7 @@ func (s *Server) writeJSON(w http.ResponseWriter, status int, v interface{}, pre
 }
 
 func (s *Server) writeError(w http.ResponseWriter, status int, format string, args ...interface{}) {
-	err := types.ErrorResponse{
+	err := oauth.ErrorResponse{
 		Message: fmt.Sprintf(format, args...),
 	}
 

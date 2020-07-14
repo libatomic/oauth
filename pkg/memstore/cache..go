@@ -32,12 +32,13 @@ import (
 	"time"
 )
 
+// Item is an internal cache item
 type Item struct {
 	Object     interface{}
 	Expiration int64
 }
 
-// Returns true if the item has expired.
+// Expired returns true if the item has expired.
 func (item Item) Expired() bool {
 	if item.Expiration == 0 {
 		return false

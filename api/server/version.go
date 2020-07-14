@@ -17,7 +17,7 @@ import (
 
 const (
 	// Name the server name
-	Name = "libatomic-Oauth"
+	Name = "libatomic-oauth"
 
 	// Version is the binary version
 	Version = "1.0.0"

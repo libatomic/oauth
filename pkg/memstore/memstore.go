@@ -6,14 +6,13 @@
  * workspace for details.
  */
 
-// Package memstore provides an in-memory oauth.CodeStore implementation
+// Package memstore provides an in-memory auth.CodeStore implementation
 package memstore
 
 import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/libatomic/oauth/api/types"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/mr-tron/base58"
 )
@@ -32,7 +31,7 @@ func New(defaultExpiration, cleanupInterval time.Duration) oauth.CodeStore {
 }
 
 // CodeCreate creates a new authcode from the request
-func (m *memstore) CodeCreate(authCode *types.AuthCode) error {
+func (m *memstore) CodeCreate(authCode *oauth.AuthCode) error {
 	code, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -57,13 +56,13 @@ func (m *memstore) CodeCreate(authCode *types.AuthCode) error {
 }
 
 // CodeGet returns a code from the store
-func (m *memstore) CodeGet(code string) (*types.AuthCode, error) {
+func (m *memstore) CodeGet(code string) (*oauth.AuthCode, error) {
 	authCode, ok := m.Get(code)
 	if !ok {
 		return nil, oauth.ErrCodeNotFound
 	}
 
-	return authCode.(*types.AuthCode), nil
+	return authCode.(*oauth.AuthCode), nil
 }
 
 // CodeDestroy removes a code from the store
