@@ -43,21 +43,25 @@ type AuthorizeParams struct {
 	  In: query
 	*/
 	AppURI *string
+
 	/*
 	  Required: true
 	  In: query
 	*/
 	Audience string
+
 	/*The client id
 	  Required: true
 	  In: query
 	*/
 	ClientID string
+
 	/*The generated challenge from the code_verifier.
 	  Required: true
 	  In: query
 	*/
 	CodeChallenge string
+
 	/*The method used to generate the challenge. The PKCE RFC defines two methods, S256 and plain;
 	however, the authentication serivce supports only S256.
 
@@ -65,21 +69,25 @@ type AuthorizeParams struct {
 	  Default: "S256"
 	*/
 	CodeChallengeMethod *string
+
 	/*The URL to which the authentication server redirects the browser after authorization has been granted by the user
 	  In: query
 	*/
 	RedirectURI *string
+
 	/*The authorization code response type
 	  Required: true
 	  In: query
 	*/
 	ResponseType string
+
 	/*The requested scopes, if empty will request all the user permissions.
 
 	  In: query
 	  Collection Format: ssv
 	*/
 	Scope []string
+
 	/*Opaque state returned the redirect uri
 	  In: query
 	*/
@@ -90,7 +98,7 @@ type AuthorizeParams struct {
 // for simple values it will use straight method calls.
 //
 // To ensure default values, the struct must have been initialized with NewAuthorizeParams() beforehand.
-func (o *AuthorizeParams) BindRequest(r *http.Request) error {
+func (o *AuthorizeParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	fmts := strfmt.NewFormats()

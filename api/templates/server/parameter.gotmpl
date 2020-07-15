@@ -294,9 +294,6 @@ import (
   "github.com/go-openapi/strfmt"
   "github.com/go-openapi/swag"
   "github.com/go-openapi/validate"
-
-  {{ imports .DefaultImports }}
-  {{ imports .Imports }}
 )
 
 // New{{ pascalize .Name }}Params creates a new {{ pascalize .Name }}Params object
@@ -370,7 +367,8 @@ type {{ pascalize .Name }}Params struct {
   Collection Format: {{ .CollectionFormat }}{{ end }}{{ if .HasDefault }}
   Default: {{ printf "%#v" .Default }}{{ end }}
   */
-  {{ if not .Schema }}{{ pascalize .ID }} {{ if and (not .IsArray) (not .HasDiscriminator) (not .IsInterface) (not .IsStream) .IsNullable }}*{{ end }}{{.GoType}}{{ else }}{{ pascalize .Name }} {{ if and (not .Schema.IsBaseType) .IsNullable (not .Schema.IsStream) }}*{{ end }}{{.GoType}}{{ end }}
+  {{ if not .Schema }}{{ pascalize .ID }} {{ if and (not .IsArray) (not .HasDiscriminator) (not .IsInterface) (not .IsStream) .IsNullable }}*{{ end }}{{.GoType}}
+  {{ else }}{{ pascalize .Name }} {{ if and (not .Schema.IsBaseType) .IsNullable (not .Schema.IsStream) }}*{{ end }}{{.GoType}}{{ end }}
   {{ end}}
 }
 
@@ -378,7 +376,7 @@ type {{ pascalize .Name }}Params struct {
 // for simple values it will use straight method calls.
 //
 // To ensure default values, the struct must have been initialized with New{{ pascalize .Name }}Params() beforehand.
-func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Request) error {
+func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Request, c...runtime.Consumer) error {
   var res []error
 
   {{ if or .HasQueryParams .HasFormParams .HasFormValueParams }}
@@ -447,7 +445,11 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
   }
   {{ end }}{{ end }}
   {{ if and .IsBodyParam .Schema -}}
-  if runtime.HasBody(r) {
+   if runtime.HasBody(r) && len(c)  > 0 {
+    route := middleware.MatchedRoute{
+    Consumer: c[0],
+  }
+  route.Formats = strfmt.NewFormats()
     {{- if .Schema.IsStream }}
     {{ .ReceiverName }}.{{ pascalize .Name }} = r.Body
     {{- else }}
@@ -462,7 +464,7 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
         {{- end }}
     res = append(res, err)
     {{- else }}
-    var body {{ .GoType }}
+    var body {{.GoType }}
     if err := route.Consumer.Consume(r.Body, &body); err != nil {
         {{- if .Required }}
       if err == io.EOF {

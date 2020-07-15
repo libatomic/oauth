@@ -35,25 +35,36 @@ type SignupParams struct {
 	  In: formData
 	*/
 	CodeVerifier string
+
 	/*The user's email address
 	  Required: true
 	  In: formData
 	*/
 	Email strfmt.Email
+
+	/*Inivitation codes allow for users to sign up when public sign up is disabled.
+
+	  In: formData
+	*/
+	InviteCode *string
+
 	/*The user's login
 	  Required: true
 	  In: formData
 	*/
 	Login string
+
 	/*The user's full name
 	  In: formData
 	*/
 	Name *string
+
 	/*The user's password
 	  Required: true
 	  In: formData
 	*/
 	Password string
+
 	/*"The authorization request token"
 
 	  Required: true
@@ -66,7 +77,7 @@ type SignupParams struct {
 // for simple values it will use straight method calls.
 //
 // To ensure default values, the struct must have been initialized with NewSignupParams() beforehand.
-func (o *SignupParams) BindRequest(r *http.Request) error {
+func (o *SignupParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	fmts := strfmt.NewFormats()
@@ -89,6 +100,11 @@ func (o *SignupParams) BindRequest(r *http.Request) error {
 
 	fdEmail, fdhkEmail, _ := fds.GetOK("email")
 	if err := o.bindEmail(fdEmail, fdhkEmail, fmts); err != nil {
+		res = append(res, err)
+	}
+
+	fdInviteCode, fdhkInviteCode, _ := fds.GetOK("invite_code")
+	if err := o.bindInviteCode(fdInviteCode, fdhkInviteCode, fmts); err != nil {
 		res = append(res, err)
 	}
 
@@ -175,6 +191,24 @@ func (o *SignupParams) validateEmail(formats strfmt.Registry) error {
 	if err := validate.FormatOf("email", "formData", "email", o.Email.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindInviteCode binds and validates parameter InviteCode from formData.
+func (o *SignupParams) bindInviteCode(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.InviteCode = &raw
+
 	return nil
 }
 

@@ -214,15 +214,15 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
-	if !s.allowSignup {
-		s.writeError(w, http.StatusForbidden, "user self-registration disabled")
-		return
-	}
-
 	params := auth.NewSignupParams()
 
 	if err := params.BindRequest(r); err != nil {
 		s.writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if !s.allowSignup && params.InviteCode == nil {
+		s.writeError(w, http.StatusForbidden, "user self-registration disabled")
 		return
 	}
 
@@ -245,7 +245,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if err := s.ctrl.UserCreate(user, params.Password); err != nil {
+	if err := s.ctrl.UserCreate(user, params.Password, safestr(params.InviteCode)); err != nil {
 		s.writeErr(w, http.StatusBadRequest, err)
 		return
 	}

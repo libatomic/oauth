@@ -51,8 +51,8 @@ type (
 		// This function should return the user object or error
 		UserAuthenticate(login string, password string) (*User, error)
 
-		// UserCreate will create the user
-		UserCreate(user *User, password string) error
+		// UserCreate will create the user, optionally validating the invite code
+		UserCreate(user *User, password string, invite ...string) error
 
 		// UserVerify will verify the user's email address
 		UserVerify(id string, code string) error

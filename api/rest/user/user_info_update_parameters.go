@@ -10,8 +10,9 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
-
-	"github.com/libatomic/oauth/api/models"
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/libatomic/oauth/pkg/oauth"
 )
 
 // NewUserInfoUpdateParams creates a new UserInfoUpdateParams object
@@ -33,21 +34,25 @@ type UserInfoUpdateParams struct {
 	/*The new profile
 	  In: body
 	*/
-	Profile *models.Profile
+	Profile *oauth.Profile
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
 // To ensure default values, the struct must have been initialized with NewUserInfoUpdateParams() beforehand.
-func (o *UserInfoUpdateParams) BindRequest(r *http.Request) error {
+func (o *UserInfoUpdateParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	o.HTTPRequest = r
 
-	if runtime.HasBody(r) {
+	if runtime.HasBody(r) && len(c) > 0 {
+		route := middleware.MatchedRoute{
+			Consumer: c[0],
+		}
+		route.Formats = strfmt.NewFormats()
 		defer r.Body.Close()
-		var body models.Profile
+		var body oauth.Profile
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			res = append(res, errors.NewParseError("profile", "body", "", err))
 		} else {

@@ -653,6 +653,11 @@ paths:
           type: "string"
           description: "The user's full name"
           in: "formData"
+        - name: "invite_code"
+          type: "string"
+          description: |
+            Inivitation codes allow for users to sign up when public sign up is disabled.
+          in: "formData"
         - name: "code_verifier"
           type: "string"
           description: "The PKCE code verifier"

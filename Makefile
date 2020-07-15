@@ -4,7 +4,7 @@ api-gen: ## generate the api type structs
 		-w /go/src/github.com/libatomic/oauth \
 		--entrypoint hack/generate-swagger-api.sh \
 		-e GOPATH=/go \
-		quay.io/goswagger/swagger
+		registry.gitlab.com/modelrocket/go-swagger
 	
 .PHONY: api-docs
 api-docs: ## preview the API documentation

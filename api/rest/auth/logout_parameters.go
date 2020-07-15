@@ -35,10 +35,12 @@ type LogoutParams struct {
 	  In: query
 	*/
 	ClientID string
+
 	/*The uri to redirect to after logout
 	  In: query
 	*/
 	RedirectURI *string
+
 	/*Logout state
 	  In: query
 	*/
@@ -49,7 +51,7 @@ type LogoutParams struct {
 // for simple values it will use straight method calls.
 //
 // To ensure default values, the struct must have been initialized with NewLogoutParams() beforehand.
-func (o *LogoutParams) BindRequest(r *http.Request) error {
+func (o *LogoutParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	fmts := strfmt.NewFormats()

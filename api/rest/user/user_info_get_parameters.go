@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 )
 
 // NewUserInfoGetParams creates a new UserInfoGetParams object
@@ -32,7 +33,7 @@ type UserInfoGetParams struct {
 // for simple values it will use straight method calls.
 //
 // To ensure default values, the struct must have been initialized with NewUserInfoGetParams() beforehand.
-func (o *UserInfoGetParams) BindRequest(r *http.Request) error {
+func (o *UserInfoGetParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	o.HTTPRequest = r

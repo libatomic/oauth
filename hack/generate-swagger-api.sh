@@ -15,7 +15,7 @@ swagger generate model -f api/swagger.yaml \
 	-n User
 
 swagger generate operation -f api/swagger.yaml \
-	-t api -a rest -C api/swagger-gen.yaml \
+	-t api -a rest -m oauth -C api/swagger-gen.yaml \
 	-T api/templates --skip-responses --skip-url-builder \
 	-n Authorize \
 	-n Login \

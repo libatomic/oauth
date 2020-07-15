@@ -35,16 +35,19 @@ type LoginParams struct {
 	  In: formData
 	*/
 	CodeVerifier string
+
 	/*The user login
 	  Required: true
 	  In: formData
 	*/
 	Login string
+
 	/*The user password
 	  Required: true
 	  In: formData
 	*/
 	Password string
+
 	/*"The authorization request token"
 
 	  Required: true
@@ -57,7 +60,7 @@ type LoginParams struct {
 // for simple values it will use straight method calls.
 //
 // To ensure default values, the struct must have been initialized with NewLoginParams() beforehand.
-func (o *LoginParams) BindRequest(r *http.Request) error {
+func (o *LoginParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	fmts := strfmt.NewFormats()

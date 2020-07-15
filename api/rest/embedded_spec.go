@@ -409,6 +409,12 @@ func init() {
           },
           {
             "type": "string",
+            "description": "Inivitation codes allow for users to sign up when public sign up is disabled.\n",
+            "name": "invite_code",
+            "in": "formData"
+          },
+          {
+            "type": "string",
             "description": "The PKCE code verifier",
             "name": "code_verifier",
             "in": "formData",
@@ -1627,6 +1633,12 @@ func init() {
             "type": "string",
             "description": "The user's full name",
             "name": "name",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "Inivitation codes allow for users to sign up when public sign up is disabled.\n",
+            "name": "invite_code",
             "in": "formData"
           },
           {
