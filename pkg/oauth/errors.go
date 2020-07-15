@@ -29,6 +29,9 @@ var (
 	// ErrPasswordComplexity is returned if the password does not meet complexity requirements
 	ErrPasswordComplexity = errors.New("password to simple")
 
+	// ErrPasswordExpired is returned when the password has expired
+	ErrPasswordExpired = errors.New("password expired")
+
 	// ErrInvalidInviteCode is returned when an invitation code is bad
 	ErrInvalidInviteCode = errors.New("bad invite code")
 )
