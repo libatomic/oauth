@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Teralytic/oauth/api/types"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -870,13 +871,14 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
-	_, user, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
+	_, prin, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
 	if err != nil {
 		s.writeErr(w, http.StatusUnauthorized, err)
 		return
 	}
 
-	if user == nil {
+	user, ok := prin.(*types.User)
+	if !ok || user == nil {
 		s.writeError(w, http.StatusUnauthorized, "invalid token")
 		return
 	}

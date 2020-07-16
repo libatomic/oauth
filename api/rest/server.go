@@ -259,7 +259,7 @@ func (s *Server) Router() *mux.Router {
 }
 
 // AuthorizeRequest implements the auth.Authorizer interface
-func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, *oauth.User, error) {
+func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, interface{}, error) {
 	var claims jwt.MapClaims
 
 	bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -304,16 +304,23 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 		return nil, nil, oauth.ErrAccessDenied
 	}
 
-	var user *oauth.User
+	var prin interface{}
 
-	if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
-		user, err = s.ctrl.UserGet(sub)
-		if err != nil {
-			return nil, nil, oauth.ErrAccessDenied
+	if sub, ok := claims["sub"].(string); ok {
+		if !strings.HasSuffix(sub, "@applications") {
+			prin, err = s.ctrl.UserGet(sub)
+			if err != nil {
+				return nil, nil, oauth.ErrAccessDenied
+			}
+		} else {
+			prin, err = s.ctrl.ApplicationGet(strings.TrimSuffix(sub, "@applications"))
+			if err != nil {
+				return nil, nil, oauth.ErrAccessDenied
+			}
 		}
 	}
 
-	return token, user, nil
+	return token, prin, nil
 }
 
 func (s *Server) writeJSON(w http.ResponseWriter, status int, v interface{}, pretty ...bool) {
