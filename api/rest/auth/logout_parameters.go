@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
+	"github.com/gorilla/mux"
 )
 
 // NewLogoutParams creates a new LogoutParams object
@@ -67,7 +68,7 @@ func (o *LogoutParams) BindRequest(r *http.Request, c ...runtime.Consumer) error
 			if !ok {
 				return nil, false, false
 			}
-			return []string(val), true, val != ""
+			return []string{val}, true, val != ""
 		},
 	}
 

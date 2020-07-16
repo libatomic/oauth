@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+	"github.com/gorilla/mux"
 	"github.com/libatomic/oauth/pkg/oauth"
 )
 
@@ -56,7 +57,7 @@ func (o *UserInfoUpdateParams) BindRequest(r *http.Request, c ...runtime.Consume
 			if !ok {
 				return nil, false, false
 			}
-			return []string(val), true, val != ""
+			return []string{val}, true, val != ""
 		},
 	}
 

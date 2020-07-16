@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+	"github.com/gorilla/mux"
 )
 
 // NewUserInfoGetParams creates a new UserInfoGetParams object
@@ -50,7 +51,7 @@ func (o *UserInfoGetParams) BindRequest(r *http.Request, c ...runtime.Consumer) 
 			if !ok {
 				return nil, false, false
 			}
-			return []string(val), true, val != ""
+			return []string{val}, true, val != ""
 		},
 	}
 

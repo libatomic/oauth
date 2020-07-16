@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
+	"github.com/gorilla/mux"
 )
 
 // NewLoginParams creates a new LoginParams object
@@ -76,7 +77,7 @@ func (o *LoginParams) BindRequest(r *http.Request, c ...runtime.Consumer) error 
 			if !ok {
 				return nil, false, false
 			}
-			return []string(val), true, val != ""
+			return []string{val}, true, val != ""
 		},
 	}
 

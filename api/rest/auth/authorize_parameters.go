@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
+	"github.com/gorilla/mux"
 )
 
 // NewAuthorizeParams creates a new AuthorizeParams object
@@ -114,7 +115,7 @@ func (o *AuthorizeParams) BindRequest(r *http.Request, c ...runtime.Consumer) er
 			if !ok {
 				return nil, false, false
 			}
-			return []string(val), true, val != ""
+			return []string{val}, true, val != ""
 		},
 	}
 
