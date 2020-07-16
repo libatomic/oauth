@@ -101,54 +101,73 @@ type AuthorizeParams struct {
 func (o *AuthorizeParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
-	fmts := strfmt.NewFormats()
+	vars := mux.Vars(r)
+	route := struct {
+		Consumer runtime.Consumer
+		Formats  strfmt.Registry
+		GetOK    func(name string) ([]string, bool, bool)
+	}{
+		Consumer: runtime.JSONConsumer(),
+		Formats:  strfmt.NewFormats(),
+		GetOK: func(name string) ([]string, bool, bool) {
+			val, ok := vars[name]
+			if !ok {
+				return nil, false, false
+			}
+			return []string(val), true, val != ""
+		},
+	}
+
+	if len(c) > 0 {
+		route.Consumer = c[0]
+	}
 
 	o.HTTPRequest = r
 
 	qs := runtime.Values(r.URL.Query())
 
 	qAppURI, qhkAppURI, _ := qs.GetOK("app_uri")
-	if err := o.bindAppURI(qAppURI, qhkAppURI, fmts); err != nil {
+	if err := o.bindAppURI(qAppURI, qhkAppURI, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qAudience, qhkAudience, _ := qs.GetOK("audience")
-	if err := o.bindAudience(qAudience, qhkAudience, fmts); err != nil {
+	if err := o.bindAudience(qAudience, qhkAudience, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qClientID, qhkClientID, _ := qs.GetOK("client_id")
-	if err := o.bindClientID(qClientID, qhkClientID, fmts); err != nil {
+	if err := o.bindClientID(qClientID, qhkClientID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qCodeChallenge, qhkCodeChallenge, _ := qs.GetOK("code_challenge")
-	if err := o.bindCodeChallenge(qCodeChallenge, qhkCodeChallenge, fmts); err != nil {
+	if err := o.bindCodeChallenge(qCodeChallenge, qhkCodeChallenge, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qCodeChallengeMethod, qhkCodeChallengeMethod, _ := qs.GetOK("code_challenge_method")
-	if err := o.bindCodeChallengeMethod(qCodeChallengeMethod, qhkCodeChallengeMethod, fmts); err != nil {
+	if err := o.bindCodeChallengeMethod(qCodeChallengeMethod, qhkCodeChallengeMethod, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qRedirectURI, qhkRedirectURI, _ := qs.GetOK("redirect_uri")
-	if err := o.bindRedirectURI(qRedirectURI, qhkRedirectURI, fmts); err != nil {
+	if err := o.bindRedirectURI(qRedirectURI, qhkRedirectURI, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qResponseType, qhkResponseType, _ := qs.GetOK("response_type")
-	if err := o.bindResponseType(qResponseType, qhkResponseType, fmts); err != nil {
+	if err := o.bindResponseType(qResponseType, qhkResponseType, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qScope, qhkScope, _ := qs.GetOK("scope")
-	if err := o.bindScope(qScope, qhkScope, fmts); err != nil {
+	if err := o.bindScope(qScope, qhkScope, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qState, qhkState, _ := qs.GetOK("state")
-	if err := o.bindState(qState, qhkState, fmts); err != nil {
+	if err := o.bindState(qState, qhkState, route.Formats); err != nil {
 		res = append(res, err)
 	}
 

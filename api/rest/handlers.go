@@ -63,7 +63,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
-		s.writeError(w, http.StatusForbidden, "expired request token")
+		s.writeError(w, http.StatusUnauthorized, "expired request token")
 		return
 	}
 
@@ -222,7 +222,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !s.allowSignup && params.InviteCode == nil {
-		s.writeError(w, http.StatusForbidden, "user self-registration disabled")
+		s.writeError(w, http.StatusUnauthorized, "user self-registration disabled")
 		return
 	}
 
@@ -233,7 +233,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
-		s.writeError(w, http.StatusForbidden, "expired request token")
+		s.writeError(w, http.StatusUnauthorized, "expired request token")
 		return
 	}
 
@@ -271,7 +271,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 
 	// enusure this app supports the authorization_code flow
 	if !contains(app.AllowedGrants, "authorization_code") {
-		s.writeError(w, http.StatusForbidden, "authorization_code grant not permitted")
+		s.writeError(w, http.StatusUnauthorized, "authorization_code grant not permitted")
 		return
 	}
 
@@ -288,7 +288,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 
 	// ensure the redirect uri path is allowed
 	if !contains(app.RedirectUris, path.Join("/", u.Path)) {
-		s.writeError(w, http.StatusForbidden, "unauthorized redirect uri")
+		s.writeError(w, http.StatusUnauthorized, "unauthorized redirect uri")
 		return
 	}
 
@@ -514,7 +514,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !contains(app.AllowedGrants, params.GrantType) {
-		s.writeError(w, http.StatusForbidden, "unauthorized grant")
+		s.writeError(w, http.StatusUnauthorized, "unauthorized grant")
 		return
 	}
 
@@ -543,17 +543,17 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 	switch params.GrantType {
 	case oauth.GrantTypeClientCredentials:
 		if params.ClientSecret == nil || *params.ClientSecret != app.ClientSecret {
-			s.writeError(w, http.StatusForbidden, "bad client secret")
+			s.writeError(w, http.StatusUnauthorized, "bad client secret")
 			return
 		}
 
 		if !every(app.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusForbidden, "bad scope")
+			s.writeError(w, http.StatusUnauthorized, "bad scope")
 			return
 		}
 
 		if params.Audience == nil {
-			s.writeError(w, http.StatusForbidden, "missing audience")
+			s.writeError(w, http.StatusUnauthorized, "missing audience")
 			return
 		}
 
@@ -592,7 +592,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		code, err = s.codes.CodeGet(*params.RefreshToken)
 		if err != nil {
-			s.writeError(w, http.StatusForbidden, "invalid refresh token")
+			s.writeError(w, http.StatusUnauthorized, "invalid refresh token")
 			return
 		}
 
@@ -607,7 +607,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 		if code.RefreshNonce != check {
-			s.writeError(w, http.StatusForbidden, "token validation failed")
+			s.writeError(w, http.StatusUnauthorized, "token validation failed")
 			return
 		}
 
@@ -622,7 +622,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 			code, err = s.codes.CodeGet(*params.Code)
 			if err != nil {
-				s.writeError(w, http.StatusForbidden, "invalid code")
+				s.writeError(w, http.StatusUnauthorized, "invalid code")
 				return
 			}
 
@@ -663,7 +663,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if state.ID == "" {
-			s.writeError(w, http.StatusForbidden, "session does not exist")
+			s.writeError(w, http.StatusUnauthorized, "session does not exist")
 			return
 		}
 
@@ -671,7 +671,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.log.Errorln(err)
 
-			s.writeError(w, http.StatusForbidden, err.Error())
+			s.writeError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -681,24 +681,24 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		// check the scope against the code
 		if !every(code.Scope, params.Scope...) {
-			s.writeError(w, http.StatusForbidden, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid scope")
 
 			return
 		}
 
 		// check the scope against the app, audience and user permissions
 		if !every(app.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusForbidden, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid scope")
 
 			return
 		}
 		if !every(aud.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusForbidden, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid scope")
 
 			return
 		}
 		if !every(user.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusForbidden, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid scope")
 
 			return
 		}
@@ -727,7 +727,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		// check for offline_access
 		if contains(params.Scope, oauth.ScopeOffline) {
 			if params.RefreshNonce == nil || code.RefreshNonce == *params.RefreshNonce {
-				s.writeError(w, http.StatusForbidden, "invalid refresh nonce")
+				s.writeError(w, http.StatusUnauthorized, "invalid refresh nonce")
 				return
 			}
 
@@ -781,7 +781,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		}
 
 	default:
-		s.writeError(w, http.StatusForbidden, "invalid grant type")
+		s.writeError(w, http.StatusUnauthorized, "invalid grant type")
 		return
 	}
 
@@ -815,7 +815,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 
 	// ensure the redirect uri is allowed
 	if !contains(app.AppUris, path.Join("/", u.Path)) {
-		s.writeError(w, http.StatusForbidden, "unauthorized logout uri")
+		s.writeError(w, http.StatusUnauthorized, "unauthorized logout uri")
 		return
 	}
 
@@ -844,7 +844,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 	token, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
 	if err != nil {
-		s.writeErr(w, http.StatusForbidden, err)
+		s.writeErr(w, http.StatusUnauthorized, err)
 		return
 	}
 
@@ -857,12 +857,12 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if state.ID == "" {
-		s.writeError(w, http.StatusForbidden, "session does not exist")
+		s.writeError(w, http.StatusUnauthorized, "session does not exist")
 		return
 	}
 
 	if token.Claims.(jwt.MapClaims)["sub"].(string) != state.Subject {
-		s.writeError(w, http.StatusForbidden, "access denied")
+		s.writeError(w, http.StatusUnauthorized, "access denied")
 		return
 	}
 

@@ -54,24 +54,43 @@ type LogoutParams struct {
 func (o *LogoutParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
-	fmts := strfmt.NewFormats()
+	vars := mux.Vars(r)
+	route := struct {
+		Consumer runtime.Consumer
+		Formats  strfmt.Registry
+		GetOK    func(name string) ([]string, bool, bool)
+	}{
+		Consumer: runtime.JSONConsumer(),
+		Formats:  strfmt.NewFormats(),
+		GetOK: func(name string) ([]string, bool, bool) {
+			val, ok := vars[name]
+			if !ok {
+				return nil, false, false
+			}
+			return []string(val), true, val != ""
+		},
+	}
+
+	if len(c) > 0 {
+		route.Consumer = c[0]
+	}
 
 	o.HTTPRequest = r
 
 	qs := runtime.Values(r.URL.Query())
 
 	qClientID, qhkClientID, _ := qs.GetOK("client_id")
-	if err := o.bindClientID(qClientID, qhkClientID, fmts); err != nil {
+	if err := o.bindClientID(qClientID, qhkClientID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qRedirectURI, qhkRedirectURI, _ := qs.GetOK("redirect_uri")
-	if err := o.bindRedirectURI(qRedirectURI, qhkRedirectURI, fmts); err != nil {
+	if err := o.bindRedirectURI(qRedirectURI, qhkRedirectURI, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	qState, qhkState, _ := qs.GetOK("state")
-	if err := o.bindState(qState, qhkState, fmts); err != nil {
+	if err := o.bindState(qState, qhkState, route.Formats); err != nil {
 		res = append(res, err)
 	}
 

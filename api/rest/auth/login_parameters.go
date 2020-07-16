@@ -63,7 +63,26 @@ type LoginParams struct {
 func (o *LoginParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
-	fmts := strfmt.NewFormats()
+	vars := mux.Vars(r)
+	route := struct {
+		Consumer runtime.Consumer
+		Formats  strfmt.Registry
+		GetOK    func(name string) ([]string, bool, bool)
+	}{
+		Consumer: runtime.JSONConsumer(),
+		Formats:  strfmt.NewFormats(),
+		GetOK: func(name string) ([]string, bool, bool) {
+			val, ok := vars[name]
+			if !ok {
+				return nil, false, false
+			}
+			return []string(val), true, val != ""
+		},
+	}
+
+	if len(c) > 0 {
+		route.Consumer = c[0]
+	}
 
 	o.HTTPRequest = r
 
@@ -77,22 +96,22 @@ func (o *LoginParams) BindRequest(r *http.Request, c ...runtime.Consumer) error 
 	fds := runtime.Values(r.Form)
 
 	fdCodeVerifier, fdhkCodeVerifier, _ := fds.GetOK("code_verifier")
-	if err := o.bindCodeVerifier(fdCodeVerifier, fdhkCodeVerifier, fmts); err != nil {
+	if err := o.bindCodeVerifier(fdCodeVerifier, fdhkCodeVerifier, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdLogin, fdhkLogin, _ := fds.GetOK("login")
-	if err := o.bindLogin(fdLogin, fdhkLogin, fmts); err != nil {
+	if err := o.bindLogin(fdLogin, fdhkLogin, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdPassword, fdhkPassword, _ := fds.GetOK("password")
-	if err := o.bindPassword(fdPassword, fdhkPassword, fmts); err != nil {
+	if err := o.bindPassword(fdPassword, fdhkPassword, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdRequestToken, fdhkRequestToken, _ := fds.GetOK("request_token")
-	if err := o.bindRequestToken(fdRequestToken, fdhkRequestToken, fmts); err != nil {
+	if err := o.bindRequestToken(fdRequestToken, fdhkRequestToken, route.Formats); err != nil {
 		res = append(res, err)
 	}
 

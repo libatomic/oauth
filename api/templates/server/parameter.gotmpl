@@ -294,6 +294,7 @@ import (
   "github.com/go-openapi/strfmt"
   "github.com/go-openapi/swag"
   "github.com/go-openapi/validate"
+  "github.com/gorilla/mux"
 )
 
 // New{{ pascalize .Name }}Params creates a new {{ pascalize .Name }}Params object
@@ -379,9 +380,26 @@ type {{ pascalize .Name }}Params struct {
 func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Request, c...runtime.Consumer) error {
   var res []error
 
-  {{ if or .HasQueryParams .HasFormParams .HasFormValueParams }}
-    fmts := strfmt.NewFormats()
-  {{ end }}
+  vars := mux.Vars(r)
+  route := struct {
+    Consumer runtime.Consumer
+    Formats strfmt.Registry
+    GetOK func(name string) ([]string, bool, bool)
+  } {
+    Consumer: runtime.JSONConsumer(),
+    Formats: strfmt.NewFormats(),
+    GetOK: func(name string) ([]string, bool, bool) {
+      val, ok := vars[name]
+      if !ok {
+        return nil, false, false
+      }
+      return []string{val}, true, val != ""
+    },
+  }
+
+  if len(c) > 0 {
+    route.Consumer = c[0]
+  } 
 
   {{ .ReceiverName }}.HTTPRequest = r
 
@@ -400,14 +418,14 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
   {{ range .Params }}
   {{ if not .IsArray -}}
   {{ if .IsQueryParam }}q{{ pascalize .Name }}, qhk{{ pascalize .Name }}, _ := qs.GetOK({{ .Path }})
-  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(q{{ pascalize .Name }}, qhk{{ pascalize .Name }}, fmts); err != nil {
+  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(q{{ pascalize .Name }}, qhk{{ pascalize .Name }}, route.Formats); err != nil {
     res = append(res, err)
   }
-  {{ else if .IsPathParam }}r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, _ := route.Params.GetOK({{ .Path }})
-  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, fmts); err != nil {
+  {{ else if .IsPathParam }}r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, _ := route.GetOK({{ .Path }})
+  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, route.Formats); err != nil {
     res = append(res, err)
   }
-  {{ else if .IsHeaderParam }}if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r.Header[http.CanonicalHeaderKey({{ .Path }})], true, fmts); err != nil {
+  {{ else if .IsHeaderParam }}if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r.Header[http.CanonicalHeaderKey({{ .Path }})], true, route.Formats); err != nil {
     res = append(res, err)
   }
   {{ else if .IsFormParam -}}
@@ -422,34 +440,30 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
     {{ .ReceiverName }}.{{ pascalize .Name }} = &runtime.File{Data: {{ camelize .Name }}, Header: {{ camelize .Name }}Header}
   }
     {{ else }}fd{{ pascalize .Name }}, fdhk{{ pascalize .Name }}, _ := fds.GetOK({{ .Path }})
-  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(fd{{ pascalize .Name }}, fdhk{{ pascalize .Name }}, fmts); err != nil {
+  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(fd{{ pascalize .Name }}, fdhk{{ pascalize .Name }}, route.Formats); err != nil {
     res = append(res, err)
   }
     {{ end }}{{/* end .FileParam */}}
   {{ end }}{{/* end not .Array */}}
   {{ else if .IsArray -}}
     {{ if .IsQueryParam }}q{{ pascalize .Name }}, qhk{{ pascalize .Name }}, _ := qs.GetOK({{ .Path }})
-  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(q{{ pascalize .Name }}, qhk{{ pascalize .Name }}, fmts); err != nil {
+  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(q{{ pascalize .Name }}, qhk{{ pascalize .Name }}, route.Formats); err != nil {
     res = append(res, err)
   }
-  {{ else if .IsPathParam }}r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, _ := route.Params.GetOK({{ .Path }})
-  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, fmts); err != nil {
+  {{ else if .IsPathParam }}r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, _ := route.GetOK({{ .Path }})
+  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r{{ pascalize .Name }}, rhk{{ pascalize .Name }}, route.Formats); err != nil {
     res = append(res, err)
   }
-  {{ else if .IsHeaderParam }}if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r.Header[http.CanonicalHeaderKey({{ .Path }})], true, fmts); err != nil {
+  {{ else if .IsHeaderParam }}if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(r.Header[http.CanonicalHeaderKey({{ .Path }})], true, route.Formats); err != nil {
     res = append(res, err)
   }
   {{ else if and .IsFormParam }}fd{{ pascalize .Name }}, fdhk{{ pascalize .Name }}, _ := fds.GetOK({{ .Path }})
-  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(fd{{ pascalize .Name }}, fdhk{{ pascalize .Name }}, fmts); err != nil {
+  if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}(fd{{ pascalize .Name }}, fdhk{{ pascalize .Name }}, route.Formats); err != nil {
     res = append(res, err)
   }
   {{ end }}{{ end }}
   {{ if and .IsBodyParam .Schema -}}
-   if runtime.HasBody(r) && len(c)  > 0 {
-    route := middleware.MatchedRoute{
-    Consumer: c[0],
-  }
-  route.Formats = strfmt.NewFormats()
+   if runtime.HasBody(r) {
     {{- if .Schema.IsStream }}
     {{ .ReceiverName }}.{{ pascalize .Name }} = r.Body
     {{- else }}

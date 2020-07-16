@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/libatomic/oauth/pkg/oauth"
 )
@@ -44,13 +43,30 @@ type UserInfoUpdateParams struct {
 func (o *UserInfoUpdateParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
+	vars := mux.Vars(r)
+	route := struct {
+		Consumer runtime.Consumer
+		Formats  strfmt.Registry
+		GetOK    func(name string) ([]string, bool, bool)
+	}{
+		Consumer: runtime.JSONConsumer(),
+		Formats:  strfmt.NewFormats(),
+		GetOK: func(name string) ([]string, bool, bool) {
+			val, ok := vars[name]
+			if !ok {
+				return nil, false, false
+			}
+			return []string(val), true, val != ""
+		},
+	}
+
+	if len(c) > 0 {
+		route.Consumer = c[0]
+	}
+
 	o.HTTPRequest = r
 
-	if runtime.HasBody(r) && len(c) > 0 {
-		route := middleware.MatchedRoute{
-			Consumer: c[0],
-		}
-		route.Formats = strfmt.NewFormats()
+	if runtime.HasBody(r) {
 		defer r.Body.Close()
 		var body oauth.Profile
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {

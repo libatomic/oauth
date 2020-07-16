@@ -102,7 +102,26 @@ type TokenParams struct {
 func (o *TokenParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
-	fmts := strfmt.NewFormats()
+	vars := mux.Vars(r)
+	route := struct {
+		Consumer runtime.Consumer
+		Formats  strfmt.Registry
+		GetOK    func(name string) ([]string, bool, bool)
+	}{
+		Consumer: runtime.JSONConsumer(),
+		Formats:  strfmt.NewFormats(),
+		GetOK: func(name string) ([]string, bool, bool) {
+			val, ok := vars[name]
+			if !ok {
+				return nil, false, false
+			}
+			return []string(val), true, val != ""
+		},
+	}
+
+	if len(c) > 0 {
+		route.Consumer = c[0]
+	}
 
 	o.HTTPRequest = r
 
@@ -116,52 +135,52 @@ func (o *TokenParams) BindRequest(r *http.Request, c ...runtime.Consumer) error 
 	fds := runtime.Values(r.Form)
 
 	fdAudience, fdhkAudience, _ := fds.GetOK("audience")
-	if err := o.bindAudience(fdAudience, fdhkAudience, fmts); err != nil {
+	if err := o.bindAudience(fdAudience, fdhkAudience, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdClientID, fdhkClientID, _ := fds.GetOK("client_id")
-	if err := o.bindClientID(fdClientID, fdhkClientID, fmts); err != nil {
+	if err := o.bindClientID(fdClientID, fdhkClientID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdClientSecret, fdhkClientSecret, _ := fds.GetOK("client_secret")
-	if err := o.bindClientSecret(fdClientSecret, fdhkClientSecret, fmts); err != nil {
+	if err := o.bindClientSecret(fdClientSecret, fdhkClientSecret, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdCode, fdhkCode, _ := fds.GetOK("code")
-	if err := o.bindCode(fdCode, fdhkCode, fmts); err != nil {
+	if err := o.bindCode(fdCode, fdhkCode, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdCodeVerifier, fdhkCodeVerifier, _ := fds.GetOK("code_verifier")
-	if err := o.bindCodeVerifier(fdCodeVerifier, fdhkCodeVerifier, fmts); err != nil {
+	if err := o.bindCodeVerifier(fdCodeVerifier, fdhkCodeVerifier, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdGrantType, fdhkGrantType, _ := fds.GetOK("grant_type")
-	if err := o.bindGrantType(fdGrantType, fdhkGrantType, fmts); err != nil {
+	if err := o.bindGrantType(fdGrantType, fdhkGrantType, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdRefreshNonce, fdhkRefreshNonce, _ := fds.GetOK("refresh_nonce")
-	if err := o.bindRefreshNonce(fdRefreshNonce, fdhkRefreshNonce, fmts); err != nil {
+	if err := o.bindRefreshNonce(fdRefreshNonce, fdhkRefreshNonce, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdRefreshToken, fdhkRefreshToken, _ := fds.GetOK("refresh_token")
-	if err := o.bindRefreshToken(fdRefreshToken, fdhkRefreshToken, fmts); err != nil {
+	if err := o.bindRefreshToken(fdRefreshToken, fdhkRefreshToken, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdRefreshVerifier, fdhkRefreshVerifier, _ := fds.GetOK("refresh_verifier")
-	if err := o.bindRefreshVerifier(fdRefreshVerifier, fdhkRefreshVerifier, fmts); err != nil {
+	if err := o.bindRefreshVerifier(fdRefreshVerifier, fdhkRefreshVerifier, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	fdScope, fdhkScope, _ := fds.GetOK("scope")
-	if err := o.bindScope(fdScope, fdhkScope, fmts); err != nil {
+	if err := o.bindScope(fdScope, fdhkScope, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
