@@ -287,10 +287,12 @@ definitions:
           `openid` scopes.
         format: "int64"
       permissions:
-        type: "array"
+        type: "object"
         description: "The application's authorized permissions"
-        items:
-          type: "string"
+        additionalProperties:
+          type: array
+          items:
+            type: "string"
 
   ApplicationRef:
     description: |
@@ -361,10 +363,12 @@ definitions:
           The user's login
         x-nullable: false
       permissions:
-        type: "array"
-        description: "The user's available permissions"
-        items:
-          type: "string"
+        type: "object"
+        description: "The users's authorized permissions, keyed on audience"
+        additionalProperties:
+          type: array
+          items:
+            type: "string"
       profile:
         $ref: "#/definitions/Profile"
 
@@ -489,6 +493,16 @@ definitions:
           Time the End-User's information was last updated. Its value is a JSON number representing the number of seconds from 1970-01-01T0:0:0Z
           as measured in UTC until the date/time.
         format: "int64"
+  
+  ProfileRef:
+    description: |
+      Profile reference object for go consumers
+    allOf:
+      - $ref: "#/definitions/Profile"
+    x-go-type:
+      import:
+        package: github.com/libatomic/oauth/pkg/oauth
+      type: Profile
 
   Address:
     description: "OpenID address claim as defined in section 5.1.1 of the connect core 1.0 specification"
@@ -523,6 +537,17 @@ definitions:
         type: "string"
         description: "Country name component."
         x-nullable: true
+
+  AddressRef:
+    description: |
+      Address reference object for go consumers
+    allOf:
+      - $ref: "#/definitions/Address"
+    x-go-type:
+      import:
+        package: github.com/libatomic/oauth/pkg/oauth
+      type: Address
+      
 
   ErrorResponse:
     description: "A common error response"

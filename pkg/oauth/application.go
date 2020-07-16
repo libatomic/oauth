@@ -50,7 +50,7 @@ type Application struct {
 	Name string `json:"name"`
 
 	// The application's authorized permissions
-	Permissions []string `json:"permissions"`
+	Permissions map[string][]string `json:"permissions,omitempty"`
 
 	// This is an array of the application's allowed redirect uris. These are checked
 	// in the `/login` path to ensure the redirect is allowed by the application.

@@ -765,6 +765,20 @@ func init() {
         }
       }
     },
+    "AddressRef": {
+      "description": "Address reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Address"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Address"
+      }
+    },
     "Application": {
       "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `.\n",
       "type": "object",
@@ -813,9 +827,12 @@ func init() {
         },
         "permissions": {
           "description": "The application's authorized permissions",
-          "type": "array",
-          "items": {
-            "type": "string"
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "redirect_uris": {
@@ -1160,6 +1177,20 @@ func init() {
         }
       }
     },
+    "ProfileRef": {
+      "description": "Profile reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Profile"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Profile"
+      }
+    },
     "Session": {
       "description": "A Session is a browser based session object that stores the currently authenticate user principal\n",
       "type": "object",
@@ -1201,10 +1232,13 @@ func init() {
           "x-nullable": false
         },
         "permissions": {
-          "description": "The user's available permissions",
-          "type": "array",
-          "items": {
-            "type": "string"
+          "description": "The users's authorized permissions, keyed on audience",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "profile": {
@@ -1990,6 +2024,20 @@ func init() {
         }
       }
     },
+    "AddressRef": {
+      "description": "Address reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Address"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Address"
+      }
+    },
     "Application": {
       "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `.\n",
       "type": "object",
@@ -2038,9 +2086,12 @@ func init() {
         },
         "permissions": {
           "description": "The application's authorized permissions",
-          "type": "array",
-          "items": {
-            "type": "string"
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "redirect_uris": {
@@ -2385,6 +2436,20 @@ func init() {
         }
       }
     },
+    "ProfileRef": {
+      "description": "Profile reference object for go consumers\n",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Profile"
+        }
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/libatomic/oauth/pkg/oauth"
+        },
+        "type": "Profile"
+      }
+    },
     "Session": {
       "description": "A Session is a browser based session object that stores the currently authenticate user principal\n",
       "type": "object",
@@ -2426,10 +2491,13 @@ func init() {
           "x-nullable": false
         },
         "permissions": {
-          "description": "The user's available permissions",
-          "type": "array",
-          "items": {
-            "type": "string"
+          "description": "The users's authorized permissions, keyed on audience",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "profile": {

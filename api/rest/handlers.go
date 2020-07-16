@@ -120,11 +120,21 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Scope) == 0 {
-		req.Scope = user.Permissions
+	perms, ok := user.Permissions[req.Audience]
+	if !ok {
+		s.redirectError(w, u, map[string]string{
+			"error":             "access_denied",
+			"error_description": "user authorization failed",
+		})
+
+		return
 	}
 
-	if !every(user.Permissions, req.Scope...) {
+	if len(req.Scope) == 0 {
+		req.Scope = perms
+	}
+
+	if !every(perms, req.Scope...) {
 		s.redirectError(w, u, map[string]string{
 			"error":             "access_denied",
 			"error_description": "user authorization failed",
@@ -335,7 +345,8 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 
 	if len(params.Scope) > 0 {
 		// check the scope against the app and audience
-		if !every(app.Permissions, params.Scope...) {
+		perms, ok := app.Permissions[params.Audience]
+		if !ok || !every(perms, params.Scope...) {
 			s.redirectError(w, u, map[string]string{
 				"error":             "access_denied",
 				"error_description": "insufficient permissions",
@@ -344,6 +355,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// sanity check to ensure the audience actually has the permissions requested
 		if !every(aud.Permissions, params.Scope...) {
 			s.redirectError(w, u, map[string]string{
 				"error":             "access_denied",
@@ -547,11 +559,6 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !every(app.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "bad scope")
-			return
-		}
-
 		if params.Audience == nil {
 			s.writeError(w, http.StatusUnauthorized, "missing audience")
 			return
@@ -563,6 +570,19 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			s.log.Errorln(err)
 
 			s.writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		// sanity check to ensure the audience actually has the permissions requested
+		if !every(aud.Permissions, params.Scope...) {
+			s.writeError(w, http.StatusUnauthorized, "bad scope")
+			return
+		}
+
+		// ensure this app has these permissions
+		perms, ok := app.Permissions[*params.Audience]
+		if !ok || !every(perms, params.Scope...) {
+			s.writeError(w, http.StatusUnauthorized, "bad scope")
 			return
 		}
 
@@ -675,29 +695,37 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		perms, ok := user.Permissions[code.Audience]
 		if len(params.Scope) == 0 {
-			params.Scope = user.Permissions
+			params.Scope = perms
 		}
 
 		// check the scope against the code
-		if !every(code.Scope, params.Scope...) {
+		if !ok || !every(code.Scope, params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "invalid scope")
 
 			return
 		}
 
-		// check the scope against the app, audience and user permissions
-		if !every(app.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "invalid scope")
-
-			return
-		}
+		// sanity check to ensure the api provides these permissions
 		if !every(aud.Permissions, params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "invalid scope")
 
 			return
 		}
-		if !every(user.Permissions, params.Scope...) {
+
+		// ensure the app has access to this audience
+		perms, ok = app.Permissions[aud.Name]
+		// check the scope against the app, audience and user permissions
+		if !ok || !every(perms, params.Scope...) {
+			s.writeError(w, http.StatusUnauthorized, "invalid scope")
+
+			return
+		}
+
+		// ensure the user has access to this audience
+		perms, ok = user.Permissions[aud.Name]
+		if !ok || !every(perms, params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "invalid scope")
 
 			return

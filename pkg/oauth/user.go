@@ -23,8 +23,8 @@ type User struct {
 	// Required: true
 	Login string `json:"login"`
 
-	// The user's available permissions
-	Permissions []string `json:"permissions"`
+	// The users's authorized permissions, keyed on audience
+	Permissions map[string][]string `json:"permissions,omitempty"`
 
 	// profile
 	Profile *Profile `json:"profile,omitempty"`
