@@ -157,7 +157,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	session.Values["state"] = &oauth.Session{
 		ID:        sessionID,
 		ClientID:  req.ClientID,
-		Subject:   user.Profile.Sub,
+		Subject:   user.Profile.Subject,
 		CreatedAt: time.Now().Unix(),
 		ExpiresAt: time.Now().Add(s.sessionLifetime).Unix(),
 	}
@@ -182,7 +182,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 	authCode := &oauth.AuthCode{
 		AuthRequest:       *req,
-		Subject:           user.Profile.Sub,
+		Subject:           user.Profile.Subject,
 		SessionID:         session.ID,
 		UserAuthenticated: true,
 	}
@@ -866,7 +866,7 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Profile == nil || user.Profile.Sub != state.Subject {
+	if user.Profile == nil || user.Profile.Subject != state.Subject {
 		s.writeError(w, http.StatusUnauthorized, "access denied")
 		return
 	}
