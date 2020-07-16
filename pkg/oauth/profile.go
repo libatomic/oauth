@@ -105,8 +105,7 @@ type Profile struct {
 
 	// Subject - Identifier for the End-User at the Issuer.
 	//
-	// Required: true
-	Sub string `json:"sub"`
+	Sub string `json:"sub,omitempty"`
 
 	// Time the End-User's information was last updated. Its value is a JSON number representing the number of seconds from 1970-01-01T0:0:0Z
 	// as measured in UTC until the date/time.
@@ -140,10 +139,6 @@ func (m *Profile) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProfile(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateSub(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -204,15 +199,6 @@ func (m *Profile) validateProfile(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("profile", "body", "uri", m.Profile.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Profile) validateSub(formats strfmt.Registry) error {
-
-	if err := validate.RequiredString("sub", "body", string(m.Sub)); err != nil {
 		return err
 	}
 

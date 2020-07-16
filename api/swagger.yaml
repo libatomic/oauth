@@ -382,13 +382,11 @@ definitions:
     description: |
       A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).
     type: "object"
-    required: ["sub"]
     properties:
       sub:
         type: "string"
         description: |
           Subject - Identifier for the End-User at the Issuer.
-        x-nullable: false
       name:
         type: "string"
         description: |

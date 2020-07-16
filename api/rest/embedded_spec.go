@@ -1071,9 +1071,6 @@ func init() {
     "Profile": {
       "description": "A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).\n",
       "type": "object",
-      "required": [
-        "sub"
-      ],
       "properties": {
         "address": {
           "$ref": "#/definitions/Address"
@@ -1145,8 +1142,7 @@ func init() {
         },
         "sub": {
           "description": "Subject - Identifier for the End-User at the Issuer.\n",
-          "type": "string",
-          "x-nullable": false
+          "type": "string"
         },
         "updated_at": {
           "description": "Time the End-User's information was last updated. Its value is a JSON number representing the number of seconds from 1970-01-01T0:0:0Z\nas measured in UTC until the date/time.\n",
@@ -2299,9 +2295,6 @@ func init() {
     "Profile": {
       "description": "A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).\n",
       "type": "object",
-      "required": [
-        "sub"
-      ],
       "properties": {
         "address": {
           "$ref": "#/definitions/Address"
@@ -2373,8 +2366,7 @@ func init() {
         },
         "sub": {
           "description": "Subject - Identifier for the End-User at the Issuer.\n",
-          "type": "string",
-          "x-nullable": false
+          "type": "string"
         },
         "updated_at": {
           "description": "Time the End-User's information was last updated. Its value is a JSON number representing the number of seconds from 1970-01-01T0:0:0Z\nas measured in UTC until the date/time.\n",
