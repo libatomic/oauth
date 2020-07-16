@@ -1142,7 +1142,8 @@ func init() {
         },
         "sub": {
           "description": "Subject - Identifier for the End-User at the Issuer.\n",
-          "type": "string"
+          "type": "string",
+          "x-go-name": "Subject"
         },
         "updated_at": {
           "description": "Time the End-User's information was last updated. Its value is a JSON number representing the number of seconds from 1970-01-01T0:0:0Z\nas measured in UTC until the date/time.\n",
@@ -2366,7 +2367,8 @@ func init() {
         },
         "sub": {
           "description": "Subject - Identifier for the End-User at the Issuer.\n",
-          "type": "string"
+          "type": "string",
+          "x-go-name": "Subject"
         },
         "updated_at": {
           "description": "Time the End-User's information was last updated. Its value is a JSON number representing the number of seconds from 1970-01-01T0:0:0Z\nas measured in UTC until the date/time.\n",

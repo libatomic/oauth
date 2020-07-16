@@ -61,7 +61,7 @@ type (
 	// Authorizer provides an interface for authorizing bearer tokens
 	// The Authorizer should ensure the scope and should return the token with jwt.MapClaims
 	Authorizer interface {
-		AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, error)
+		AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, *User, error)
 	}
 
 	// CodeStore defines an AuthCode storage interface

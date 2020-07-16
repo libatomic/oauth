@@ -387,6 +387,7 @@ definitions:
         type: "string"
         description: |
           Subject - Identifier for the End-User at the Issuer.
+        x-go-name: "Subject"
       name:
         type: "string"
         description: |

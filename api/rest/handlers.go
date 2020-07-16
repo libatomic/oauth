@@ -842,9 +842,14 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
-	token, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
+	_, user, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
 	if err != nil {
 		s.writeErr(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if user == nil {
+		s.writeError(w, http.StatusUnauthorized, "invalid token")
 		return
 	}
 
@@ -861,16 +866,8 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if token.Claims.(jwt.MapClaims)["sub"].(string) != state.Subject {
+	if user.Profile == nil || user.Profile.Sub != state.Subject {
 		s.writeError(w, http.StatusUnauthorized, "access denied")
-		return
-	}
-
-	user, err := s.ctrl.UserGet(state.Subject)
-	if err != nil {
-		s.log.Errorln(err)
-
-		s.writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
 
