@@ -6,9 +6,17 @@
  * workspace for details.
  */
 
- package rest
+package rest
 
- // AuthorizeRequest implements the auth.Authorizer interface
+import (
+	"net/http"
+	"strings"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/libatomic/oauth/pkg/oauth"
+)
+
+// AuthorizeRequest implements the auth.Authorizer interface
 func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, interface{}, error) {
 	var claims jwt.MapClaims
 
