@@ -698,7 +698,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		perms, ok := user.Permissions[code.Audience]
 		if len(params.Scope) == 0 {
-			params.Scope = perms
+			params.Scope = code.Scope
 		}
 
 		// check the scope against the code
@@ -830,6 +830,10 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.writeErr(w, http.StatusBadRequest, err)
 		return
+	}
+
+	if params.RedirectURI == nil {
+		params.RedirectURI = &app.RedirectUris[0]
 	}
 
 	u, err := url.Parse(*params.RedirectURI)
