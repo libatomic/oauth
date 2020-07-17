@@ -36,6 +36,7 @@ const (
 )
 
 type (
+
 	// Controller is the interface implemented by consumers of the auth server
 	Controller interface {
 		// ApplicationGet should return an application for the specified client id
@@ -44,12 +45,12 @@ type (
 		// AudienceGet should return an audience for the specified name
 		AudienceGet(name string) (*Audience, error)
 
-		// UserGet returns a user by subject id
-		UserGet(id string) (*User, error)
+		// UserGet returns a user by subject id along with the underlying principal
+		UserGet(id string) (*User, interface{}, error)
 
 		// UserAuthenticate authenticates a user using the login and password
-		// This function should return the user object or error
-		UserAuthenticate(login string, password string) (*User, error)
+		// This function should return an oauth user and the principal
+		UserAuthenticate(login string, password string) (*User, interface{}, error)
 
 		// UserCreate will create the user, optionally validating the invite code
 		UserCreate(user *User, password string, invite ...string) error
@@ -58,11 +59,23 @@ type (
 		UserVerify(id string, code string) error
 	}
 
+	// Context provides the oauth user and underlying principal from the authorizer
+	Context interface {
+		// Application is the client for the context
+		Application() *Application
+
+		// User is the oauth user for the context
+		User() *User
+
+		// Prinicipal is the implementor opaque principal
+		Principal() interface{}
+	}
+
 	// Authorizer provides an interface for authorizing bearer tokens
 	// The Authorizer should ensure the scope and should return the token with jwt.MapClaims
 	// The first return value is the token, the second is the princial (*User or *Application)
 	Authorizer interface {
-		AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, interface{}, error)
+		AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, Context, error)
 	}
 
 	// CodeStore defines an AuthCode storage interface

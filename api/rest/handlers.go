@@ -108,7 +108,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.ctrl.UserAuthenticate(params.Login, params.Password)
+	user, _, err := s.ctrl.UserAuthenticate(params.Login, params.Password)
 	if err != nil {
 		s.log.Errorln(err)
 
@@ -687,7 +687,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, err := s.ctrl.UserGet(state.Subject)
+		user, _, err := s.ctrl.UserGet(state.Subject)
 		if err != nil {
 			s.log.Errorln(err)
 
@@ -739,7 +739,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			"sub":   state.Subject,
 			"scope": strings.Join(params.Scope, " "),
 			"exp":   exp,
-			"azp":   state.ID,
+			"azp":   app.ClientID,
 		}
 
 		token, err := signToken(claims)
@@ -780,7 +780,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 				"aud":       aud.Name,
 				"sub":       state.Subject,
 				"exp":       time.Now().Add(time.Duration(app.TokenLifetime)).Unix(),
-				"azp":       state.ID,
+				"azp":       app.ClientID,
 				"name":      user.Profile.Name,
 			}
 
@@ -874,14 +874,13 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
-	_, prin, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
+	_, ctx, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
 	if err != nil {
 		s.writeErr(w, http.StatusUnauthorized, err)
 		return
 	}
 
-	user, ok := prin.(*oauth.User)
-	if !ok || user == nil {
+	if ctx.User() == nil {
 		s.writeError(w, http.StatusUnauthorized, "invalid token")
 		return
 	}
@@ -899,12 +898,12 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Profile == nil || user.Profile.Subject != state.Subject {
+	if ctx.User().Profile == nil || ctx.User().Profile.Subject != state.Subject {
 		s.writeError(w, http.StatusUnauthorized, "access denied")
 		return
 	}
 
-	s.writeJSON(w, http.StatusOK, user.Profile, true)
+	s.writeJSON(w, http.StatusOK, ctx.User().Profile, true)
 }
 
 func (s *Server) getSession(r *http.Request) (*sessions.Session, *oauth.Session, error) {

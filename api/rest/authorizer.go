@@ -16,8 +16,16 @@ import (
 	"github.com/libatomic/oauth/pkg/oauth"
 )
 
+type (
+	authContext struct {
+		app  *oauth.Application
+		user *oauth.User
+		prin interface{}
+	}
+)
+
 // AuthorizeRequest implements the auth.Authorizer interface
-func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, interface{}, error) {
+func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, oauth.Context, error) {
 	var claims jwt.MapClaims
 
 	bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -27,7 +35,11 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 
 		switch token.Method.(type) {
 		case *jwt.SigningMethodHMAC:
-			aud, err := s.ctrl.AudienceGet(claims["aud"].(string))
+			id, ok := claims["aud"].(string)
+			if !ok {
+				return nil, oauth.ErrAccessDenied
+			}
+			aud, err := s.ctrl.AudienceGet(id)
 			if err != nil {
 				return nil, err
 			}
@@ -62,21 +74,36 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 		return nil, nil, oauth.ErrAccessDenied
 	}
 
-	var prin interface{}
+	c := &authContext{}
 
-	if sub, ok := claims["sub"].(string); ok {
-		if !strings.HasSuffix(sub, "@applications") {
-			prin, err = s.ctrl.UserGet(sub)
-			if err != nil {
-				return nil, nil, oauth.ErrAccessDenied
-			}
-		} else {
-			prin, err = s.ctrl.ApplicationGet(strings.TrimSuffix(sub, "@applications"))
-			if err != nil {
-				return nil, nil, oauth.ErrAccessDenied
-			}
+	if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
+		user, prin, err := s.ctrl.UserGet(sub)
+		if err != nil {
+			return nil, nil, oauth.ErrAccessDenied
 		}
+		c.user = user
+		c.prin = prin
 	}
 
-	return token, prin, nil
+	if azp, ok := claims["azp"].(string); ok {
+		app, err := s.ctrl.ApplicationGet(azp)
+		if err != nil {
+			return nil, nil, oauth.ErrAccessDenied
+		}
+		c.app = app
+	}
+
+	return token, c, nil
+}
+
+func (c *authContext) User() *oauth.User {
+	return c.user
+}
+
+func (c *authContext) Application() *oauth.Application {
+	return c.app
+}
+
+func (c *authContext) Principal() interface{} {
+	return c.prin
 }
