@@ -55,6 +55,9 @@ type (
 		// UserCreate will create the user, optionally validating the invite code
 		UserCreate(user *User, password string, invite ...string) error
 
+		// UserUpdate is used mainly to update user profiles
+		UserUpdate(user *User) error
+
 		// UserVerify will verify the user's email address
 		UserVerify(id string, code string) error
 

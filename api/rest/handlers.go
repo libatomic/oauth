@@ -27,6 +27,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/libatomic/oauth/api/rest/auth"
+	"github.com/libatomic/oauth/api/rest/user"
 	"github.com/libatomic/oauth/pkg/oauth"
 
 	"github.com/mitchellh/mapstructure"
@@ -905,6 +906,49 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	u.RawQuery = q.Encode()
 
 	http.Redirect(w, r, u.String(), http.StatusFound)
+}
+
+func (s *Server) userInfoUpdate(w http.ResponseWriter, r *http.Request) {
+	params := user.NewUserInfoUpdateParams()
+
+	if err := params.BindRequest(r); err != nil {
+		s.writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, ctx, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
+	if err != nil {
+		s.writeErr(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if ctx.User() == nil {
+		s.writeError(w, http.StatusUnauthorized, "invalid token")
+		return
+	}
+
+	_, state, err := s.getSession(r)
+	if err != nil {
+		s.log.Errorln(err)
+
+		s.writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if state.ID == "" {
+		s.writeError(w, http.StatusUnauthorized, "session does not exist")
+		return
+	}
+
+	user := ctx.User()
+	user.Profile = params.Profile
+
+	if err := s.ctrl.UserUpdate(user); err != nil {
+		s.writeError(w, http.StatusUnauthorized, "access denied")
+		return
+	}
+
+	s.writeJSON(w, http.StatusOK, user.Profile, true)
 }
 
 func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
