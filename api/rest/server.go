@@ -210,6 +210,13 @@ func WithAllowSignup(allow bool) Option {
 	}
 }
 
+// WithSessionCookieName sets the session cookie name
+func WithSessionCookieName(name string) Option {
+	return func(s *Server) {
+		s.sessionCookie = name
+	}
+}
+
 // Serve starts the http server
 func (s *Server) Serve() error {
 	s.lock.Lock()
