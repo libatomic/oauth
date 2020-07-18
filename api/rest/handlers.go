@@ -596,6 +596,22 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		claims["iat"] = time.Now().Unix()
 		claims["scope"] = strings.Join(params.Scope, " ")
 
+		if err := s.ctrl.TokenFinalize(
+			&authContext{
+				app: app,
+				aud: aud,
+			},
+			params.Scope,
+			claims,
+		); err != nil {
+			if err == oauth.ErrAccessDenied {
+				s.writeErr(w, http.StatusUnauthorized, err)
+			} else {
+				s.writeErr(w, http.StatusBadRequest, err)
+			}
+			return
+		}
+
 		token, err := signToken(claims)
 		if err != nil {
 			s.writeErr(w, http.StatusInternalServerError, err)
@@ -687,7 +703,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, _, err := s.ctrl.UserGet(state.Subject)
+		user, prin, err := s.ctrl.UserGet(state.Subject)
 		if err != nil {
 			s.log.Errorln(err)
 
@@ -740,6 +756,24 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			"scope": strings.Join(params.Scope, " "),
 			"exp":   exp,
 			"azp":   app.ClientID,
+		}
+
+		if err := s.ctrl.TokenFinalize(
+			&authContext{
+				user: user,
+				prin: prin,
+				app:  app,
+				aud:  aud,
+			},
+			params.Scope,
+			claims,
+		); err != nil {
+			if err == oauth.ErrAccessDenied {
+				s.writeErr(w, http.StatusUnauthorized, err)
+			} else {
+				s.writeErr(w, http.StatusBadRequest, err)
+			}
+			return
 		}
 
 		token, err := signToken(claims)

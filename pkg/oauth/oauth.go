@@ -57,12 +57,18 @@ type (
 
 		// UserVerify will verify the user's email address
 		UserVerify(id string, code string) error
+
+		// TokenFinalize allows the controller to modify any tokens before being returned
+		TokenFinalize(ctx Context, scope []string, claims map[string]interface{}) error
 	}
 
 	// Context provides the oauth user and underlying principal from the authorizer
 	Context interface {
 		// Application is the client for the context
 		Application() *Application
+
+		// Audience is the context audience
+		Audience() *Audience
 
 		// User is the oauth user for the context
 		User() *User

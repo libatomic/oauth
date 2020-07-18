@@ -19,6 +19,7 @@ import (
 type (
 	authContext struct {
 		app  *oauth.Application
+		aud  *oauth.Audience
 		user *oauth.User
 		prin interface{}
 	}
@@ -27,6 +28,8 @@ type (
 // AuthorizeRequest implements the auth.Authorizer interface
 func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, oauth.Context, error) {
 	var claims jwt.MapClaims
+	var err error
+	var aud *oauth.Audience
 
 	bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
@@ -39,7 +42,7 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 			if !ok {
 				return nil, oauth.ErrAccessDenied
 			}
-			aud, err := s.ctrl.AudienceGet(id)
+			aud, err = s.ctrl.AudienceGet(id)
 			if err != nil {
 				return nil, err
 			}
@@ -60,6 +63,16 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 		return nil, nil, oauth.ErrInvalidToken
 	}
 
+	if aud == nil {
+		id, ok := claims["aud"].(string)
+		if !ok {
+			return nil, nil, oauth.ErrAccessDenied
+		}
+		aud, err = s.ctrl.AudienceGet(id)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	scopes := strings.Fields(claims["scope"].(string))
 
 	allowed := false
@@ -74,7 +87,9 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 		return nil, nil, oauth.ErrAccessDenied
 	}
 
-	c := &authContext{}
+	c := &authContext{
+		aud: aud,
+	}
 
 	if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
 		user, prin, err := s.ctrl.UserGet(sub)
@@ -98,6 +113,10 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 
 func (c *authContext) User() *oauth.User {
 	return c.user
+}
+
+func (c *authContext) Audience() *oauth.Audience {
+	return c.aud
 }
 
 func (c *authContext) Application() *oauth.Application {
