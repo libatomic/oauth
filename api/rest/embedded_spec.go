@@ -1277,6 +1277,11 @@ func init() {
           "type": "string",
           "x-nullable": false
         },
+        "password_expires_at": {
+          "description": "The time the user password expirts",
+          "type": "string",
+          "format": "date-time"
+        },
         "permissions": {
           "description": "The users's authorized permissions, keyed on audience",
           "type": "object",
@@ -2581,6 +2586,11 @@ func init() {
           "description": "The user's login\n",
           "type": "string",
           "x-nullable": false
+        },
+        "password_expires_at": {
+          "description": "The time the user password expirts",
+          "type": "string",
+          "format": "date-time"
         },
         "permissions": {
           "description": "The users's authorized permissions, keyed on audience",

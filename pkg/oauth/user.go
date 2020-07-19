@@ -23,6 +23,10 @@ type User struct {
 	// Required: true
 	Login string `json:"login"`
 
+	// The time the user password expirts
+	// Format: date-time
+	PasswordExpiresAt strfmt.DateTime `json:"password_expires_at,omitempty"`
+
 	// The users's authorized permissions, keyed on audience
 	Permissions map[string][]string `json:"permissions,omitempty"`
 
@@ -35,6 +39,10 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateLogin(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePasswordExpiresAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -51,6 +59,19 @@ func (m *User) Validate(formats strfmt.Registry) error {
 func (m *User) validateLogin(formats strfmt.Registry) error {
 
 	if err := validate.RequiredString("login", "body", string(m.Login)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *User) validatePasswordExpiresAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.PasswordExpiresAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("password_expires_at", "body", "date-time", m.PasswordExpiresAt.String(), formats); err != nil {
 		return err
 	}
 

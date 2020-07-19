@@ -371,6 +371,10 @@ definitions:
             type: "string"
       profile:
         $ref: "#/definitions/Profile"
+      password_expires_at:
+        type: "string"
+        description: "The time the user password expirts"
+        format: "date-time"
 
   UserRef:
     description: |
