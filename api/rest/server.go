@@ -142,7 +142,7 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...Option) *Ser
 
 	s.apiRouter.HandleFunc("/userInfo", s.userInfoUpdate).Methods(http.MethodPut)
 
-	s.apiRouter.HandleFunc("/userPrincipal", s.userPrincipals).Methods(http.MethodGet)
+	s.apiRouter.HandleFunc("/userPrincipal", s.userPrincipal).Methods(http.MethodGet)
 
 	s.apiRouter.HandleFunc("/.well-known/jwks.json", s.publicKey).Methods(http.MethodGet)
 
