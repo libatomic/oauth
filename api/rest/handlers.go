@@ -714,7 +714,11 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		perms, ok := user.Permissions[code.Audience]
 		if len(params.Scope) == 0 {
-			params.Scope = code.Scope
+			if len(code.Scope) == 0 {
+				params.Scope = perms
+			} else {
+				params.Scope = code.Scope
+			}
 		}
 
 		// check the scope against the code
