@@ -722,14 +722,14 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		// check the scope against the code
 		if !ok || !every(code.Scope, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid request scope")
 
 			return
 		}
 
 		// sanity check to ensure the api provides these permissions
 		if !every(aud.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid audience scope")
 
 			return
 		}
@@ -738,7 +738,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		perms, ok = app.Permissions[aud.Name]
 		// check the scope against the app, audience and user permissions
 		if !ok || !every(perms, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid application scope")
 
 			return
 		}
@@ -746,7 +746,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		// ensure the user has access to this audience
 		perms, ok = user.Permissions[aud.Name]
 		if !ok || !every(perms, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "invalid scope")
+			s.writeError(w, http.StatusUnauthorized, "invalid user scope")
 
 			return
 		}

@@ -219,7 +219,7 @@ definitions:
         description: "The client that created the user session"
       subject:
         type: "string"
-        description: "Subject is the user subject id"
+        description: "Subject is the user subject id"        
       created_at:
         type: "integer"
         description: "The token creation time"
