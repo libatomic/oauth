@@ -665,6 +665,52 @@ func init() {
         }
       }
     },
+    "/userPrincipal": {
+      "get": {
+        "security": [
+          {
+            "OAuth": [
+              "openid",
+              "principal"
+            ]
+          }
+        ],
+        "description": "Get the current user principal data\n",
+        "tags": [
+          "User"
+        ],
+        "operationId": "UserPrincipalGet",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          },
+          "400": {
+            "description": "bad parameter",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/verify": {
       "get": {
         "description": "Verify is used to verify user email addresses.\n",
@@ -1901,6 +1947,52 @@ func init() {
             "description": "ok",
             "schema": {
               "$ref": "#/definitions/Profile"
+            }
+          },
+          "400": {
+            "description": "bad parameter",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/userPrincipal": {
+      "get": {
+        "security": [
+          {
+            "OAuth": [
+              "openid",
+              "principal"
+            ]
+          }
+        ],
+        "description": "Get the current user principal data\n",
+        "tags": [
+          "User"
+        ],
+        "operationId": "UserPrincipalGet",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           "400": {

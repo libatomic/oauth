@@ -993,6 +993,34 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
 
+  /userPrincipal:
+    get:
+      description: |
+        Get the current user principal data
+      operationId: "UserPrincipalGet"
+      tags: ["User"]
+      responses:
+        200:
+          description: "ok"
+          schema:
+            type: "object"
+            additionalProperties:
+              type: "object"
+        400:
+          description: "bad parameter"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        401:
+          description: "unauthorized"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: "internal server error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      security:
+        - OAuth: ["openid", "principal"]
+
   /userInfo:
     get:
       description: |

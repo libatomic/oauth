@@ -2,7 +2,7 @@
 api-gen: ## generate the api type structs
 	docker run --rm -v $(PWD):/go/src/github.com/libatomic/oauth \
 		-w /go/src/github.com/libatomic/oauth \
-		--entrypoint hack/generate-swagger-api.sh \
+		--entrypoint scripts/generate-swagger-api.sh \
 		-e GOPATH=/go \
 		registry.gitlab.com/modelrocket/go-swagger
 	

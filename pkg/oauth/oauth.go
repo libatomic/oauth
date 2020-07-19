@@ -22,6 +22,9 @@ const (
 	// ScopeProfile is the scope that provides profile claims in the identity token
 	ScopeProfile = "profile"
 
+	// ScopePrincipal is the scope that provides principal claims in the identity token
+	ScopePrincipal = "principal"
+
 	// ScopeOffline is the scope that allows a client to request refresh tokens
 	ScopeOffline = "offline_access"
 

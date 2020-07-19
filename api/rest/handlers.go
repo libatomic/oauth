@@ -987,6 +987,39 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, ctx.User().Profile, true)
 }
 
+func (s *Server) userPrincipal(w http.ResponseWriter, r *http.Request) {
+	_, ctx, err := s.AuthorizeRequest(r, []string{"openid", "principal"})
+	if err != nil {
+		s.writeErr(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if ctx.Principal() == nil {
+		s.writeError(w, http.StatusUnauthorized, "invalid token")
+		return
+	}
+
+	_, state, err := s.getSession(r)
+	if err != nil {
+		s.log.Errorln(err)
+
+		s.writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if state.ID == "" {
+		s.writeError(w, http.StatusUnauthorized, "session does not exist")
+		return
+	}
+
+	if ctx.User().Profile == nil || ctx.User().Profile.Subject != state.Subject {
+		s.writeError(w, http.StatusUnauthorized, "access denied")
+		return
+	}
+
+	s.writeJSON(w, http.StatusOK, ctx.Principal(), true)
+}
+
 func (s *Server) getSession(r *http.Request) (*sessions.Session, *oauth.Session, error) {
 	c, err := s.sessions.Get(r, s.sessionCookie)
 	if err != nil {
