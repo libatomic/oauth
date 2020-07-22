@@ -18,15 +18,16 @@ import (
 
 type (
 	authContext struct {
-		app  *oauth.Application
-		aud  *oauth.Audience
-		user *oauth.User
-		prin interface{}
+		app   *oauth.Application
+		aud   *oauth.Audience
+		user  *oauth.User
+		prin  interface{}
+		token *jwt.Token
 	}
 )
 
 // AuthorizeRequest implements the auth.Authorizer interface
-func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, oauth.Context, error) {
+func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (oauth.Context, error) {
 	var claims jwt.MapClaims
 	var err error
 	var aud *oauth.Audience
@@ -56,21 +57,21 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 		}
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if !token.Valid {
-		return nil, nil, oauth.ErrInvalidToken
+		return nil, oauth.ErrInvalidToken
 	}
 
 	if aud == nil {
 		id, ok := claims["aud"].(string)
 		if !ok {
-			return nil, nil, oauth.ErrAccessDenied
+			return nil, oauth.ErrAccessDenied
 		}
 		aud, err = s.ctrl.AudienceGet(id)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 	scopes := strings.Fields(claims["scope"].(string))
@@ -84,17 +85,18 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 	}
 
 	if !allowed {
-		return nil, nil, oauth.ErrAccessDenied
+		return nil, oauth.ErrAccessDenied
 	}
 
 	c := &authContext{
-		aud: aud,
+		aud:   aud,
+		token: token,
 	}
 
 	if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
 		user, prin, err := s.ctrl.UserGet(sub)
 		if err != nil {
-			return nil, nil, oauth.ErrAccessDenied
+			return nil, oauth.ErrAccessDenied
 		}
 		c.user = user
 		c.prin = prin
@@ -103,12 +105,12 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Toke
 	if azp, ok := claims["azp"].(string); ok {
 		app, err := s.ctrl.ApplicationGet(azp)
 		if err != nil {
-			return nil, nil, oauth.ErrAccessDenied
+			return nil, oauth.ErrAccessDenied
 		}
 		c.app = app
 	}
 
-	return token, c, nil
+	return c, nil
 }
 
 func (c *authContext) User() *oauth.User {
@@ -125,4 +127,8 @@ func (c *authContext) Application() *oauth.Application {
 
 func (c *authContext) Principal() interface{} {
 	return c.prin
+}
+
+func (c *authContext) Token() *jwt.Token {
+	return c.token
 }

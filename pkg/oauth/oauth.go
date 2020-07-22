@@ -56,13 +56,27 @@ type (
 		UserAuthenticate(login string, password string) (*User, interface{}, error)
 
 		// UserCreate will create the user, optionally validating the invite code
+		// This method should send the user an email verification link with the format:
+		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
+		//
+		// The library will call the controller's UserVerify method with this id and code
 		UserCreate(user *User, password string, invite ...string) error
 
-		// UserUpdate is used mainly to update user profiles
+		// UserVerify should validate the code and update the user's email address as verified
+		UserVerify(id string, code string) error
+
+		// UserUpdate updates a user
 		UserUpdate(user *User) error
 
-		// UserVerify will verify the user's email address
-		UserVerify(id string, code string) error
+		// UserResetPassword should notify the user with a reset password link to the
+		// which includes the user's password reset code i.e.:
+		// - https://domain.tld/setPassword?code={reset_code}
+		//
+		// These values should be the posted along with the new password to `/oauth/passwordSet`
+		UserResetPassword(login string, resetCode string) error
+
+		// UserSetPassword will set a user's password
+		UserSetPassword(id string, password string) error
 
 		// TokenFinalize allows the controller to modify any tokens before being returned
 		TokenFinalize(ctx Context, scope []string, claims map[string]interface{}) error
@@ -79,6 +93,9 @@ type (
 		// User is the oauth user for the context
 		User() *User
 
+		// Token is the oauth token object
+		Token() *jwt.Token
+
 		// Prinicipal is the implementor opaque principal
 		Principal() interface{}
 	}
@@ -87,7 +104,7 @@ type (
 	// The Authorizer should ensure the scope and should return the token with jwt.MapClaims
 	// The first return value is the token, the second is the princial (*User or *Application)
 	Authorizer interface {
-		AuthorizeRequest(r *http.Request, scope ...[]string) (*jwt.Token, Context, error)
+		AuthorizeRequest(r *http.Request, scope ...[]string) (Context, error)
 	}
 
 	// CodeStore defines an AuthCode storage interface

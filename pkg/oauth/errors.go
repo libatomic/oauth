@@ -29,6 +29,9 @@ var (
 	// ErrPasswordComplexity is returned if the password does not meet complexity requirements
 	ErrPasswordComplexity = errors.New("password to simple")
 
+	// ErrPasswordResuse is returned if password does not meet the reuse constraints
+	ErrPasswordResuse = errors.New("password to reused")
+
 	// ErrPasswordExpired is returned when the password has expired
 	ErrPasswordExpired = errors.New("password expired")
 

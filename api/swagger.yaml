@@ -176,10 +176,13 @@ definitions:
   AuthCode:
     description: |
       Authcodes are used by client in browser based flows to request BearerTokens
-      Internally Authcodes are assiciated with an AuthRequest, which are not
+
+      Internally Authcodes are associated with an AuthRequest, which are not
       persisted until after authentication has completed successfully.
-      Additionally, the library uses AuthCodes to store refresh tokens used when
-      a client request offline_access.
+
+      Additionally, the library uses AuthCodes to:
+        - store refresh tokens used when a client request offline_access.
+        - reset user passwords
     allOf:
       - $ref: "#/definitions/AuthRequest"
       - type: "object"
@@ -761,14 +764,67 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
 
+  /passwordSet:
+    post:
+      description: "Set a user's password"
+      operationId: "PasswordSet"
+      tags: ["Auth"]
+      consumes: ["application/x-www-form-urlencoded"]
+      parameters:
+        - name: "login"
+          description: "The user's login"
+          in: "formData"
+          type: "string"
+          required: true
+        - name: "password"
+          type: "string"
+          description: "The new password"
+          in: "formData"
+          required: true
+        - name: "reset_code"
+          type: "string"
+          description: "The reset verification code"
+          in: "formData"
+          required: true
+        - name: "code_verifier"
+          description: "The PKCE code verifier"
+          in: "formData"
+          type: "string"
+          required: true
+        - name: "redirect_uri"
+          type: "string"  
+          description: "The uri to redirect to after password reset"
+          in: "formData"
+          format: "uri"
+      responses:
+        302:
+          description: "found"
+          headers:
+            Location:
+              description: "The redirect URI for the auth request"
+              type: "string"
+              format: "uri"
+        400:
+          description: "bad parameter"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        401:
+          description: "unauthorized"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: "internal server error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
   /passwordReset:
     post:
       description: |
-        The password reset flow is a two-step process.
-          1. First the controller will generate a challenge which will be sent by the `Verifier`
-          2. Second the UI should preset the user with a set password form and posted to the `/verify` 
-          path
-      operationId: "passwordReset"
+        The password reset flow will call the `oauth.Controller.UserResetPassword` method. 
+
+        This method should send the user a reset password link with a unique reset code that can 
+        be used to call `oauth.Controller.UserSetPassword`.
+      operationId: "PasswordReset"
       tags: ["Auth"]
       consumes: ["application/x-www-form-urlencoded"]
       parameters:
@@ -788,6 +844,11 @@ paths:
           in: "formData"
           type: "string"
           required: true
+        - name: "redirect_uri"
+          type: "string"  
+          description: "The uri to redirect to after password reset request"
+          in: "formData"
+          format: "uri"
       responses:
         302:
           description: "found"

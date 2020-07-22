@@ -305,19 +305,98 @@ func init() {
     },
     "/passwordReset": {
       "post": {
-        "description": "The password reset flow is a two-step process.\n  1. First the controller will generate a challenge which will be sent by the ` + "`" + `Verifier` + "`" + `\n  2. Second the UI should preset the user with a set password form and posted to the ` + "`" + `/verify` + "`" + ` \n  path\n",
+        "description": "The password reset flow will call the ` + "`" + `oauth.Controller.UserResetPassword` + "`" + ` method. \n\nThis method should send the user a reset password link with a unique reset code that can \nbe used to call ` + "`" + `oauth.Controller.UserSetPassword` + "`" + `.\n",
         "consumes": [
           "application/x-www-form-urlencoded"
         ],
         "tags": [
           "Auth"
         ],
-        "operationId": "passwordReset",
+        "operationId": "PasswordReset",
         "parameters": [
           {
             "type": "string",
             "description": "The user's login",
             "name": "login",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The PKCE code verifier",
+            "name": "code_verifier",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "\"The authorization request token\"\n",
+            "name": "request_token",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "found",
+            "headers": {
+              "Location": {
+                "type": "string",
+                "format": "uri",
+                "description": "The redirect URI for the auth request"
+              }
+            }
+          },
+          "400": {
+            "description": "bad parameter",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/passwordSet": {
+      "post": {
+        "description": "Set a user's password",
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "PasswordSet",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The user's login",
+            "name": "login",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The new password",
+            "name": "password",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The reset verification code",
+            "name": "reset_code",
             "in": "formData",
             "required": true
           },
@@ -1615,19 +1694,98 @@ func init() {
     },
     "/passwordReset": {
       "post": {
-        "description": "The password reset flow is a two-step process.\n  1. First the controller will generate a challenge which will be sent by the ` + "`" + `Verifier` + "`" + `\n  2. Second the UI should preset the user with a set password form and posted to the ` + "`" + `/verify` + "`" + ` \n  path\n",
+        "description": "The password reset flow will call the ` + "`" + `oauth.Controller.UserResetPassword` + "`" + ` method. \n\nThis method should send the user a reset password link with a unique reset code that can \nbe used to call ` + "`" + `oauth.Controller.UserSetPassword` + "`" + `.\n",
         "consumes": [
           "application/x-www-form-urlencoded"
         ],
         "tags": [
           "Auth"
         ],
-        "operationId": "passwordReset",
+        "operationId": "PasswordReset",
         "parameters": [
           {
             "type": "string",
             "description": "The user's login",
             "name": "login",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The PKCE code verifier",
+            "name": "code_verifier",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "\"The authorization request token\"\n",
+            "name": "request_token",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "found",
+            "headers": {
+              "Location": {
+                "type": "string",
+                "format": "uri",
+                "description": "The redirect URI for the auth request"
+              }
+            }
+          },
+          "400": {
+            "description": "bad parameter",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/passwordSet": {
+      "post": {
+        "description": "Set a user's password",
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "PasswordSet",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The user's login",
+            "name": "login",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The new password",
+            "name": "password",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The reset verification code",
+            "name": "reset_code",
             "in": "formData",
             "required": true
           },
