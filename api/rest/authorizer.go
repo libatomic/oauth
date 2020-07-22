@@ -93,15 +93,6 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (oauth.Con
 		token: token,
 	}
 
-	if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
-		user, prin, err := s.ctrl.UserGet(sub)
-		if err != nil {
-			return nil, oauth.ErrAccessDenied
-		}
-		c.user = user
-		c.prin = prin
-	}
-
 	if azp, ok := claims["azp"].(string); ok {
 		app, err := s.ctrl.ApplicationGet(azp)
 		if err != nil {
@@ -110,7 +101,40 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (oauth.Con
 		c.app = app
 	}
 
+	if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
+		user, prin, err := s.ctrl.UserGet(c, sub)
+		if err != nil {
+			return nil, oauth.ErrAccessDenied
+		}
+		c.user = user
+		c.prin = prin
+	}
+
 	return c, nil
+}
+
+func (s *Server) reqctx(req *oauth.AuthRequest) *authContext {
+	aud, err := s.ctrl.AudienceGet(req.ClientID)
+	if err != nil {
+		s.log.Errorln(err)
+	}
+
+	app, err := s.ctrl.ApplicationGet(req.Audience)
+	if err != nil {
+		s.log.Errorln(err)
+	}
+
+	return &authContext{
+		aud: aud,
+		app: app,
+	}
+}
+
+func (s *Server) appctx(app *oauth.Application, aud *oauth.Audience) *authContext {
+	return &authContext{
+		aud: aud,
+		app: app,
+	}
 }
 
 func (c *authContext) User() *oauth.User {

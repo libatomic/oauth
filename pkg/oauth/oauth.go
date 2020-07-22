@@ -39,49 +39,6 @@ const (
 )
 
 type (
-
-	// Controller is the interface implemented by consumers of the auth server
-	Controller interface {
-		// ApplicationGet should return an application for the specified client id
-		ApplicationGet(id string) (*Application, error)
-
-		// AudienceGet should return an audience for the specified name
-		AudienceGet(name string) (*Audience, error)
-
-		// UserGet returns a user by subject id along with the underlying principal
-		UserGet(id string) (*User, interface{}, error)
-
-		// UserAuthenticate authenticates a user using the login and password
-		// This function should return an oauth user and the principal
-		UserAuthenticate(login string, password string) (*User, interface{}, error)
-
-		// UserCreate will create the user, optionally validating the invite code
-		// This method should send the user an email verification link with the format:
-		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
-		//
-		// The library will call the controller's UserVerify method with this id and code
-		UserCreate(user *User, password string, invite ...string) error
-
-		// UserVerify should validate the code and update the user's email address as verified
-		UserVerify(id string, code string) error
-
-		// UserUpdate updates a user
-		UserUpdate(user *User) error
-
-		// UserResetPassword should notify the user with a reset password link to the
-		// which includes the user's password reset code i.e.:
-		// - https://domain.tld/setPassword?code={reset_code}
-		//
-		// These values should be the posted along with the new password to `/oauth/passwordSet`
-		UserResetPassword(login string, resetCode string) error
-
-		// UserSetPassword will set a user's password
-		UserSetPassword(id string, password string) error
-
-		// TokenFinalize allows the controller to modify any tokens before being returned
-		TokenFinalize(ctx Context, scope []string, claims map[string]interface{}) error
-	}
-
 	// Context provides the oauth user and underlying principal from the authorizer
 	Context interface {
 		// Application is the client for the context
@@ -98,6 +55,48 @@ type (
 
 		// Prinicipal is the implementor opaque principal
 		Principal() interface{}
+	}
+
+	// Controller is the interface implemented by consumers of the auth server
+	Controller interface {
+		// ApplicationGet should return an application for the specified client id
+		ApplicationGet(id string) (*Application, error)
+
+		// AudienceGet should return an audience for the specified name
+		AudienceGet(name string) (*Audience, error)
+
+		// UserGet returns a user by subject id along with the underlying principal
+		UserGet(ctx Context, id string) (*User, interface{}, error)
+
+		// UserAuthenticate authenticates a user using the login and password
+		// This function should return an oauth user and the principal
+		UserAuthenticate(ctx Context, login string, password string) (*User, interface{}, error)
+
+		// UserCreate will create the user, optionally validating the invite code
+		// This method should send the user an email verification link with the format:
+		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
+		//
+		// The library will call the controller's UserVerify method with this id and code
+		UserCreate(ctx Context, user *User, password string, invite ...string) error
+
+		// UserVerify should validate the code and update the user's email address as verified
+		UserVerify(ctx Context, id string, code string) error
+
+		// UserUpdate updates a user
+		UserUpdate(ctx Context, user *User) error
+
+		// UserResetPassword should notify the user with a reset password link to the
+		// which includes the user's password reset code i.e.:
+		// - https://domain.tld/setPassword?code={reset_code}
+		//
+		// These values should be the posted along with the new password to `/oauth/passwordSet`
+		UserResetPassword(ctx Context, login string, resetCode string) error
+
+		// UserSetPassword will set a user's password
+		UserSetPassword(ctx Context, id string, password string) error
+
+		// TokenFinalize allows the controller to modify any tokens before being returned
+		TokenFinalize(ctx Context, scope []string, claims map[string]interface{}) error
 	}
 
 	// Authorizer provides an interface for authorizing bearer tokens

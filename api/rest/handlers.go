@@ -109,7 +109,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, _, err := s.ctrl.UserAuthenticate(params.Login, params.Password)
+	user, _, err := s.ctrl.UserAuthenticate(s.reqctx(req), params.Login, params.Password)
 	if err != nil {
 		s.log.Errorln(err)
 
@@ -256,7 +256,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if err := s.ctrl.UserCreate(user, params.Password, safestr(params.InviteCode)); err != nil {
+	if err := s.ctrl.UserCreate(s.reqctx(req), user, params.Password, safestr(params.InviteCode)); err != nil {
 		s.writeErr(w, http.StatusBadRequest, err)
 		return
 	}
@@ -704,7 +704,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, prin, err := s.ctrl.UserGet(state.Subject)
+		user, prin, err := s.ctrl.UserGet(s.appctx(app, aud), state.Subject)
 		if err != nil {
 			s.log.Errorln(err)
 
@@ -946,7 +946,7 @@ func (s *Server) userInfoUpdate(w http.ResponseWriter, r *http.Request) {
 	user := ctx.User()
 	user.Profile = params.Profile
 
-	if err := s.ctrl.UserUpdate(user); err != nil {
+	if err := s.ctrl.UserUpdate(ctx, user); err != nil {
 		s.writeError(w, http.StatusUnauthorized, "access denied")
 		return
 	}
