@@ -372,6 +372,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		RedirectURI:         *params.RedirectURI,
 		Scope:               params.Scope,
 		Audience:            params.Audience,
+		UserPool:            params.UserPool,
 		State:               params.State,
 		CodeChallenge:       params.CodeChallenge,
 		CodeChallengeMethod: *params.CodeChallengeMethod,

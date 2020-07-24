@@ -12,10 +12,13 @@ import (
 )
 
 // AuthCode Authcodes are used by client in browser based flows to request BearerTokens
-// Internally Authcodes are assiciated with an AuthRequest, which are not
+//
+// Internally Authcodes are associated with an AuthRequest, which are not
 // persisted until after authentication has completed successfully.
-// Additionally, the library uses AuthCodes to store refresh tokens used when
-// a client request offline_access.
+//
+// Additionally, the library uses AuthCodes to:
+//   - store refresh tokens used when a client request offline_access.
+//   - reset user passwords
 //
 //
 // swagger:model AuthCode

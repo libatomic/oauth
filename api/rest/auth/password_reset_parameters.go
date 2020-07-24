@@ -43,6 +43,11 @@ type PasswordResetParams struct {
 	*/
 	Login string
 
+	/*The uri to redirect to after password reset request
+	  In: formData
+	*/
+	RedirectURI *strfmt.URI
+
 	/*"The authorization request token"
 
 	  Required: true
@@ -100,6 +105,11 @@ func (o *PasswordResetParams) BindRequest(r *http.Request, c ...runtime.Consumer
 		res = append(res, err)
 	}
 
+	fdRedirectURI, fdhkRedirectURI, _ := fds.GetOK("redirect_uri")
+	if err := o.bindRedirectURI(fdRedirectURI, fdhkRedirectURI, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	fdRequestToken, fdhkRequestToken, _ := fds.GetOK("request_token")
 	if err := o.bindRequestToken(fdRequestToken, fdhkRequestToken, route.Formats); err != nil {
 		res = append(res, err)
@@ -150,6 +160,42 @@ func (o *PasswordResetParams) bindLogin(rawData []string, hasKey bool, formats s
 
 	o.Login = raw
 
+	return nil
+}
+
+// bindRedirectURI binds and validates parameter RedirectURI from formData.
+func (o *PasswordResetParams) bindRedirectURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uri
+	value, err := formats.Parse("uri", raw)
+	if err != nil {
+		return errors.InvalidType("redirect_uri", "formData", "strfmt.URI", raw)
+	}
+	o.RedirectURI = (value.(*strfmt.URI))
+
+	if err := o.validateRedirectURI(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateRedirectURI carries on validations for parameter RedirectURI
+func (o *PasswordResetParams) validateRedirectURI(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("redirect_uri", "formData", "uri", o.RedirectURI.String(), formats); err != nil {
+		return err
+	}
 	return nil
 }
 

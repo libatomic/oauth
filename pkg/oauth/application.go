@@ -17,7 +17,8 @@ import (
 
 // Application Applications are API clients that access APIs managed by the integration
 // service. Applications may provide user authentication flows.
-// Applications are managed by the `oauth.Controller`.
+// Applications are managed by the `oauth.Controller`. This library provides
+// an incomplete base definition for application clients.
 //
 //
 // swagger:model Application
@@ -67,6 +68,9 @@ type Application struct {
 	// The application type
 	// Enum: [web native machine]
 	Type string `json:"type,omitempty"`
+
+	// The user pools this application has access to.
+	UserPools []string `json:"user_pools"`
 }
 
 // Validate validates this application

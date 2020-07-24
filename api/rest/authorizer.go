@@ -23,6 +23,7 @@ type (
 		user  *oauth.User
 		prin  interface{}
 		token *jwt.Token
+		req   *oauth.AuthRequest
 	}
 )
 
@@ -127,13 +128,15 @@ func (s *Server) reqctx(req *oauth.AuthRequest) *authContext {
 	return &authContext{
 		aud: aud,
 		app: app,
+		req: req,
 	}
 }
 
-func (s *Server) appctx(app *oauth.Application, aud *oauth.Audience) *authContext {
+func (s *Server) appctx(app *oauth.Application, aud *oauth.Audience, req *oauth.AuthRequest) *authContext {
 	return &authContext{
 		aud: aud,
 		app: app,
+		req: req,
 	}
 }
 
@@ -155,4 +158,8 @@ func (c *authContext) Principal() interface{} {
 
 func (c *authContext) Token() *jwt.Token {
 	return c.token
+}
+
+func (c *authContext) Request() *oauth.AuthRequest {
+	return c.req
 }

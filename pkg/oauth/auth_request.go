@@ -51,6 +51,9 @@ type AuthRequest struct {
 
 	// The request state
 	State *string `json:"state,omitempty"`
+
+	// The request user pool
+	UserPool *string `json:"user_pool,omitempty"`
 }
 
 // Validate validates this auth request

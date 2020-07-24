@@ -93,6 +93,11 @@ type AuthorizeParams struct {
 	  In: query
 	*/
 	State *string
+
+	/*The user pool to authorize against
+	  In: query
+	*/
+	UserPool *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -169,6 +174,11 @@ func (o *AuthorizeParams) BindRequest(r *http.Request, c ...runtime.Consumer) er
 
 	qState, qhkState, _ := qs.GetOK("state")
 	if err := o.bindState(qState, qhkState, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qUserPool, qhkUserPool, _ := qs.GetOK("user_pool")
+	if err := o.bindUserPool(qUserPool, qhkUserPool, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -387,6 +397,24 @@ func (o *AuthorizeParams) bindState(rawData []string, hasKey bool, formats strfm
 	}
 
 	o.State = &raw
+
+	return nil
+}
+
+// bindUserPool binds and validates parameter UserPool from query.
+func (o *AuthorizeParams) bindUserPool(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.UserPool = &raw
 
 	return nil
 }

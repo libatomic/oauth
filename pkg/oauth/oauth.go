@@ -53,6 +53,9 @@ type (
 		// Token is the oauth token object
 		Token() *jwt.Token
 
+		// Request provides the auth request
+		Request() *AuthRequest
+
 		// Prinicipal is the implementor opaque principal
 		Principal() interface{}
 	}

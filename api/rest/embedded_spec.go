@@ -102,6 +102,12 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The user pool to authorize against",
+            "name": "user_pool",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "description": "The URL to which the authentication server redirects the browser for action",
             "name": "app_uri",
             "in": "query"
@@ -334,6 +340,13 @@ func init() {
             "name": "request_token",
             "in": "formData",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "uri",
+            "description": "The uri to redirect to after password reset request",
+            "name": "redirect_uri",
+            "in": "formData"
           }
         ],
         "responses": {
@@ -409,10 +422,10 @@ func init() {
           },
           {
             "type": "string",
-            "description": "\"The authorization request token\"\n",
-            "name": "request_token",
-            "in": "formData",
-            "required": true
+            "format": "uri",
+            "description": "The uri to redirect to after password reset",
+            "name": "redirect_uri",
+            "in": "formData"
           }
         ],
         "responses": {
@@ -905,7 +918,7 @@ func init() {
       }
     },
     "Application": {
-      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `.\n",
+      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n",
       "type": "object",
       "required": [
         "name",
@@ -980,6 +993,13 @@ func init() {
             "native",
             "machine"
           ]
+        },
+        "user_pools": {
+          "description": "The user pools this application has access to.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -1058,7 +1078,7 @@ func init() {
       }
     },
     "AuthCode": {
-      "description": "Authcodes are used by client in browser based flows to request BearerTokens\nInternally Authcodes are assiciated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\nAdditionally, the library uses AuthCodes to store refresh tokens used when\na client request offline_access.\n",
+      "description": "Authcodes are used by client in browser based flows to request BearerTokens\n\nInternally Authcodes are associated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\n\nAdditionally, the library uses AuthCodes to:\n  - store refresh tokens used when a client request offline_access.\n  - reset user passwords\n",
       "allOf": [
         {
           "$ref": "#/definitions/AuthRequest"
@@ -1146,6 +1166,11 @@ func init() {
         },
         "state": {
           "description": "The request state",
+          "type": "string",
+          "x-nullable": true
+        },
+        "user_pool": {
+          "description": "The request user pool",
           "type": "string",
           "x-nullable": true
         }
@@ -1491,6 +1516,12 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The user pool to authorize against",
+            "name": "user_pool",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "description": "The URL to which the authentication server redirects the browser for action",
             "name": "app_uri",
             "in": "query"
@@ -1723,6 +1754,13 @@ func init() {
             "name": "request_token",
             "in": "formData",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "uri",
+            "description": "The uri to redirect to after password reset request",
+            "name": "redirect_uri",
+            "in": "formData"
           }
         ],
         "responses": {
@@ -1798,10 +1836,10 @@ func init() {
           },
           {
             "type": "string",
-            "description": "\"The authorization request token\"\n",
-            "name": "request_token",
-            "in": "formData",
-            "required": true
+            "format": "uri",
+            "description": "The uri to redirect to after password reset",
+            "name": "redirect_uri",
+            "in": "formData"
           }
         ],
         "responses": {
@@ -2294,7 +2332,7 @@ func init() {
       }
     },
     "Application": {
-      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `.\n",
+      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n",
       "type": "object",
       "required": [
         "name",
@@ -2369,6 +2407,13 @@ func init() {
             "native",
             "machine"
           ]
+        },
+        "user_pools": {
+          "description": "The user pools this application has access to.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -2447,7 +2492,7 @@ func init() {
       }
     },
     "AuthCode": {
-      "description": "Authcodes are used by client in browser based flows to request BearerTokens\nInternally Authcodes are assiciated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\nAdditionally, the library uses AuthCodes to store refresh tokens used when\na client request offline_access.\n",
+      "description": "Authcodes are used by client in browser based flows to request BearerTokens\n\nInternally Authcodes are associated with an AuthRequest, which are not\npersisted until after authentication has completed successfully.\n\nAdditionally, the library uses AuthCodes to:\n  - store refresh tokens used when a client request offline_access.\n  - reset user passwords\n",
       "allOf": [
         {
           "$ref": "#/definitions/AuthRequest"
@@ -2535,6 +2580,11 @@ func init() {
         },
         "state": {
           "description": "The request state",
+          "type": "string",
+          "x-nullable": true
+        },
+        "user_pool": {
+          "description": "The request user pool",
           "type": "string",
           "x-nullable": true
         }
