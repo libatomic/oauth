@@ -705,7 +705,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, prin, err := s.ctrl.UserGet(s.appctx(app, aud), state.Subject)
+		user, prin, err := s.ctrl.UserGet(s.appctx(app, aud, &code.AuthRequest), state.Subject)
 		if err != nil {
 			s.log.Errorln(err)
 
