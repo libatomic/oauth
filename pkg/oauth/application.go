@@ -25,15 +25,14 @@ import (
 type Application struct {
 
 	// The applications allowed grant types
-	// Required: true
-	AllowedGrants []string `json:"allowed_grants"`
+	AllowedGrants []string `json:"allowed_grants,omitempty"`
 
 	// This is an array of the application's allowed application uris. These are checked
 	// in the `/authorize` path to ensure the redirect is allowed by the application.
 	// This path on redirect will receive the following query parameters:
 	//   - `auth_request`: An encoded and signed request value to be forwarded to various posts.
 	//
-	AppUris []string `json:"app_uris"`
+	AppUris []string `json:"app_uris,omitempty"`
 
 	// The application client id used for oauth grants
 	// Read Only: true
@@ -47,8 +46,7 @@ type Application struct {
 	Description string `json:"description,omitempty"`
 
 	// The application name
-	// Required: true
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// The application's authorized permissions
 	Permissions map[string][]string `json:"permissions,omitempty"`
@@ -58,7 +56,7 @@ type Application struct {
 	// This path on redirect will receive the following query parameters:
 	//   - `code`: A signed authorization code that can be passed to the `/token` path.
 	//
-	RedirectUris []string `json:"redirect_uris"`
+	RedirectUris []string `json:"redirect_uris,omitempty"`
 
 	// The lifetime for identity tokens in seconds, provided the call requested the
 	// `openid` scopes.
@@ -70,7 +68,7 @@ type Application struct {
 	Type string `json:"type,omitempty"`
 
 	// The user pools this application has access to.
-	UserPools []string `json:"user_pools"`
+	UserPools []string `json:"user_pools,omitempty"`
 }
 
 // Validate validates this application
@@ -78,10 +76,6 @@ func (m *Application) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAllowedGrants(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateName(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -116,8 +110,8 @@ func (m *Application) validateAllowedGrantsItemsEnum(path, location string, valu
 
 func (m *Application) validateAllowedGrants(formats strfmt.Registry) error {
 
-	if err := validate.Required("allowed_grants", "body", m.AllowedGrants); err != nil {
-		return err
+	if swag.IsZero(m.AllowedGrants) { // not required
+		return nil
 	}
 
 	for i := 0; i < len(m.AllowedGrants); i++ {
@@ -127,15 +121,6 @@ func (m *Application) validateAllowedGrants(formats strfmt.Registry) error {
 			return err
 		}
 
-	}
-
-	return nil
-}
-
-func (m *Application) validateName(formats strfmt.Registry) error {
-
-	if err := validate.RequiredString("name", "body", string(m.Name)); err != nil {
-		return err
 	}
 
 	return nil

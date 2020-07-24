@@ -125,7 +125,6 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...Option) *Ser
 	s.cookie = securecookie.New(hash[0:32], block[0:32])
 
 	s.apiRouter = s.router.PathPrefix(s.basePath).Subrouter()
-	s.apiRouter.Use(versionMiddleware)
 
 	// setup all of the routes
 	s.apiRouter.HandleFunc("/authorize", s.authorize).Methods(http.MethodGet)

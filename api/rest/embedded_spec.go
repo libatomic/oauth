@@ -920,10 +920,6 @@ func init() {
     "Application": {
       "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n",
       "type": "object",
-      "required": [
-        "name",
-        "allowed_grants"
-      ],
       "properties": {
         "allowed_grants": {
           "description": "The applications allowed grant types",
@@ -935,14 +931,16 @@ func init() {
               "client_credentials",
               "refresh_token"
             ]
-          }
+          },
+          "x-omitempty": true
         },
         "app_uris": {
           "description": "This is an array of the application's allowed application uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded to various posts.\n",
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-omitempty": true
         },
         "client_id": {
           "description": "The application client id used for oauth grants",
@@ -978,7 +976,8 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-omitempty": true
         },
         "token_lifetime": {
           "description": "The lifetime for identity tokens in seconds, provided the call requested the \n` + "`" + `openid` + "`" + ` scopes.\n",
@@ -999,7 +998,8 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-omitempty": true
         }
       }
     },
@@ -2334,10 +2334,6 @@ func init() {
     "Application": {
       "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n",
       "type": "object",
-      "required": [
-        "name",
-        "allowed_grants"
-      ],
       "properties": {
         "allowed_grants": {
           "description": "The applications allowed grant types",
@@ -2349,14 +2345,16 @@ func init() {
               "client_credentials",
               "refresh_token"
             ]
-          }
+          },
+          "x-omitempty": true
         },
         "app_uris": {
           "description": "This is an array of the application's allowed application uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded to various posts.\n",
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-omitempty": true
         },
         "client_id": {
           "description": "The application client id used for oauth grants",
@@ -2392,7 +2390,8 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-omitempty": true
         },
         "token_lifetime": {
           "description": "The lifetime for identity tokens in seconds, provided the call requested the \n` + "`" + `openid` + "`" + ` scopes.\n",
@@ -2413,7 +2412,8 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-omitempty": true
         }
       }
     },

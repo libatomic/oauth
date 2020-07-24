@@ -243,7 +243,6 @@ definitions:
       Applications are managed by the `oauth.Controller`. This library provides
       an incomplete base definition for application clients.
     type: "object"
-    required: ["name", "allowed_grants"]
     properties:
       name:
         type: "string"
@@ -269,6 +268,7 @@ definitions:
         description: The user pools this application has access to.
         items:
           type: "string"
+        x-omitempty: true
       app_uris:
         type: "array"
         description: |
@@ -278,6 +278,7 @@ definitions:
             - `auth_request`: An encoded and signed request value to be forwarded to various posts.
         items:
           type: "string"
+        x-omitempty: true
       redirect_uris:
         type: "array"
         description: |
@@ -287,12 +288,14 @@ definitions:
             - `code`: A signed authorization code that can be passed to the `/token` path.
         items:
           type: "string"
+        x-omitempty: true
       allowed_grants:
         type: "array"
         description: "The applications allowed grant types"
         items:
           type: "string"
           enum: ["authorization_code", "client_credentials", "refresh_token"]
+        x-omitempty: true
       token_lifetime:
         type: "integer"
         description: |
