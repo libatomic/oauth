@@ -28,7 +28,7 @@ type (
 )
 
 // AuthorizeRequest implements the auth.Authorizer interface
-func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (oauth.Context, error) {
+func (s *Server) AuthorizeRequest(r *http.Request, scope ...oauth.Permissions) (oauth.Context, error) {
 	var claims jwt.MapClaims
 	var err error
 	var aud *oauth.Audience

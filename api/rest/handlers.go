@@ -931,7 +931,7 @@ func (s *Server) userInfoUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
+	ctx, err := s.AuthorizeRequest(r, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
 	if err != nil {
 		s.writeErr(w, http.StatusUnauthorized, err)
 		return
@@ -967,7 +967,7 @@ func (s *Server) userInfoUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
-	ctx, err := s.AuthorizeRequest(r, []string{"openid", "profile"})
+	ctx, err := s.AuthorizeRequest(r, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
 	if err != nil {
 		s.writeErr(w, http.StatusUnauthorized, err)
 		return
@@ -1000,7 +1000,7 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userPrincipal(w http.ResponseWriter, r *http.Request) {
-	ctx, err := s.AuthorizeRequest(r, []string{"openid", "principal"})
+	ctx, err := s.AuthorizeRequest(r, oauth.Scope(oauth.ScopeOpenID, oauth.ScopePrincipal))
 	if err != nil {
 		s.writeErr(w, http.StatusUnauthorized, err)
 		return
