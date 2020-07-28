@@ -48,8 +48,8 @@ type AuthRequest struct {
 	// Required: true
 	RedirectURI string `json:"redirect_uri"`
 
-	// The request scope
-	Scope []string `json:"scope"`
+	// scope
+	Scope Permissions `json:"scope,omitempty"`
 
 	// The request state
 	State *string `json:"state,omitempty"`
@@ -79,6 +79,10 @@ func (m *AuthRequest) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateRedirectURI(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateScope(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -158,6 +162,22 @@ func (m *AuthRequest) validateCodeChallengeMethod(formats strfmt.Registry) error
 func (m *AuthRequest) validateRedirectURI(formats strfmt.Registry) error {
 
 	if err := validate.RequiredString("redirect_uri", "body", string(m.RedirectURI)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *AuthRequest) validateScope(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Scope) { // not required
+		return nil
+	}
+
+	if err := m.Scope.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("scope")
+		}
 		return err
 	}
 

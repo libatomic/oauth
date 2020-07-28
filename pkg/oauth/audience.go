@@ -32,8 +32,8 @@ type Audience struct {
 	// Required: true
 	Name string `json:"name"`
 
-	// The audience available permissions
-	Permissions []string `json:"permissions"`
+	// permissions
+	Permissions Permissions `json:"permissions,omitempty"`
 
 	// The audience token signing algorithm
 	// Enum: [RS256 HS256]
@@ -54,6 +54,10 @@ func (m *Audience) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validatePermissions(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateTokenAlgorithm(formats); err != nil {
 		res = append(res, err)
 	}
@@ -67,6 +71,22 @@ func (m *Audience) Validate(formats strfmt.Registry) error {
 func (m *Audience) validateName(formats strfmt.Registry) error {
 
 	if err := validate.RequiredString("name", "body", string(m.Name)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Audience) validatePermissions(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Permissions) { // not required
+		return nil
+	}
+
+	if err := m.Permissions.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("permissions")
+		}
 		return err
 	}
 

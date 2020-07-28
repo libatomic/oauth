@@ -8,45 +8,6 @@
 
 package rest
 
-func contains(in []string, value string) bool {
-	for _, v := range in {
-		if v == value {
-			return true
-		}
-	}
-
-	return false
-}
-
-func every(in []string, elements ...string) bool {
-	for _, elem := range elements {
-		if !contains(in, elem) {
-			return false
-		}
-	}
-	return true
-}
-
-func some(in []string, elements ...string) bool {
-	for _, elem := range elements {
-		if contains(in, elem) {
-			return true
-		}
-	}
-	return false
-}
-
-func without(in []string, elements ...string) []string {
-	r := make([]string, 0)
-	for _, v := range in {
-		if !contains(elements, v) {
-			r = append(r, v)
-		}
-	}
-
-	return r
-}
-
 func safestr(s *string) string {
 	if s == nil {
 		return ""

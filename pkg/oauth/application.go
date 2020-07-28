@@ -9,7 +9,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -22,19 +21,33 @@ import (
 // Applications are managed by the `oauth.Controller`. This library provides
 // an incomplete base definition for application clients.
 //
+// ## API URLs
+// This is an array of the application's allowed application uris. These are checked
+// in the `/authorize` path to ensure the redirect is allowed by the application.
+// This path on redirect will receive the following query parameters:
+//
+//   - `auth_request`: An encoded and signed request value to be forwarded to various posts.
+//
+// ## Redirect URIs
+// This is an array of the application's allowed redirect uris. These are checked
+// in the `/login` path to ensure the redirect is allowed by the application.
+// This path on redirect will receive the following query parameters:
+//
+// - `code`: A signed authorization code that can be passed to the `/token` path.
+//
+// ## User Pools
+// User pools are groups of users that the application can access. The implementaiton
+// of such is outside the scope of this API.
+//
 //
 // swagger:model Application
 type Application struct {
 
-	// The applications allowed grant types
-	AllowedGrants []string `json:"allowed_grants,omitempty"`
+	// allowed grants
+	AllowedGrants Permissions `json:"allowed_grants,omitempty"`
 
-	// This is an array of the application's allowed application uris. These are checked
-	// in the `/authorize` path to ensure the redirect is allowed by the application.
-	// This path on redirect will receive the following query parameters:
-	//   - `auth_request`: An encoded and signed request value to be forwarded to various posts.
-	//
-	AppUris []string `json:"app_uris,omitempty"`
+	// app uris
+	AppUris Permissions `json:"app_uris,omitempty"`
 
 	// The application client id used for oauth grants
 	// Read Only: true
@@ -50,15 +63,11 @@ type Application struct {
 	// The application name
 	Name string `json:"name,omitempty"`
 
-	// The application's authorized permissions
-	Permissions map[string][]string `json:"permissions,omitempty"`
+	// permissions
+	Permissions PermissionSet `json:"permissions,omitempty"`
 
-	// This is an array of the application's allowed redirect uris. These are checked
-	// in the `/login` path to ensure the redirect is allowed by the application.
-	// This path on redirect will receive the following query parameters:
-	//   - `code`: A signed authorization code that can be passed to the `/token` path.
-	//
-	RedirectUris []string `json:"redirect_uris,omitempty"`
+	// redirect uris
+	RedirectUris Permissions `json:"redirect_uris,omitempty"`
 
 	// The lifetime for identity tokens in seconds, provided the call requested the
 	// `openid` scopes.
@@ -69,8 +78,8 @@ type Application struct {
 	// Enum: [web native machine]
 	Type string `json:"type,omitempty"`
 
-	// The user pools this application has access to.
-	UserPools []string `json:"user_pools,omitempty"`
+	// user pools
+	UserPools Permissions `json:"user_pools,omitempty"`
 }
 
 // Validate validates this application
@@ -81,31 +90,28 @@ func (m *Application) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateAppUris(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePermissions(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRedirectUris(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateType(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUserPools(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-var applicationAllowedGrantsItemsEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["authorization_code","client_credentials","refresh_token"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		applicationAllowedGrantsItemsEnum = append(applicationAllowedGrantsItemsEnum, v)
-	}
-}
-
-func (m *Application) validateAllowedGrantsItemsEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, applicationAllowedGrantsItemsEnum, true); err != nil {
-		return err
 	}
 	return nil
 }
@@ -116,13 +122,59 @@ func (m *Application) validateAllowedGrants(formats strfmt.Registry) error {
 		return nil
 	}
 
-	for i := 0; i < len(m.AllowedGrants); i++ {
-
-		// value enum
-		if err := m.validateAllowedGrantsItemsEnum("allowed_grants"+"."+strconv.Itoa(i), "body", m.AllowedGrants[i]); err != nil {
-			return err
+	if err := m.AllowedGrants.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("allowed_grants")
 		}
+		return err
+	}
 
+	return nil
+}
+
+func (m *Application) validateAppUris(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.AppUris) { // not required
+		return nil
+	}
+
+	if err := m.AppUris.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("app_uris")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Application) validatePermissions(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Permissions) { // not required
+		return nil
+	}
+
+	if err := m.Permissions.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("permissions")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Application) validateRedirectUris(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RedirectUris) { // not required
+		return nil
+	}
+
+	if err := m.RedirectUris.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("redirect_uris")
+		}
+		return err
 	}
 
 	return nil
@@ -168,6 +220,22 @@ func (m *Application) validateType(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateTypeEnum("type", "body", m.Type); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Application) validateUserPools(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.UserPools) { // not required
+		return nil
+	}
+
+	if err := m.UserPools.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("user_pools")
+		}
 		return err
 	}
 

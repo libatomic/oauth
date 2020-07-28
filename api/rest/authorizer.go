@@ -75,11 +75,11 @@ func (s *Server) AuthorizeRequest(r *http.Request, scope ...[]string) (oauth.Con
 			return nil, err
 		}
 	}
-	scopes := strings.Fields(claims["scope"].(string))
+	scopes := oauth.Permissions(strings.Fields(claims["scope"].(string)))
 
 	allowed := false
 	for _, s := range scope {
-		if every(scopes, s...) {
+		if scopes.Every(s...) {
 			allowed = true
 			break
 		}

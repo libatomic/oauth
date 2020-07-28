@@ -6,6 +6,8 @@ swagger generate model -f api/swagger.yaml \
 	--template=atomic \
 	-n ErrorResponse \
 	-n BearerToken \
+	-n Permissions \
+	-n PermissionSet \
 	-n AuthRequest \
 	-n AuthCode \
 	-n Session \

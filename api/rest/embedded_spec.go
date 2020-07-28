@@ -932,29 +932,14 @@ func init() {
       "x-nullable": false
     },
     "Application": {
-      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n",
+      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n\n## API URLs\nThis is an array of the application's allowed application uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded to various posts.\n\n## Redirect URIs\nThis is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n\n- ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n\n## User Pools\nUser pools are groups of users that the application can access. The implementaiton\nof such is outside the scope of this API.\n",
       "type": "object",
       "properties": {
         "allowed_grants": {
-          "description": "The applications allowed grant types",
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "authorization_code",
-              "client_credentials",
-              "refresh_token"
-            ]
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         },
         "app_uris": {
-          "description": "This is an array of the application's allowed application uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded to various posts.\n",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         },
         "client_id": {
           "description": "The application client id used for oauth grants",
@@ -976,22 +961,10 @@ func init() {
           "x-nullable": false
         },
         "permissions": {
-          "description": "The application's authorized permissions",
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
+          "$ref": "#/definitions/PermissionSet"
         },
         "redirect_uris": {
-          "description": "This is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         },
         "token_lifetime": {
           "description": "The lifetime for identity tokens in seconds, provided the call requested the \n` + "`" + `openid` + "`" + ` scopes.\n",
@@ -1008,12 +981,7 @@ func init() {
           ]
         },
         "user_pools": {
-          "description": "The user pools this application has access to.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         }
       }
     },
@@ -1048,11 +1016,7 @@ func init() {
           "x-nullable": false
         },
         "permissions": {
-          "description": "The audience available permissions",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "$ref": "#/definitions/Permissions"
         },
         "token_algorithm": {
           "description": "The audience token signing algorithm",
@@ -1172,11 +1136,7 @@ func init() {
           "x-nullable": false
         },
         "scope": {
-          "description": "The request scope",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "$ref": "#/definitions/Permissions"
         },
         "state": {
           "description": "The request state",
@@ -1248,6 +1208,21 @@ func init() {
           "x-nullable": false
         }
       }
+    },
+    "PermissionSet": {
+      "description": "A set of permissions grouped by audience.\n",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Permissions"
+      }
+    },
+    "Permissions": {
+      "description": "Permissions are used for both OAuth scopes and API ACL lists.\n",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-omitempty": true
     },
     "Profile": {
       "description": "A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).\n",
@@ -1401,14 +1376,7 @@ func init() {
           "format": "date-time"
         },
         "permissions": {
-          "description": "The users's authorized permissions, keyed on audience",
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
+          "$ref": "#/definitions/PermissionSet"
         },
         "profile": {
           "$ref": "#/definitions/Profile"
@@ -2360,29 +2328,14 @@ func init() {
       "x-nullable": false
     },
     "Application": {
-      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n",
+      "description": "Applications are API clients that access APIs managed by the integration\nservice. Applications may provide user authentication flows.\nApplications are managed by the ` + "`" + `oauth.Controller` + "`" + `. This library provides\nan incomplete base definition for application clients.\n\n## API URLs\nThis is an array of the application's allowed application uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded to various posts.\n\n## Redirect URIs\nThis is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n\n- ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n\n## User Pools\nUser pools are groups of users that the application can access. The implementaiton\nof such is outside the scope of this API.\n",
       "type": "object",
       "properties": {
         "allowed_grants": {
-          "description": "The applications allowed grant types",
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "authorization_code",
-              "client_credentials",
-              "refresh_token"
-            ]
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         },
         "app_uris": {
-          "description": "This is an array of the application's allowed application uris. These are checked\nin the ` + "`" + `/authorize` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `auth_request` + "`" + `: An encoded and signed request value to be forwarded to various posts.\n",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         },
         "client_id": {
           "description": "The application client id used for oauth grants",
@@ -2404,22 +2357,10 @@ func init() {
           "x-nullable": false
         },
         "permissions": {
-          "description": "The application's authorized permissions",
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
+          "$ref": "#/definitions/PermissionSet"
         },
         "redirect_uris": {
-          "description": "This is an array of the application's allowed redirect uris. These are checked\nin the ` + "`" + `/login` + "`" + ` path to ensure the redirect is allowed by the application.\nThis path on redirect will receive the following query parameters:\n  - ` + "`" + `code` + "`" + `: A signed authorization code that can be passed to the ` + "`" + `/token` + "`" + ` path.\n",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         },
         "token_lifetime": {
           "description": "The lifetime for identity tokens in seconds, provided the call requested the \n` + "`" + `openid` + "`" + ` scopes.\n",
@@ -2436,12 +2377,7 @@ func init() {
           ]
         },
         "user_pools": {
-          "description": "The user pools this application has access to.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-omitempty": true
+          "$ref": "#/definitions/Permissions"
         }
       }
     },
@@ -2476,11 +2412,7 @@ func init() {
           "x-nullable": false
         },
         "permissions": {
-          "description": "The audience available permissions",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "$ref": "#/definitions/Permissions"
         },
         "token_algorithm": {
           "description": "The audience token signing algorithm",
@@ -2600,11 +2532,7 @@ func init() {
           "x-nullable": false
         },
         "scope": {
-          "description": "The request scope",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "$ref": "#/definitions/Permissions"
         },
         "state": {
           "description": "The request state",
@@ -2676,6 +2604,21 @@ func init() {
           "x-nullable": false
         }
       }
+    },
+    "PermissionSet": {
+      "description": "A set of permissions grouped by audience.\n",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Permissions"
+      }
+    },
+    "Permissions": {
+      "description": "Permissions are used for both OAuth scopes and API ACL lists.\n",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-omitempty": true
     },
     "Profile": {
       "description": "A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).\n",
@@ -2829,14 +2772,7 @@ func init() {
           "format": "date-time"
         },
         "permissions": {
-          "description": "The users's authorized permissions, keyed on audience",
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
+          "$ref": "#/definitions/PermissionSet"
         },
         "profile": {
           "$ref": "#/definitions/Profile"

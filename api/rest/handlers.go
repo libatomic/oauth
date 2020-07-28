@@ -135,7 +135,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		req.Scope = perms
 	}
 
-	if !every(perms, req.Scope...) {
+	if !perms.Every(req.Scope...) {
 		s.redirectError(w, u, map[string]string{
 			"error":             "access_denied",
 			"error_description": "user authorization failed",
@@ -281,7 +281,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// enusure this app supports the authorization_code flow
-	if !contains(app.AllowedGrants, "authorization_code") {
+	if !app.AllowedGrants.Contains("authorization_code") {
 		s.writeError(w, http.StatusUnauthorized, "authorization_code grant not permitted")
 		return
 	}
@@ -298,7 +298,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ensure the redirect uri path is allowed
-	if !contains(app.RedirectUris, path.Join("/", u.Path)) {
+	if !app.RedirectUris.Contains(path.Join("/", u.Path)) {
 		s.writeError(w, http.StatusUnauthorized, "unauthorized redirect uri")
 		return
 	}
@@ -321,7 +321,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !contains(app.AppUris, path.Join("/", u.Path)) {
+		if !app.AppUris.Contains(path.Join("/", u.Path)) {
 			s.redirectError(w, u, map[string]string{
 				"error":             "access_denied",
 				"error_description": "unauthorized app uri",
@@ -347,7 +347,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	if len(params.Scope) > 0 {
 		// check the scope against the app and audience
 		perms, ok := app.Permissions[params.Audience]
-		if !ok || !every(perms, params.Scope...) {
+		if !ok || !perms.Every(params.Scope...) {
 			s.redirectError(w, u, map[string]string{
 				"error":             "access_denied",
 				"error_description": "insufficient permissions",
@@ -357,7 +357,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// sanity check to ensure the audience actually has the permissions requested
-		if !every(aud.Permissions, params.Scope...) {
+		if !aud.Permissions.Every(params.Scope...) {
 			s.redirectError(w, u, map[string]string{
 				"error":             "access_denied",
 				"error_description": "insufficient permissions",
@@ -527,7 +527,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		TokenType: "bearer",
 	}
 
-	if !contains(app.AllowedGrants, params.GrantType) {
+	if !app.AllowedGrants.Contains(params.GrantType) {
 		s.writeError(w, http.StatusUnauthorized, "unauthorized grant")
 		return
 	}
@@ -547,7 +547,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// sanity check to ensure the audience actually has the permissions requested
-	if !every(aud.Permissions, params.Scope...) {
+	if !aud.Permissions.Every(params.Scope...) {
 		s.writeError(w, http.StatusUnauthorized, "bad scope")
 		return
 	}
@@ -604,7 +604,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		// ensure this app has these permissions
 		perms, ok := app.Permissions[*params.Audience]
-		if !ok || !every(perms, params.Scope...) {
+		if !ok || !perms.Every(params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "bad scope")
 			return
 		}
@@ -739,7 +739,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// check the scope against the code
-		if !ok || !every(code.Scope, params.Scope...) {
+		if !ok || !code.Scope.Every(params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "invalid request scope")
 
 			return
@@ -748,7 +748,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		// ensure the app has access to this audience
 		perms, ok = app.Permissions[aud.Name]
 		// check the scope against the app, audience and user permissions
-		if !ok || !every(perms, params.Scope...) {
+		if !ok || !perms.Every(params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "invalid application scope")
 
 			return
@@ -756,7 +756,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		// ensure the user has access to this audience
 		perms, ok = user.Permissions[aud.Name]
-		if !ok || !every(perms, params.Scope...) {
+		if !ok || !perms.Every(params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "invalid user scope")
 
 			return
@@ -800,9 +800,10 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		}
 		bearer.AccessToken = token
 		bearer.ExpiresIn = int64(exp - time.Now().Unix())
+		scope := oauth.Permissions(params.Scope)
 
 		// check for offline_access
-		if contains(params.Scope, oauth.ScopeOffline) {
+		if scope.Contains(oauth.ScopeOffline) {
 			if params.RefreshNonce == nil || code.RefreshNonce == *params.RefreshNonce {
 				s.writeError(w, http.StatusUnauthorized, "invalid refresh nonce")
 				return
@@ -822,7 +823,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// check for id token request
-		if contains(params.Scope, oauth.ScopeOpenID) {
+		if scope.Contains(oauth.ScopeOpenID) {
 			claims := jwt.MapClaims{
 				"iat":       time.Now().Unix(),
 				"auth_time": state.CreatedAt,
@@ -833,7 +834,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 				"name":      user.Profile.Name,
 			}
 
-			if contains(params.Scope, oauth.ScopeProfile) {
+			if scope.Contains(oauth.ScopeProfile) {
 				dec, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 					TagName: "json",
 					Result:  &claims,
@@ -895,7 +896,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ensure the redirect uri is allowed
-	if !contains(app.AppUris, path.Join("/", u.Path)) {
+	if !app.AppUris.Contains(path.Join("/", u.Path)) {
 		s.writeError(w, http.StatusUnauthorized, "unauthorized logout uri")
 		return
 	}

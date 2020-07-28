@@ -31,8 +31,8 @@ type User struct {
 	// Format: date-time
 	PasswordExpiresAt strfmt.DateTime `json:"password_expires_at,omitempty"`
 
-	// The users's authorized permissions, keyed on audience
-	Permissions map[string][]string `json:"permissions,omitempty"`
+	// permissions
+	Permissions PermissionSet `json:"permissions,omitempty"`
 
 	// profile
 	Profile *Profile `json:"profile,omitempty"`
@@ -47,6 +47,10 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validatePasswordExpiresAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePermissions(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -76,6 +80,22 @@ func (m *User) validatePasswordExpiresAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("password_expires_at", "body", "date-time", m.PasswordExpiresAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *User) validatePermissions(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Permissions) { // not required
+		return nil
+	}
+
+	if err := m.Permissions.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("permissions")
+		}
 		return err
 	}
 
