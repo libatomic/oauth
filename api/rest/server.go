@@ -43,18 +43,19 @@ type (
 		// browser. If it is not configured cookies and tokens will be unsigned.
 		signingKey *rsa.PrivateKey
 
-		sessionCookie   string
-		sessionLifetime time.Duration
-		sessionTimeout  time.Duration
-		log             *logrus.Logger
-		router          *mux.Router
-		apiRouter       *mux.Router
-		addr            string
-		srv             *http.Server
-		lock            sync.Mutex
-		jwks            []byte
-		allowSignup     bool
-		basePath        string
+		sessionCookie      string
+		sessionLifetime    time.Duration
+		sessionTimeout     time.Duration
+		log                *logrus.Logger
+		router             *mux.Router
+		apiRouter          *mux.Router
+		addr               string
+		srv                *http.Server
+		lock               sync.Mutex
+		jwks               []byte
+		allowSignup        bool
+		allowPasswordGrant bool
+		basePath           string
 
 		// cookie manages secure cookies
 		cookie *securecookie.SecureCookie
@@ -217,6 +218,13 @@ func WithAllowSignup(allow bool) Option {
 func WithSessionCookieName(name string) Option {
 	return func(s *Server) {
 		s.sessionCookie = name
+	}
+}
+
+// WithAllowPasswordGrant enables password grants which require client secrets
+func WithAllowPasswordGrant(allow bool) Option {
+	return func(s *Server) {
+		s.allowPasswordGrant = allow
 	}
 }
 

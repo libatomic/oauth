@@ -567,6 +567,7 @@ definitions:
       import:
         package: github.com/libatomic/oauth/pkg/oauth
       type: Address
+    x-nullable: false
 
   ErrorResponse:
     description: "A common error response"
@@ -988,13 +989,21 @@ paths:
           type: "string"
           description: "The authorization grant type"
           in: "formData"
-          enum: ["authorization_code", "refresh_token", "client_credentials"]
+          enum: ["authorization_code", "refresh_token", "client_credentials", "password"]
           required: true
         - name: "client_id"
           type: "string"
           description: "The client id"
           in: "formData"
           required: true
+        - name: "username"
+          type: "string"
+          description: "The username for password grants"
+          in: "formData"
+        - name: "password"
+          type: "string"
+          description: "The password for password grants"
+          in: "formData"
         - name: "client_secret"
           type: "string"
           description: "The client secret"

@@ -532,7 +532,25 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var aud *oauth.Audience
+	if params.Audience == nil {
+		s.writeError(w, http.StatusUnauthorized, "missing audience")
+		return
+	}
+
+	// ensure the audience
+	aud, err := s.ctrl.AudienceGet(*params.Audience)
+	if err != nil {
+		s.log.Errorln(err)
+
+		s.writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// sanity check to ensure the audience actually has the permissions requested
+	if !every(aud.Permissions, params.Scope...) {
+		s.writeError(w, http.StatusUnauthorized, "bad scope")
+		return
+	}
 
 	signToken := func(claims jwt.MapClaims) (string, error) {
 		var token *jwt.Token
@@ -553,31 +571,34 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var code *oauth.AuthCode
+	var user *oauth.User
 
 	switch params.GrantType {
+	case oauth.GrantTypePassword:
+		if !s.allowPasswordGrant {
+			s.writeError(w, http.StatusUnauthorized, "invalid grant type")
+			return
+		}
+
+		if params.Username == nil || params.Password == nil {
+			s.writeError(w, http.StatusBadRequest, "bad request")
+			return
+		}
+
+		user, _, err = s.ctrl.UserAuthenticate(s.appctx(app, aud, nil), *params.Username, *params.Password)
+		if err != nil {
+			s.writeError(w, http.StatusUnauthorized, "not authorized")
+			return
+		}
+
+		if len(params.Scope) == 0 {
+			params.Scope = user.Permissions[*params.Audience]
+		}
+		fallthrough
+
 	case oauth.GrantTypeClientCredentials:
 		if params.ClientSecret == nil || *params.ClientSecret != app.ClientSecret {
 			s.writeError(w, http.StatusUnauthorized, "bad client secret")
-			return
-		}
-
-		if params.Audience == nil {
-			s.writeError(w, http.StatusUnauthorized, "missing audience")
-			return
-		}
-
-		// ensure the audience
-		aud, err = s.ctrl.AudienceGet(*params.Audience)
-		if err != nil {
-			s.log.Errorln(err)
-
-			s.writeErr(w, http.StatusBadRequest, err)
-			return
-		}
-
-		// sanity check to ensure the audience actually has the permissions requested
-		if !every(aud.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "bad scope")
 			return
 		}
 
@@ -592,7 +613,11 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		exp := time.Now().Add(time.Second * time.Duration(aud.TokenLifetime)).Unix()
 
-		claims["sub"] = fmt.Sprintf("%s@applications", app.ClientID)
+		if user != nil {
+			claims["sub"] = user.Profile.Subject
+		} else {
+			claims["sub"] = fmt.Sprintf("%s@applications", app.ClientID)
+		}
 		claims["aud"] = aud.Name
 		claims["exp"] = exp
 		claims["iat"] = time.Now().Unix()
@@ -684,14 +709,6 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		s.codes.CodeDestroy(code.Code)
 
-		aud, err = s.ctrl.AudienceGet(code.Audience)
-		if err != nil {
-			s.log.Errorln(err)
-
-			s.writeErr(w, http.StatusBadRequest, err)
-			return
-		}
-
 		_, state, err := s.getSession(r)
 		if err != nil {
 			s.log.Errorln(err)
@@ -724,13 +741,6 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 		// check the scope against the code
 		if !ok || !every(code.Scope, params.Scope...) {
 			s.writeError(w, http.StatusUnauthorized, "invalid request scope")
-
-			return
-		}
-
-		// sanity check to ensure the api provides these permissions
-		if !every(aud.Permissions, params.Scope...) {
-			s.writeError(w, http.StatusUnauthorized, "invalid audience scope")
 
 			return
 		}

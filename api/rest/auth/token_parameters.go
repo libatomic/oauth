@@ -64,6 +64,11 @@ type TokenParams struct {
 	*/
 	GrantType string
 
+	/*The password for password grants
+	  In: formData
+	*/
+	Password *string
+
 	/*The new refresh token nonce is the S256 of a client generated value as defined
 	in the PKCE standard, similar to that used in the authorization flow.
 
@@ -94,14 +99,21 @@ type TokenParams struct {
 	  Collection Format: ssv
 	*/
 	Scope []string
+
+	/*The username for password grants
+	  In: formData
+	*/
+	Username *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewTokenParams() beforehand.
 func (o *TokenParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
+
+	// ensure defaults
+	*o = NewTokenParams()
 
 	vars := mux.Vars(r)
 	route := struct {
@@ -165,6 +177,11 @@ func (o *TokenParams) BindRequest(r *http.Request, c ...runtime.Consumer) error 
 		res = append(res, err)
 	}
 
+	fdPassword, fdhkPassword, _ := fds.GetOK("password")
+	if err := o.bindPassword(fdPassword, fdhkPassword, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	fdRefreshNonce, fdhkRefreshNonce, _ := fds.GetOK("refresh_nonce")
 	if err := o.bindRefreshNonce(fdRefreshNonce, fdhkRefreshNonce, route.Formats); err != nil {
 		res = append(res, err)
@@ -182,6 +199,11 @@ func (o *TokenParams) BindRequest(r *http.Request, c ...runtime.Consumer) error 
 
 	fdScope, fdhkScope, _ := fds.GetOK("scope")
 	if err := o.bindScope(fdScope, fdhkScope, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	fdUsername, fdhkUsername, _ := fds.GetOK("username")
+	if err := o.bindUsername(fdUsername, fdhkUsername, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -312,9 +334,27 @@ func (o *TokenParams) bindGrantType(rawData []string, hasKey bool, formats strfm
 // validateGrantType carries on validations for parameter GrantType
 func (o *TokenParams) validateGrantType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("grant_type", "formData", o.GrantType, []interface{}{"authorization_code", "refresh_token", "client_credentials"}, true); err != nil {
+	if err := validate.EnumCase("grant_type", "formData", o.GrantType, []interface{}{"authorization_code", "refresh_token", "client_credentials", "password"}, true); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// bindPassword binds and validates parameter Password from formData.
+func (o *TokenParams) bindPassword(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.Password = &raw
 
 	return nil
 }
@@ -397,6 +437,24 @@ func (o *TokenParams) bindScope(rawData []string, hasKey bool, formats strfmt.Re
 	}
 
 	o.Scope = scopeIR
+
+	return nil
+}
+
+// bindUsername binds and validates parameter Username from formData.
+func (o *TokenParams) bindUsername(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.Username = &raw
 
 	return nil
 }

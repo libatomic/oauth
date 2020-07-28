@@ -6,6 +6,10 @@ package oauth
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"net/http"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -111,5 +115,24 @@ func (m *User) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	*m = res
+	return nil
+}
+
+// Value returns User as a value that can be stored as json in the database
+func (m User) Value() (driver.Value, error) {
+	return json.Marshal(m)
+}
+
+// Scan reads a json value from the database into a User
+func (m *User) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New(http.StatusInternalServerError, "type assertion to []byte failed")
+	}
+
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+
 	return nil
 }

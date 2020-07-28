@@ -36,6 +36,9 @@ const (
 
 	// GrantTypeClientCredentials is the grant for machine-to-machine access
 	GrantTypeClientCredentials = "client_credentials"
+
+	// GrantTypePassword is the grant password grants
+	GrantTypePassword = "password"
 )
 
 type (

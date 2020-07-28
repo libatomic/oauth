@@ -51,9 +51,11 @@ type LogoutParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewLogoutParams() beforehand.
 func (o *LogoutParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
+
+	// ensure defaults
+	*o = NewLogoutParams()
 
 	vars := mux.Vars(r)
 	route := struct {

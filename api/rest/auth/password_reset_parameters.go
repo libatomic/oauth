@@ -59,9 +59,11 @@ type PasswordResetParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewPasswordResetParams() beforehand.
 func (o *PasswordResetParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
 	var res []error
+
+	// ensure defaults
+	*o = NewPasswordResetParams()
 
 	vars := mux.Vars(r)
 	route := struct {

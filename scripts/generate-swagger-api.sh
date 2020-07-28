@@ -3,6 +3,7 @@ set -eu
 
 swagger generate model -f api/swagger.yaml \
 	-t pkg -m oauth -C api/swagger-gen.yaml \
+	--template=atomic \
 	-n ErrorResponse \
 	-n BearerToken \
 	-n AuthRequest \
@@ -16,7 +17,7 @@ swagger generate model -f api/swagger.yaml \
 
 swagger generate operation -f api/swagger.yaml \
 	-t api -a rest -m oauth -C api/swagger-gen.yaml \
-	-T api/templates --skip-responses --skip-url-builder \
+	--template=atomic --skip-responses --skip-url-builder \
 	-n Authorize \
 	-n Login \
 	-n Token \
@@ -28,5 +29,5 @@ swagger generate operation -f api/swagger.yaml \
 
 # generate the embedded spec file
 swagger generate server -f api/swagger.yaml \
-	-t api -s rest -T api/templates -C api/swagger-gen.yaml \
+	-t api -s rest --template=atomic -C api/swagger-gen.yaml \
 	--skip-models --skip-operations --exclude-main
