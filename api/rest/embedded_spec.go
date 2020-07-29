@@ -1314,7 +1314,8 @@ func init() {
           "description": "String from zoneinfo [zoneinfo] time zone database representing the End-User's time zone. For example, Europe/Paris or America/Los_Angeles.\n",
           "type": "string"
         }
-      }
+      },
+      "x-nullable": false
     },
     "ProfileRef": {
       "description": "Profile reference object for go consumers\n",
@@ -2710,7 +2711,8 @@ func init() {
           "description": "String from zoneinfo [zoneinfo] time zone database representing the End-User's time zone. For example, Europe/Paris or America/Los_Angeles.\n",
           "type": "string"
         }
-      }
+      },
+      "x-nullable": false
     },
     "ProfileRef": {
       "description": "Profile reference object for go consumers\n",

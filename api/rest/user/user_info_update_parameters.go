@@ -34,7 +34,7 @@ type UserInfoUpdateParams struct {
 	/*The new profile
 	  In: body
 	*/
-	Profile *oauth.Profile
+	Profile oauth.Profile
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -81,7 +81,7 @@ func (o *UserInfoUpdateParams) BindRequest(r *http.Request, c ...runtime.Consume
 			}
 
 			if len(res) == 0 {
-				o.Profile = &body
+				o.Profile = body
 			}
 		}
 	}

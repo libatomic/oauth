@@ -398,6 +398,7 @@ definitions:
     description: |
       A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).
     type: "object"
+    x-nullable: false
     properties:
       sub:
         type: "string"
