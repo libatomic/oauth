@@ -250,7 +250,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 
 	user := &oauth.User{
 		Login: params.Login,
-		Profile: &oauth.Profile{
+		Profile: oauth.Profile{
 			Name:  safestr(params.Name),
 			Email: params.Email,
 		},
@@ -991,7 +991,7 @@ func (s *Server) userInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ctx.User().Profile == nil || ctx.User().Profile.Subject != state.Subject {
+	if ctx.User().Profile.Subject != state.Subject {
 		s.writeError(w, http.StatusUnauthorized, "access denied")
 		return
 	}
@@ -1024,7 +1024,7 @@ func (s *Server) userPrincipal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ctx.User().Profile == nil || ctx.User().Profile.Subject != state.Subject {
+	if ctx.User().Profile.Subject != state.Subject {
 		s.writeError(w, http.StatusUnauthorized, "access denied")
 		return
 	}
