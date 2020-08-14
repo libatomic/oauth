@@ -31,16 +31,33 @@ type UserInfoUpdateParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	HTTPResponse http.ResponseWriter `json:"-"`
+
 	/*The new profile
 	  In: body
 	*/
 	Profile oauth.Profile
 }
 
+func (o *UserInfoUpdateParams) RW() (*http.Request, http.ResponseWriter) {
+	return o.HTTPRequest, o.HTTPResponse
+}
+
+func (o *UserInfoUpdateParams) WR() (http.ResponseWriter, *http.Request) {
+	return o.HTTPResponse, o.HTTPRequest
+}
+
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-func (o *UserInfoUpdateParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
+func (o *UserInfoUpdateParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
+	return o.BindRequestW(nil, r, c...)
+}
+
+// BindRequestW both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
+// for simple values it will use straight method calls.
+//
+func (o *UserInfoUpdateParams) BindRequestW(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	// ensure defaults
@@ -68,6 +85,7 @@ func (o *UserInfoUpdateParams) BindRequest(r *http.Request, c ...runtime.Consume
 	}
 
 	o.HTTPRequest = r
+	o.HTTPResponse = w
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()

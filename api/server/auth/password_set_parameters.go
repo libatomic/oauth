@@ -15,21 +15,23 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// NewPasswordResetParams creates a new PasswordResetParams object
+// NewPasswordSetParams creates a new PasswordSetParams object
 // no default values defined in spec.
-func NewPasswordResetParams() PasswordResetParams {
+func NewPasswordSetParams() PasswordSetParams {
 
-	return PasswordResetParams{}
+	return PasswordSetParams{}
 }
 
-// PasswordResetParams contains all the bound params for the password reset operation
+// PasswordSetParams contains all the bound params for the password set operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters PasswordReset
-type PasswordResetParams struct {
+// swagger:parameters PasswordSet
+type PasswordSetParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	HTTPResponse http.ResponseWriter `json:"-"`
 
 	/*The PKCE code verifier
 	  Required: true
@@ -43,27 +45,47 @@ type PasswordResetParams struct {
 	*/
 	Login string
 
-	/*The uri to redirect to after password reset request
+	/*The new password
+	  Required: true
+	  In: formData
+	*/
+	Password string
+
+	/*The uri to redirect to after password reset
 	  In: formData
 	*/
 	RedirectURI *strfmt.URI
 
-	/*"The authorization request token"
-
+	/*The reset verification code
 	  Required: true
 	  In: formData
 	*/
-	RequestToken string
+	ResetCode string
+}
+
+func (o *PasswordSetParams) RW() (*http.Request, http.ResponseWriter) {
+	return o.HTTPRequest, o.HTTPResponse
+}
+
+func (o *PasswordSetParams) WR() (http.ResponseWriter, *http.Request) {
+	return o.HTTPResponse, o.HTTPRequest
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-func (o *PasswordResetParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
+func (o *PasswordSetParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
+	return o.BindRequestW(nil, r, c...)
+}
+
+// BindRequestW both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
+// for simple values it will use straight method calls.
+//
+func (o *PasswordSetParams) BindRequestW(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	// ensure defaults
-	*o = NewPasswordResetParams()
+	*o = NewPasswordSetParams()
 
 	vars := mux.Vars(r)
 	route := struct {
@@ -87,6 +109,7 @@ func (o *PasswordResetParams) BindRequest(r *http.Request, c ...runtime.Consumer
 	}
 
 	o.HTTPRequest = r
+	o.HTTPResponse = w
 
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		if err != http.ErrNotMultipart {
@@ -107,13 +130,18 @@ func (o *PasswordResetParams) BindRequest(r *http.Request, c ...runtime.Consumer
 		res = append(res, err)
 	}
 
+	fdPassword, fdhkPassword, _ := fds.GetOK("password")
+	if err := o.bindPassword(fdPassword, fdhkPassword, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	fdRedirectURI, fdhkRedirectURI, _ := fds.GetOK("redirect_uri")
 	if err := o.bindRedirectURI(fdRedirectURI, fdhkRedirectURI, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
-	fdRequestToken, fdhkRequestToken, _ := fds.GetOK("request_token")
-	if err := o.bindRequestToken(fdRequestToken, fdhkRequestToken, route.Formats); err != nil {
+	fdResetCode, fdhkResetCode, _ := fds.GetOK("reset_code")
+	if err := o.bindResetCode(fdResetCode, fdhkResetCode, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -124,7 +152,7 @@ func (o *PasswordResetParams) BindRequest(r *http.Request, c ...runtime.Consumer
 }
 
 // bindCodeVerifier binds and validates parameter CodeVerifier from formData.
-func (o *PasswordResetParams) bindCodeVerifier(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *PasswordSetParams) bindCodeVerifier(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
 		return errors.Required("code_verifier", "formData", rawData)
 	}
@@ -145,7 +173,7 @@ func (o *PasswordResetParams) bindCodeVerifier(rawData []string, hasKey bool, fo
 }
 
 // bindLogin binds and validates parameter Login from formData.
-func (o *PasswordResetParams) bindLogin(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *PasswordSetParams) bindLogin(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
 		return errors.Required("login", "formData", rawData)
 	}
@@ -165,8 +193,29 @@ func (o *PasswordResetParams) bindLogin(rawData []string, hasKey bool, formats s
 	return nil
 }
 
+// bindPassword binds and validates parameter Password from formData.
+func (o *PasswordSetParams) bindPassword(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	if !hasKey {
+		return errors.Required("password", "formData", rawData)
+	}
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+
+	if err := validate.RequiredString("password", "formData", raw); err != nil {
+		return err
+	}
+
+	o.Password = raw
+
+	return nil
+}
+
 // bindRedirectURI binds and validates parameter RedirectURI from formData.
-func (o *PasswordResetParams) bindRedirectURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *PasswordSetParams) bindRedirectURI(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -193,7 +242,7 @@ func (o *PasswordResetParams) bindRedirectURI(rawData []string, hasKey bool, for
 }
 
 // validateRedirectURI carries on validations for parameter RedirectURI
-func (o *PasswordResetParams) validateRedirectURI(formats strfmt.Registry) error {
+func (o *PasswordSetParams) validateRedirectURI(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("redirect_uri", "formData", "uri", o.RedirectURI.String(), formats); err != nil {
 		return err
@@ -201,10 +250,10 @@ func (o *PasswordResetParams) validateRedirectURI(formats strfmt.Registry) error
 	return nil
 }
 
-// bindRequestToken binds and validates parameter RequestToken from formData.
-func (o *PasswordResetParams) bindRequestToken(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindResetCode binds and validates parameter ResetCode from formData.
+func (o *PasswordSetParams) bindResetCode(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
-		return errors.Required("request_token", "formData", rawData)
+		return errors.Required("reset_code", "formData", rawData)
 	}
 	var raw string
 	if len(rawData) > 0 {
@@ -213,11 +262,11 @@ func (o *PasswordResetParams) bindRequestToken(rawData []string, hasKey bool, fo
 
 	// Required: true
 
-	if err := validate.RequiredString("request_token", "formData", raw); err != nil {
+	if err := validate.RequiredString("reset_code", "formData", raw); err != nil {
 		return err
 	}
 
-	o.RequestToken = raw
+	o.ResetCode = raw
 
 	return nil
 }

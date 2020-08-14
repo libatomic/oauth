@@ -10,9 +10,8 @@
 package oauth
 
 import (
-	"net/http"
-
 	"github.com/dgrijalva/jwt-go"
+	"github.com/libatomic/api/pkg/api"
 )
 
 const (
@@ -101,16 +100,12 @@ type (
 		// UserSetPassword will set a user's password
 		UserSetPassword(ctx Context, id string, password string) error
 
-		// TokenFinalize allows the controller to modify any tokens before being returned
-		TokenFinalize(ctx Context, scope []string, claims map[string]interface{}) error
+		// TokenFinalize finalizes the scope prior to signing
+		TokenFinalize(ctx Context, scope Permissions, claims map[string]interface{})
 	}
 
-	// Authorizer provides an interface for authorizing bearer tokens
-	// The Authorizer should ensure the scope and should return the token with jwt.MapClaims
-	// The first return value is the token, the second is the princial (*User or *Application)
-	Authorizer interface {
-		AuthorizeRequest(r *http.Request, scope ...Permissions) (Context, error)
-	}
+	// Authorizer is an oauth authorizer interface
+	Authorizer func(scope ...Permissions) api.Authorizer
 
 	// CodeStore defines an AuthCode storage interface
 	// AuthCodes are used by the Oauth 2.0 `authorization_code` flow

@@ -6,7 +6,7 @@
  * workspace for details.
  */
 
-package rest
+package server
 
 func safestr(s *string) string {
 	if s == nil {

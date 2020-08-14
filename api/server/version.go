@@ -6,7 +6,7 @@
  * workspace for details.
  */
 
-package rest
+package server
 
 import (
 	"fmt"

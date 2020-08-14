@@ -29,12 +29,29 @@ type UserInfoGetParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	HTTPResponse http.ResponseWriter `json:"-"`
+}
+
+func (o *UserInfoGetParams) RW() (*http.Request, http.ResponseWriter) {
+	return o.HTTPRequest, o.HTTPResponse
+}
+
+func (o *UserInfoGetParams) WR() (http.ResponseWriter, *http.Request) {
+	return o.HTTPResponse, o.HTTPRequest
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-func (o *UserInfoGetParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
+func (o *UserInfoGetParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
+	return o.BindRequestW(nil, r, c...)
+}
+
+// BindRequestW both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
+// for simple values it will use straight method calls.
+//
+func (o *UserInfoGetParams) BindRequestW(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	// ensure defaults
@@ -62,6 +79,7 @@ func (o *UserInfoGetParams) BindRequest(r *http.Request, c ...runtime.Consumer) 
 	}
 
 	o.HTTPRequest = r
+	o.HTTPResponse = w
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

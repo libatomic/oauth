@@ -40,6 +40,8 @@ type AuthorizeParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	HTTPResponse http.ResponseWriter `json:"-"`
+
 	/*The URL to which the authentication server redirects the browser for action
 	  In: query
 	*/
@@ -100,10 +102,25 @@ type AuthorizeParams struct {
 	UserPool *string
 }
 
+func (o *AuthorizeParams) RW() (*http.Request, http.ResponseWriter) {
+	return o.HTTPRequest, o.HTTPResponse
+}
+
+func (o *AuthorizeParams) WR() (http.ResponseWriter, *http.Request) {
+	return o.HTTPResponse, o.HTTPRequest
+}
+
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-func (o *AuthorizeParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
+func (o *AuthorizeParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
+	return o.BindRequestW(nil, r, c...)
+}
+
+// BindRequestW both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
+// for simple values it will use straight method calls.
+//
+func (o *AuthorizeParams) BindRequestW(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	// ensure defaults
@@ -131,6 +148,7 @@ func (o *AuthorizeParams) BindRequest(r *http.Request, c ...runtime.Consumer) er
 	}
 
 	o.HTTPRequest = r
+	o.HTTPResponse = w
 
 	qs := runtime.Values(r.URL.Query())
 

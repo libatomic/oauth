@@ -31,6 +31,8 @@ type LoginParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	HTTPResponse http.ResponseWriter `json:"-"`
+
 	/*The PKCE code verifier
 	  Required: true
 	  In: formData
@@ -57,10 +59,25 @@ type LoginParams struct {
 	RequestToken string
 }
 
+func (o *LoginParams) RW() (*http.Request, http.ResponseWriter) {
+	return o.HTTPRequest, o.HTTPResponse
+}
+
+func (o *LoginParams) WR() (http.ResponseWriter, *http.Request) {
+	return o.HTTPResponse, o.HTTPRequest
+}
+
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-func (o *LoginParams) BindRequest(r *http.Request, c ...runtime.Consumer) error {
+func (o *LoginParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
+	return o.BindRequestW(nil, r, c...)
+}
+
+// BindRequestW both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
+// for simple values it will use straight method calls.
+//
+func (o *LoginParams) BindRequestW(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	// ensure defaults
@@ -88,6 +105,7 @@ func (o *LoginParams) BindRequest(r *http.Request, c ...runtime.Consumer) error 
 	}
 
 	o.HTTPRequest = r
+	o.HTTPResponse = w
 
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		if err != http.ErrNotMultipart {

@@ -1,6 +1,6 @@
 .PHONY: api-gen
 api-gen: ## generate the api type structs
-	docker run --rm -v $(PWD):/go/src/github.com/libatomic/oauth \
+	docker run --rm -v $(PWD)/..:/go/src/github.com/libatomic \
 		-w /go/src/github.com/libatomic/oauth \
 		--entrypoint scripts/generate-swagger-api.sh \
 		-e GOPATH=/go \
