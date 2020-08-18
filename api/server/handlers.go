@@ -630,7 +630,7 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 		sum := sha256.Sum256(verifier)
 		check := base64.RawURLEncoding.EncodeToString(sum[:])
 
-		if *params.RefreshNonce != check {
+		if code.RefreshNonce != check {
 			return api.StatusErrorf(http.StatusUnauthorized, "token validation failed")
 		}
 

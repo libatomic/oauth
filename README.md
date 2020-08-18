@@ -17,14 +17,14 @@ functionality.
 
 ## Integrating the server
 
-Integration begins with instantiating a `api/rest.Server` object.
+Integration begins with instantiating a `api/server.Server` object.
 
 This object implements the http.Hander interface, provides a `gorilla/mux.Router` as well as a standalone
 http.Server. These options provide considerable flexibility. If you need more, simply fork, hack, repeat.
 
 Integrators will need to implement the `pkg/oauth.Controller` interface.
 
-The `api/rest.Server` implements the `pkg/oauth.Authorizer` interface which can be used to validate
+The `api/server.Server` implements the `pkg/oauth.Authorizer` interface which can be used to validate
 incoming bearer tokens on http.Request objects.
 
 ## OAuth 2.0 flow support
