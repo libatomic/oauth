@@ -763,7 +763,7 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 			}
 			code.RefreshNonce = *params.RefreshNonce
 
-			code.ExpiresAt = time.Now().Add(time.Hour * 168).Unix()
+			code.ExpiresAt = time.Now().Add(s.sessionLifetime - s.sessionTimeout).Unix()
 
 			if err := s.codes.CodeCreate(code); err != nil {
 				s.Log().Error(err.Error())
