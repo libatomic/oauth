@@ -31,6 +31,11 @@ type PublicKeyGetParams struct {
 	HTTPRequest *http.Request `json:"-"`
 
 	HTTPResponse http.ResponseWriter `json:"-"`
+
+	/*The audience for the request
+	  In: query
+	*/
+	Audience *string
 }
 
 func (o *PublicKeyGetParams) RW() (*http.Request, http.ResponseWriter) {
@@ -81,8 +86,33 @@ func (o *PublicKeyGetParams) BindRequestW(w http.ResponseWriter, r *http.Request
 	o.HTTPRequest = r
 	o.HTTPResponse = w
 
+	qs := runtime.Values(r.URL.Query())
+
+	qAudience, qhkAudience, _ := qs.GetOK("audience")
+	if err := o.bindAudience(qAudience, qhkAudience, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAudience binds and validates parameter Audience from query.
+func (o *PublicKeyGetParams) bindAudience(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.Audience = &raw
+
 	return nil
 }

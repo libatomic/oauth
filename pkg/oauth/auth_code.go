@@ -35,8 +35,8 @@ type AuthCode struct {
 	// The time the code was issued on
 	IssuedAt int64 `json:"issued_at,omitempty"`
 
-	// The refresh token verfier
-	RefreshVerifier string `json:"refresh_verifier,omitempty"`
+	// The refresh token nonce
+	RefreshNonce string `json:"refresh_nonce,omitempty"`
 
 	// The session id
 	SessionID string `json:"session_id,omitempty"`
@@ -65,7 +65,7 @@ func (m *AuthCode) UnmarshalJSON(raw []byte) error {
 
 		IssuedAt int64 `json:"issued_at,omitempty"`
 
-		RefreshVerifier string `json:"refresh_verifier,omitempty"`
+		RefreshNonce string `json:"refresh_nonce,omitempty"`
 
 		SessionID string `json:"session_id,omitempty"`
 
@@ -81,7 +81,7 @@ func (m *AuthCode) UnmarshalJSON(raw []byte) error {
 
 	m.IssuedAt = dataAO1.IssuedAt
 
-	m.RefreshVerifier = dataAO1.RefreshVerifier
+	m.RefreshNonce = dataAO1.RefreshNonce
 
 	m.SessionID = dataAO1.SessionID
 
@@ -106,7 +106,7 @@ func (m AuthCode) MarshalJSON() ([]byte, error) {
 
 		IssuedAt int64 `json:"issued_at,omitempty"`
 
-		RefreshVerifier string `json:"refresh_verifier,omitempty"`
+		RefreshNonce string `json:"refresh_nonce,omitempty"`
 
 		SessionID string `json:"session_id,omitempty"`
 
@@ -119,7 +119,7 @@ func (m AuthCode) MarshalJSON() ([]byte, error) {
 
 	dataAO1.IssuedAt = m.IssuedAt
 
-	dataAO1.RefreshVerifier = m.RefreshVerifier
+	dataAO1.RefreshNonce = m.RefreshNonce
 
 	dataAO1.SessionID = m.SessionID
 

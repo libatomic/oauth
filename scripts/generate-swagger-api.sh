@@ -1,8 +1,6 @@
 #!/bin/sh
 set -eu
 
-go mod tidy 
-
 swagger generate model -f api/swagger.yaml \
 	-t pkg -m oauth -C api/swagger-gen.yaml \
 	--template=atomic

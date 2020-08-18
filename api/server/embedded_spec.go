@@ -53,6 +53,14 @@ func init() {
           "Auth"
         ],
         "operationId": "PublicKeyGet",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The audience for the request",
+            "name": "audience",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "ok",
@@ -1073,8 +1081,8 @@ func init() {
               "type": "integer",
               "format": "int64"
             },
-            "refresh_verifier": {
-              "description": "The refresh token verfier",
+            "refresh_nonce": {
+              "description": "The refresh token nonce",
               "type": "string"
             },
             "session_id": {
@@ -1450,6 +1458,14 @@ func init() {
           "Auth"
         ],
         "operationId": "PublicKeyGet",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The audience for the request",
+            "name": "audience",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "ok",
@@ -2470,8 +2486,8 @@ func init() {
               "type": "integer",
               "format": "int64"
             },
-            "refresh_verifier": {
-              "description": "The refresh token verfier",
+            "refresh_nonce": {
+              "description": "The refresh token nonce",
               "type": "string"
             },
             "session_id": {

@@ -5,7 +5,7 @@ api-gen: ## generate the api type structs
 		--entrypoint scripts/generate-swagger-api.sh \
 		-e GOPATH=/go \
 		libatomic/go-swagger
-	
+		
 .PHONY: api-docs
 api-docs: ## preview the API documentation
 	@echo "API docs preview will be running at http://localhost:$(API_DOCS_PORT)"

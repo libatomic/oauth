@@ -216,9 +216,9 @@ definitions:
             type: "integer"
             description: "The time the code was issued on"
             format: "int64"
-          refresh_verifier:
+          refresh_nonce:
             type: "string"
-            description: "The refresh token verfier"
+            description: "The refresh token nonce"
           user_authenticated:
             type: "boolean"
             description: |
@@ -1073,6 +1073,12 @@ paths:
         Return the jwks which includes the rsa public key and ids for the service
       operationId: "PublicKeyGet"
       tags: ["Auth"]
+      parameters:
+        - name: "audience"
+          description: "The audience for the request"
+          type: "string"
+          in: "query"
+          required: false
       responses:
         200:
           description: "ok"

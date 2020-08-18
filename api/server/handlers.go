@@ -266,7 +266,15 @@ func (s *Server) login(params *auth.LoginParams) api.Responder {
 		})
 	}
 
-	user, _, err := s.ctrl.UserAuthenticate(s.reqctx(req), params.Login, params.Password)
+	ctx, err := oauth.ContextFromRequest(s.ctrl, req)
+	if err != nil {
+		return api.Redirect(u, map[string]string{
+			"error":             "invalid_request",
+			"error_description": "context verification failed",
+		})
+	}
+
+	user, _, err := s.ctrl.UserAuthenticate(ctx, params.Login, params.Password)
 	if err != nil {
 		s.Log().Error(err.Error())
 
@@ -394,7 +402,12 @@ func (s *Server) signup(params *auth.SignupParams) api.Responder {
 		},
 	}
 
-	if err := s.ctrl.UserCreate(s.reqctx(req), user, params.Password, safestr(params.InviteCode)); err != nil {
+	ctx, err := oauth.ContextFromRequest(s.ctrl, req)
+	if err != nil {
+		return api.StatusError(http.StatusInternalServerError, err)
+	}
+
+	if err := s.ctrl.UserCreate(ctx, user, params.Password, safestr(params.InviteCode)); err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 
 	}
@@ -415,8 +428,23 @@ func (s *Server) signup(params *auth.SignupParams) api.Responder {
 }
 
 func (s *Server) publicKey(params *auth.PublicKeyGetParams) api.Responder {
+	var aud *oauth.Audience
+	var err error
+
+	if params.Audience != nil {
+		aud, err = s.ctrl.AudienceGet(*params.Audience)
+		if err != nil {
+			return api.StatusError(http.StatusBadRequest, err)
+		}
+	}
+
+	signingKey, err := s.ctrl.SigningKey(oauth.BuildContext(oauth.WithAudience(aud)))
+	if err != nil {
+		return api.StatusError(http.StatusInternalServerError, err)
+	}
+
 	// create the jwks output
-	key, err := jwk.New(&s.signingKey.PublicKey)
+	key, err := jwk.New(&signingKey.PublicKey)
 	if err != nil {
 		return api.StatusError(http.StatusInternalServerError, err)
 
@@ -481,16 +509,21 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 
 	r := params.HTTPRequest
 
-	signToken := func(claims jwt.MapClaims) (string, error) {
+	signToken := func(claims jwt.MapClaims, ctx oauth.Context) (string, error) {
 		var token *jwt.Token
 		var key interface{}
+
+		signingKey, err := s.ctrl.SigningKey(ctx)
+		if err != nil {
+			return "", err
+		}
 
 		claims["iss"] = fmt.Sprintf("https://%s%s", r.Host, path.Clean(path.Join(path.Dir(r.URL.Path), "/.well-known/jwks.json")))
 
 		switch aud.TokenAlgorithm {
 		case "RS256":
 			token = jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-			key = s.signingKey
+			key = signingKey
 
 		case "HS256":
 			token = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(claims))
@@ -514,7 +547,14 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 
 		}
 
-		user, _, err = s.ctrl.UserAuthenticate(s.appctx(app, aud, nil), *params.Username, *params.Password)
+		user, _, err = s.ctrl.UserAuthenticate(
+			oauth.BuildContext(
+				oauth.WithApplication(app),
+				oauth.WithAudience(aud),
+			),
+			*params.Username,
+			*params.Password,
+		)
 		if err != nil {
 			return api.StatusErrorf(http.StatusUnauthorized, "not authorized")
 
@@ -552,16 +592,17 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 		claims["iat"] = time.Now().Unix()
 		claims["scope"] = strings.Join(params.Scope, " ")
 
+		ctx := oauth.BuildContext(
+			oauth.WithApplication(app),
+			oauth.WithAudience(aud),
+		)
 		s.ctrl.TokenFinalize(
-			&authContext{
-				app: app,
-				aud: aud,
-			},
+			ctx,
 			params.Scope,
 			claims,
 		)
 
-		token, err := signToken(claims)
+		token, err := signToken(claims, ctx)
 		if err != nil {
 			return api.StatusError(http.StatusInternalServerError, err)
 
@@ -579,7 +620,17 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, "invalid refresh token")
 		}
 
-		if *params.RefreshVerifier != code.RefreshVerifier {
+		verifier, err := base64.RawURLEncoding.DecodeString(*params.RefreshVerifier)
+		if err != nil {
+			s.Log().Error(err.Error())
+
+			return api.StatusError(http.StatusInternalServerError, err)
+		}
+
+		sum := sha256.Sum256(verifier)
+		check := base64.RawURLEncoding.EncodeToString(sum[:])
+
+		if *params.RefreshNonce != check {
 			return api.StatusErrorf(http.StatusUnauthorized, "token validation failed")
 		}
 
@@ -626,7 +677,13 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, "session does not exist")
 		}
 
-		user, prin, err := s.ctrl.UserGet(s.appctx(app, aud, &code.AuthRequest), state.Subject)
+		user, prin, err := s.ctrl.UserGet(
+			oauth.BuildContext(
+				oauth.WithApplication(app),
+				oauth.WithAudience(aud),
+				oauth.WithRequest(&code.AuthRequest),
+			),
+			state.Subject)
 		if err != nil {
 			s.Log().Error(err.Error())
 
@@ -670,18 +727,21 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 			"azp":   app.ClientID,
 		}
 
+		ctx := oauth.BuildContext(
+			oauth.WithApplication(app),
+			oauth.WithAudience(aud),
+			oauth.WithUser(user),
+			oauth.WithPrincipal(prin),
+			oauth.WithRequest(&code.AuthRequest),
+		)
+
 		s.ctrl.TokenFinalize(
-			&authContext{
-				user: user,
-				prin: prin,
-				app:  app,
-				aud:  aud,
-			},
+			ctx,
 			params.Scope,
 			claims,
 		)
 
-		token, err := signToken(claims)
+		token, err := signToken(claims, ctx)
 		if err != nil {
 			s.Log().Error(err.Error())
 
@@ -698,23 +758,12 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 				return api.StatusErrorf(http.StatusUnauthorized, "missing refresh nonce")
 			}
 
+			if code.RefreshNonce == *params.RefreshNonce {
+				return api.StatusErrorf(http.StatusUnauthorized, "nonce reused")
+			}
+			code.RefreshNonce = *params.RefreshNonce
+
 			code.ExpiresAt = time.Now().Add(time.Hour * 168).Unix()
-
-			verifier, err := base64.RawURLEncoding.DecodeString(*params.RefreshNonce)
-			if err != nil {
-				s.Log().Error(err.Error())
-
-				return api.StatusError(http.StatusInternalServerError, err)
-			}
-
-			sum := sha256.Sum256(verifier)
-			check := base64.RawURLEncoding.EncodeToString(sum[:])
-
-			if code.RefreshVerifier == check {
-				return api.StatusErrorf(http.StatusUnauthorized, "duplicate refresh nonce")
-			}
-
-			code.RefreshVerifier = check
 
 			if err := s.codes.CodeCreate(code); err != nil {
 				s.Log().Error(err.Error())
@@ -750,7 +799,7 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 				}
 			}
 
-			token, err := signToken(claims)
+			token, err := signToken(claims, oauth.BuildContext(oauth.WithApplication(app), oauth.WithAudience(aud)))
 			if err != nil {
 				s.Log().Error(err.Error())
 

@@ -10,6 +10,8 @@
 package oauth
 
 import (
+	"crypto/rsa"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/libatomic/api/pkg/api"
 )
@@ -102,6 +104,9 @@ type (
 
 		// TokenFinalize finalizes the scope prior to signing
 		TokenFinalize(ctx Context, scope Permissions, claims map[string]interface{})
+
+		// SigningKey returns the key for the specified context which is used to sign tokens
+		SigningKey(ctx Context) (*rsa.PrivateKey, error)
 	}
 
 	// Authorizer is an oauth authorizer interface

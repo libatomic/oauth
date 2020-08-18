@@ -10,7 +10,6 @@
 package server
 
 import (
-	"crypto/rsa"
 	"encoding/gob"
 	"net/http"
 	"time"
@@ -36,10 +35,10 @@ type (
 		// codes is the authcode store for the server
 		codes oauth.CodeStore
 
-		// signingKey is used to sign tokens, session cookies, and request values to ensure they are passed
-		// securely from the browser. The public key is used to verify requests back from the
-		// browser. If it is not configured cookies and tokens will be unsigned.
-		signingKey *rsa.PrivateKey
+		auth oauth.Authorizer
+
+		hash  []byte
+		block []byte
 
 		sessionCookie      string
 		sessionLifetime    time.Duration
@@ -68,7 +67,7 @@ func init() {
 }
 
 // New returns a new Server instance
-func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...interface{}) *Server {
+func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Server {
 	apiOpts := make([]api.Option, 0)
 	srvOpts := make([]Option, 0)
 
@@ -90,22 +89,23 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...interface{})
 		defaultSessionCookie   = "_atomic_session"
 	)
 
+	var (
+		defaultHash  = []byte("40taMVGESjzOvpYx3FvskNYN7r1AtM9M")
+		defaultBlock = []byte("seX4pGzKmw0MS0arKYIvoGZAecOR58UP")
+	)
+
 	s := &Server{
 		Server:          api.NewServer(apiOpts...),
+		auth:            athr,
 		ctrl:            ctrl,
-		signingKey:      signingKey,
 		sessionCookie:   defaultSessionCookie,
 		sessionLifetime: defaultSessionLifetime,
 		sessionTimeout:  defaultSessionTimeout,
 		router:          mux.NewRouter(),
 		codes:           memstore.New(time.Minute*5, time.Minute*10),
+		hash:            defaultHash,
+		block:           defaultBlock,
 	}
-
-	// use the public key for hashing
-	hash := signingKey.PublicKey.N.Bytes()
-
-	// use the private key for encryption
-	block := signingKey.D.Bytes()
 
 	// apply the server options
 	for _, o := range srvOpts {
@@ -113,7 +113,7 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...interface{})
 	}
 
 	if s.sessions == nil {
-		store := sessions.NewCookieStore(hash[0:32], block[0:32])
+		store := sessions.NewCookieStore(s.hash[0:32], s.block[0:32])
 
 		store.Options = &sessions.Options{
 			Secure:   true,
@@ -126,7 +126,7 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...interface{})
 	}
 
 	// we use this to generate secure values
-	s.cookie = securecookie.New(hash[0:32], block[0:32])
+	s.cookie = securecookie.New(s.hash[0:32], s.block[0:32])
 
 	// setup all of the routes
 	s.AddRoute("/authorize", http.MethodGet, &auth.AuthorizeParams{}, s.authorize)
@@ -141,11 +141,11 @@ func New(ctrl oauth.Controller, signingKey *rsa.PrivateKey, opts ...interface{})
 
 	s.AddRoute("/userInfo", http.MethodGet, &user.UserInfoGetParams{}, s.userInfo)
 
-	s.AddRoute("/userInfo", http.MethodPut, &user.UserInfoUpdateParams{}, s.userInfoUpdate, s.AuthorizeRequest(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
+	s.AddRoute("/userInfo", http.MethodPut, &user.UserInfoUpdateParams{}, s.userInfoUpdate, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
 
-	s.AddRoute("/userPrincipal", http.MethodGet, &user.UserPrincipalGetParams{}, s.userPrincipal, s.AuthorizeRequest(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
+	s.AddRoute("/userPrincipal", http.MethodGet, &user.UserPrincipalGetParams{}, s.userPrincipal, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
 
-	s.AddRoute("/.well-known/jwks.json", http.MethodGet, &auth.PublicKeyGetParams{}, s.publicKey, s.AuthorizeRequest(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
+	s.AddRoute("/.well-known/jwks.json", http.MethodGet, &auth.PublicKeyGetParams{}, s.publicKey, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
 
 	return s
 }
@@ -185,6 +185,14 @@ func AllowSignup(allow bool) Option {
 func SessionCookieName(name string) Option {
 	return func(s *Server) {
 		s.sessionCookie = name
+	}
+}
+
+// SessionCookieKeys sets the session cookie keys
+func SessionCookieKeys(hash, block []byte) Option {
+	return func(s *Server) {
+		s.hash = hash
+		s.block = block
 	}
 }
 
