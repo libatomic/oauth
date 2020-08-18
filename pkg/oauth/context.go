@@ -79,12 +79,12 @@ func WithRequest(req *AuthRequest) ContextOption {
 
 // ContextFromRequest will create a context from the Controller and AuthRequest
 func ContextFromRequest(ctrl Controller, req *AuthRequest) (Context, error) {
-	aud, err := ctrl.AudienceGet(req.ClientID)
+	aud, err := ctrl.AudienceGet(req.Audience)
 	if err != nil {
 		return nil, err
 	}
 
-	app, err := ctrl.ApplicationGet(req.Audience)
+	app, err := ctrl.ApplicationGet(req.Application)
 	if err != nil {
 		return nil, err
 	}
