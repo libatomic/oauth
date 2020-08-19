@@ -58,16 +58,6 @@ func NewAuthorizer(ctrl Controller) Authorizer {
 				return nil, ErrInvalidToken
 			}
 
-			if aud == nil {
-				id, ok := claims["aud"].(string)
-				if !ok {
-					return nil, ErrAccessDenied
-				}
-				aud, err = ctrl.AudienceGet(id)
-				if err != nil {
-					return nil, err
-				}
-			}
 			scopes := Permissions(strings.Fields(claims["scope"].(string)))
 
 			allowed := false
