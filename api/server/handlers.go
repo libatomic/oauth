@@ -438,13 +438,13 @@ func (s *Server) publicKey(params *auth.PublicKeyGetParams) api.Responder {
 		}
 	}
 
-	signingKey, err := s.ctrl.SigningKey(oauth.BuildContext(oauth.WithAudience(aud)))
+	pubKey, err := s.ctrl.TokenPublicKey(oauth.BuildContext(oauth.WithAudience(aud)))
 	if err != nil {
 		return api.StatusError(http.StatusInternalServerError, err)
 	}
 
 	// create the jwks output
-	key, err := jwk.New(&signingKey.PublicKey)
+	key, err := jwk.New(pubKey)
 	if err != nil {
 		return api.StatusError(http.StatusInternalServerError, err)
 
@@ -517,7 +517,7 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 
 		switch aud.TokenAlgorithm {
 		case "RS256":
-			signingKey, err := s.ctrl.SigningKey(ctx)
+			signingKey, err := s.ctrl.TokenPrivateKey(ctx)
 			if err != nil {
 				return "", err
 			}

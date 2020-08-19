@@ -9,7 +9,6 @@
 package oauth
 
 import (
-	"crypto/rsa"
 	"net/http"
 	"strings"
 
@@ -18,7 +17,7 @@ import (
 )
 
 // NewAuthorizer returns a new oauth authorizer
-func NewAuthorizer(ctrl Controller, privKey *rsa.PrivateKey) Authorizer {
+func NewAuthorizer(ctrl Controller) Authorizer {
 	return func(scope ...Permissions) api.Authorizer {
 		return func(r *http.Request) (interface{}, error) {
 			var claims jwt.MapClaims
@@ -30,21 +29,22 @@ func NewAuthorizer(ctrl Controller, privKey *rsa.PrivateKey) Authorizer {
 			token, err := jwt.Parse(bearer, func(token *jwt.Token) (interface{}, error) {
 				claims = token.Claims.(jwt.MapClaims)
 
+				id, ok := claims["aud"].(string)
+				if !ok {
+					return nil, ErrAccessDenied
+				}
+				aud, err = ctrl.AudienceGet(id)
+				if err != nil {
+					return nil, err
+				}
+
 				switch token.Method.(type) {
 				case *jwt.SigningMethodHMAC:
-					id, ok := claims["aud"].(string)
-					if !ok {
-						return nil, ErrAccessDenied
-					}
-					aud, err = ctrl.AudienceGet(id)
-					if err != nil {
-						return nil, err
-					}
 
 					return []byte(aud.TokenSecret), nil
 
 				case *jwt.SigningMethodRSA:
-					return &privKey.PublicKey, nil
+					return ctrl.TokenPublicKey(BuildContext(WithAudience(aud)))
 
 				default:
 					return nil, ErrUnsupportedAlogrithm

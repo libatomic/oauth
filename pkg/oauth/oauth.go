@@ -105,8 +105,11 @@ type (
 		// TokenFinalize finalizes the scope prior to signing
 		TokenFinalize(ctx Context, scope Permissions, claims map[string]interface{})
 
-		// SigningKey returns the key for the specified context which is used to sign tokens
-		SigningKey(ctx Context) (*rsa.PrivateKey, error)
+		// TokenPrivateKey returns the key for the specified context which is used to sign tokens
+		TokenPrivateKey(ctx Context) (*rsa.PrivateKey, error)
+
+		// TokenPublicKey returns the key for the specified context which is used to verify tokens
+		TokenPublicKey(ctx Context) (*rsa.PublicKey, error)
 	}
 
 	// Authorizer is an oauth authorizer interface

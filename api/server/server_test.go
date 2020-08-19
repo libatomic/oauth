@@ -36,7 +36,7 @@ var (
 )
 
 func setup() error {
-	srv = New(ctrl, oauth.NewAuthorizer(ctrl, nil), AllowPasswordGrant(true))
+	srv = New(ctrl, oauth.NewAuthorizer(ctrl), AllowPasswordGrant(true))
 
 	token := make([]byte, 32)
 
@@ -518,7 +518,12 @@ func (c *mockController) TokenFinalize(ctx oauth.Context, scope oauth.Permission
 
 }
 
-func (c *mockController) SigningKey(ctx oauth.Context) (*rsa.PrivateKey, error) {
+func (c *mockController) TokenPrivateKey(ctx oauth.Context) (*rsa.PrivateKey, error) {
+	// tests use HS256 so we dont need a signing key
+	return nil, nil
+}
+
+func (c *mockController) TokenPublicKey(ctx oauth.Context) (*rsa.PublicKey, error) {
 	// tests use HS256 so we dont need a signing key
 	return nil, nil
 }
