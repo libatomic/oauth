@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/libatomic/api/pkg/api"
@@ -43,8 +42,6 @@ type (
 		sessionCookie      string
 		sessionLifetime    time.Duration
 		sessionTimeout     time.Duration
-		router             *mux.Router
-		oauthRouter        *mux.Router
 		jwks               []byte
 		allowSignup        bool
 		allowPasswordGrant bool
@@ -101,7 +98,6 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 		sessionCookie:   defaultSessionCookie,
 		sessionLifetime: defaultSessionLifetime,
 		sessionTimeout:  defaultSessionTimeout,
-		router:          mux.NewRouter(),
 		codes:           memstore.New(time.Minute*5, time.Minute*10),
 		hash:            defaultHash,
 		block:           defaultBlock,
@@ -139,7 +135,7 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 
 	s.AddRoute("/logout", http.MethodGet, &auth.LogoutParams{}, s.logout)
 
-	s.AddRoute("/userInfo", http.MethodGet, &user.UserInfoGetParams{}, s.userInfo)
+	s.AddRoute("/userInfo", http.MethodGet, &user.UserInfoGetParams{}, s.userInfo, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
 
 	s.AddRoute("/userInfo", http.MethodPut, &user.UserInfoUpdateParams{}, s.userInfoUpdate, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
 

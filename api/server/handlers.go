@@ -513,15 +513,15 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 		var token *jwt.Token
 		var key interface{}
 
-		signingKey, err := s.ctrl.SigningKey(ctx)
-		if err != nil {
-			return "", err
-		}
-
 		claims["iss"] = fmt.Sprintf("https://%s%s", r.Host, path.Clean(path.Join(path.Dir(r.URL.Path), "/.well-known/jwks.json")))
 
 		switch aud.TokenAlgorithm {
 		case "RS256":
+			signingKey, err := s.ctrl.SigningKey(ctx)
+			if err != nil {
+				return "", err
+			}
+
 			token = jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 			key = signingKey
 
@@ -674,7 +674,8 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 		}
 
 		if state.ID == "" {
-			return api.StatusErrorf(http.StatusUnauthorized, "session does not exist")
+			state.Subject = code.Subject
+			state.CreatedAt = code.IssuedAt
 		}
 
 		user, prin, err := s.ctrl.UserGet(
@@ -868,18 +869,6 @@ func (s *Server) userInfoUpdate(params *user.UserInfoUpdateParams, ctx oauth.Con
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	_, state, err := s.getSession(params.HTTPRequest)
-	if err != nil {
-		s.Log().Error(err.Error())
-
-		return api.StatusError(http.StatusInternalServerError, err)
-	}
-
-	if state.ID == "" {
-		return api.StatusErrorf(http.StatusUnauthorized, "session does not exist")
-
-	}
-
 	user := ctx.User()
 	user.Profile = params.Profile
 
@@ -895,44 +884,12 @@ func (s *Server) userInfo(params *user.UserInfoGetParams, ctx oauth.Context) api
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	_, state, err := s.getSession(params.HTTPRequest)
-	if err != nil {
-		s.Log().Error(err.Error())
-
-		return api.StatusError(http.StatusInternalServerError, err)
-	}
-
-	if state.ID == "" {
-		return api.StatusErrorf(http.StatusUnauthorized, "session does not exist")
-	}
-
-	if ctx.User().Profile.Subject != state.Subject {
-		return api.StatusErrorf(http.StatusUnauthorized, "access denied")
-	}
-
 	return api.NewResponse(ctx.User().Profile)
 }
 
 func (s *Server) userPrincipal(params *user.UserPrincipalGetParams, ctx oauth.Context) api.Responder {
 	if ctx.Principal() == nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
-
-	}
-
-	_, state, err := s.getSession(params.HTTPRequest)
-	if err != nil {
-		s.Log().Error(err.Error())
-
-		return api.StatusError(http.StatusInternalServerError, err)
-	}
-
-	if state.ID == "" {
-		return api.StatusErrorf(http.StatusUnauthorized, "session does not exist")
-	}
-
-	if ctx.User().Profile.Subject != state.Subject {
-		return api.StatusErrorf(http.StatusUnauthorized, "access denied")
-
 	}
 
 	return api.NewResponse(ctx.Principal())
