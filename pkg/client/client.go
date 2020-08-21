@@ -11,6 +11,7 @@ package client
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"path"
 
@@ -92,7 +93,7 @@ func WithBasePath(basePath string) Option {
 }
 
 func (c *Client) path(p string) string {
-	return path.Join(c.basePath, p)
+	return fmt.Sprintf("%s://%s%s", c.scheme, c.host, path.Join(c.basePath, p))
 }
 
 func unmarshalError(data []byte) error {
