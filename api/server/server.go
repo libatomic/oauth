@@ -135,13 +135,13 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 
 	s.AddRoute("/logout", http.MethodGet, &auth.LogoutParams{}, s.logout)
 
-	s.AddRoute("/userInfo", http.MethodGet, &user.UserInfoGetParams{}, s.userInfo, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
+	s.AddRoute("/userInfo", http.MethodGet, &user.UserInfoGetParams{}, s.userInfo, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
 
-	s.AddRoute("/userInfo", http.MethodPut, &user.UserInfoUpdateParams{}, s.userInfoUpdate, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
+	s.AddRoute("/userInfo", http.MethodPut, &user.UserInfoUpdateParams{}, s.userInfoUpdate, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
 
-	s.AddRoute("/userPrincipal", http.MethodGet, &user.UserPrincipalGetParams{}, s.userPrincipal, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
+	s.AddRoute("/userPrincipal", http.MethodGet, &user.UserPrincipalGetParams{}, s.userPrincipal, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
 
-	s.AddRoute("/.well-known/jwks.json", http.MethodGet, &auth.PublicKeyGetParams{}, s.publicKey, s.auth(oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)))
+	s.AddRoute("/.well-known/jwks.json", http.MethodGet, &auth.PublicKeyGetParams{}, s.publicKey, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
 
 	return s
 }
@@ -196,5 +196,15 @@ func SessionCookieKeys(hash, block []byte) Option {
 func AllowPasswordGrant(allow bool) Option {
 	return func(s *Server) {
 		s.allowPasswordGrant = allow
+	}
+}
+
+// AddRoute adds a route using the scopes
+func (s *Server) AddRoute(path string, method string, params api.Parameters, handler interface{}, scopes ...oauth.Permissions) {
+	if len(scopes) > 0 {
+		s.Server.AddRoute(path, method, params, handler, s.auth(scopes...))
+	} else {
+
+		s.Server.AddRoute(path, method, params, handler)
 	}
 }

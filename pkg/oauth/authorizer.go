@@ -17,7 +17,7 @@ import (
 )
 
 // NewAuthorizer returns a new oauth authorizer
-func NewAuthorizer(ctrl Controller) Authorizer {
+func NewAuthorizer(ctrl AuthController) Authorizer {
 	return func(scope ...Permissions) api.Authorizer {
 		return func(r *http.Request) (interface{}, error) {
 			var claims jwt.MapClaims

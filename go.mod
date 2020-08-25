@@ -2,7 +2,7 @@ module github.com/libatomic/oauth
 
 go 1.14
 
-replace github.com/libatomic/api => ../api
+// replace github.com/libatomic/api => ../api
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -17,7 +17,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/lestrrat-go/jwx v1.0.3
-	github.com/libatomic/api v1.0.0-alpha.18
+	github.com/libatomic/api v1.0.0-alpha.19
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/mr-tron/base58 v1.2.0
 )

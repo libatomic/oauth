@@ -65,15 +65,9 @@ type (
 	}
 
 	// Controller is the interface implemented by consumers of the auth server
+	// This provides the backend functionality for user, application, and audience management
 	Controller interface {
-		// ApplicationGet should return an application for the specified client id
-		ApplicationGet(id string) (*Application, error)
-
-		// AudienceGet should return an audience for the specified name
-		AudienceGet(name string) (*Audience, error)
-
-		// UserGet returns a user by subject id along with the underlying principal
-		UserGet(ctx Context, id string) (*User, interface{}, error)
+		AuthController
 
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return an oauth user and the principal
@@ -107,6 +101,18 @@ type (
 
 		// TokenPrivateKey returns the key for the specified context which is used to sign tokens
 		TokenPrivateKey(ctx Context) (*rsa.PrivateKey, error)
+	}
+
+	// AuthController is used by the authorizer and is a readonly subset of Controller functionality
+	AuthController interface {
+		// AudienceGet should return an audience for the specified name
+		AudienceGet(name string) (*Audience, error)
+
+		// ApplicationGet should return an application for the specified client id
+		ApplicationGet(id string) (*Application, error)
+
+		// UserGet returns a user by subject id along with the underlying principal
+		UserGet(ctx Context, id string) (*User, interface{}, error)
 
 		// TokenPublicKey returns the key for the specified context which is used to verify tokens
 		TokenPublicKey(ctx Context) (*rsa.PublicKey, error)
