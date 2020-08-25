@@ -5,7 +5,6 @@ go 1.14
 replace github.com/libatomic/api => ../api
 
 require (
-	github.com/blang/semver/v4 v4.0.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5

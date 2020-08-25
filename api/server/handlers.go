@@ -14,6 +14,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -46,8 +47,29 @@ type (
 	}
 )
 
-func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
+func (s *Server) ensureURI(uri string, search []string) (*url.URL, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		s.Log().Error(err.Error())
 
+		return nil, errors.New("unauthorized redirect uri")
+	}
+
+	for _, a := range search {
+		if a == u.String() {
+			return u, nil
+		}
+
+		uu, _ := url.Parse(a)
+		if uu.Scheme == u.Scheme && u.Host == uu.Host && u.Path == uu.Path {
+			return u, nil
+		}
+	}
+
+	return nil, errors.New("unauthorized redirect uri")
+}
+
+func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 	// ensure this is a valid application
 	app, err := s.ctrl.ApplicationGet(params.ClientID)
 	if err != nil {
@@ -63,14 +85,9 @@ func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 		params.RedirectURI = &app.RedirectUris[0]
 	}
 
-	// all errors should go to the redirect uri
-	u, err := url.Parse(*params.RedirectURI)
-	if err != nil {
-		return api.Error(err).WithStatus(http.StatusBadRequest)
-	}
-
 	// ensure the redirect uri path is allowed
-	if !app.RedirectUris.Contains(path.Join("/", u.Path)) {
+	u, err := s.ensureURI(*params.RedirectURI, app.RedirectUris)
+	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
 
@@ -78,24 +95,12 @@ func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 		params.AppURI = &app.AppUris[0]
 	}
 
-	{
-		// ensure the login uri is allowed
-		u, err := url.Parse(*params.AppURI)
-		if err != nil {
-			s.Log().Error(err.Error())
-
-			return api.Redirect(u, map[string]string{
-				"error":             "access_denied",
-				"error_description": "invalid app uri",
-			})
-		}
-
-		if !app.AppUris.Contains(path.Join("/", u.Path)) {
-			return api.Redirect(u, map[string]string{
-				"error":             "access_denied",
-				"error_description": "unauthorized app uri",
-			})
-		}
+	appURI, err := s.ensureURI(*params.AppURI, app.AppUris)
+	if err != nil {
+		return api.Redirect(u, map[string]string{
+			"error":             "access_denied",
+			"error_description": err.Error(),
+		})
 	}
 
 	// ensure the audience
@@ -204,21 +209,16 @@ func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 		})
 	}
 
-	u, err = url.Parse(*params.AppURI)
-	if err != nil {
-		return api.Error(err).WithStatus(http.StatusBadRequest)
-	}
-
 	token, err := s.cookie.Encode(AuthRequestParam, req)
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusInternalServerError)
 	}
 
-	q := u.Query()
+	q := appURI.Query()
 	q.Set(AuthRequestParam, token)
-	u.RawQuery = q.Encode()
+	appURI.RawQuery = q.Encode()
 
-	return api.Redirect(u)
+	return api.Redirect(appURI)
 }
 
 func (s *Server) login(params *auth.LoginParams) api.Responder {
@@ -834,13 +834,11 @@ func (s *Server) logout(params *auth.LogoutParams) api.Responder {
 	}
 
 	if params.RedirectURI == nil {
-		params.RedirectURI = &app.AppUris[0]
+		params.RedirectURI = &app.RedirectUris[0]
 	}
 
-	// ensure the redirect uri is allowed
-	if !app.AppUris.Contains(path.Join("/", u.Path)) {
+	if _, err := s.ensureURI(*params.RedirectURI, app.RedirectUris); err != nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "unauthorized logout uri")
-
 	}
 
 	if err := s.destroySession(params.RW()); err != nil {

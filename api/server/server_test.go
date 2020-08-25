@@ -35,6 +35,10 @@ var (
 	challenge string
 )
 
+const (
+	mockURI = "https://meta.org/"
+)
+
 func setup() error {
 	srv = New(ctrl, oauth.NewAuthorizer(ctrl), AllowPasswordGrant(true))
 
@@ -64,186 +68,39 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-// getAuthRequest returns the request token and is used in several methods
-func getAuthRequest(t *testing.T) (string, string) {
-	req, err := http.NewRequest("GET", "/oauth/authorize", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	q := req.URL.Query()
-
-	q.Add("response_type", "code")
-	q.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	q.Add("audience", "snowcrash")
-	q.Add("app_uri", "/")
-	q.Add("redirect_uri", "/")
-	q.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-	q.Add("code_challenge", challenge)
-
-	req.URL.RawQuery = q.Encode()
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusFound {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	u, err := url.Parse(rr.Header().Get("Location"))
-	if err != nil {
-		t.Errorf("failed to parse location header %w", err)
-	}
-
-	return u.Path, u.Query().Get("request_token")
-}
-
-func getAuthCode(t *testing.T) (string, string) {
-	_, token := getAuthRequest(t)
-
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("login", "hiro")
-	form.Add("password", "ratTh1Ng$")
-	form.Add("code_verifier", verifier)
-	form.Add("request_token", token)
-
-	req, err := http.NewRequest("POST", "/oauth/login", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusFound {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	u, err := url.Parse(rr.Header().Get("Location"))
-	if err != nil {
-		t.Errorf("failed to parse location header %w", err)
-	}
-
-	return u.Path, u.Query().Get("code")
-}
-
-func getAuthCodeToken(t *testing.T) *oauth.BearerToken {
-	_, code := getAuthCode(t)
-
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("grant_type", oauth.GrantTypeAuthCode)
-	form.Add("audience", "snowcrash")
-	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-	form.Add("code", code)
-	form.Add("code_verifier", verifier)
-	form.Add("refresh_nonce", challenge)
-
-	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	token := &oauth.BearerToken{}
-	if err := json.Unmarshal(data, token); err != nil {
-		t.Errorf("invalid token body %w", err)
-	}
-
-	return token
-}
-
-func getRefreshToken(t *testing.T) *oauth.BearerToken {
-	token := getAuthCodeToken(t)
-
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("grant_type", oauth.GrantTypeRefreshToken)
-	form.Add("audience", "snowcrash")
-	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-	form.Add("refresh_token", token.RefreshToken)
-	form.Add("refresh_verifier", verifier)
-	form.Add("refresh_nonce", verifier)
-
-	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	token = &oauth.BearerToken{}
-	if err := json.Unmarshal(data, token); err != nil {
-		t.Errorf("invalid token body %w", err)
-	}
-
-	return token
-}
-
 func TestAuthorize(t *testing.T) {
-	// Check the response body is what we expect.
-	expectedLoc := "/"
+	loc, _ := getAuthRequest(mockURI, t)
 
-	loc, _ := getAuthRequest(t)
-
-	if loc != expectedLoc {
+	if !strings.HasPrefix(loc, mockURI) {
 		t.Errorf("handler returned unexpected location header: got %v want %v",
-			loc, expectedLoc)
+			loc, mockURI)
+	}
+}
+
+func TestAuthorizeWithURIParams(t *testing.T) {
+	p := fmt.Sprintf("%s?foo=bar", mockURI)
+
+	loc, _ := getAuthRequest(p, t)
+
+	if !strings.HasPrefix(loc, mockURI) {
+		t.Errorf("handler returned unexpected location header: got %v want %v",
+			loc, mockURI)
 	}
 }
 
 func TestLogin(t *testing.T) {
-	// Check the response body is what we expect.
-	expectedLoc := "/"
+	loc, code := getAuthCode(mockURI, t)
 
-	loc, code := getAuthCode(t)
-
-	if loc != expectedLoc {
+	if !strings.HasPrefix(loc, mockURI) {
 		t.Errorf("handler returned unexpected location header: got %v want %v",
-			loc, expectedLoc)
+			loc, mockURI)
 	}
 
 	t.Logf("got authcode %s", code)
 }
 
 func TestAuthCodeToken(t *testing.T) {
-	token := getAuthCodeToken(t)
+	token := getAuthCodeToken(mockURI, t)
 
 	t.Logf("got bearer token %s", token.AccessToken)
 }
@@ -255,7 +112,7 @@ func TestRefreshToken(t *testing.T) {
 }
 
 func TestUserInfoGet(t *testing.T) {
-	token := getAuthCodeToken(t)
+	token := getAuthCodeToken(mockURI, t)
 
 	req, err := http.NewRequest("GET", "/oauth/userInfo", nil)
 	if err != nil {
@@ -361,7 +218,7 @@ func TestUserPasswordToken(t *testing.T) {
 }
 
 func TestUserInfoUpdate(t *testing.T) {
-	token := getAuthCodeToken(t)
+	token := getAuthCodeToken(mockURI, t)
 
 	profile := oauth.Profile{
 		FamilyName: "Stephenson",
@@ -402,7 +259,7 @@ func TestUserInfoUpdate(t *testing.T) {
 }
 
 func TestUserPrincipal(t *testing.T) {
-	token := getAuthCodeToken(t)
+	token := getAuthCodeToken(mockURI, t)
 
 	req, err := http.NewRequest("GET", "/oauth/userPrincipal", nil)
 	if err != nil {
@@ -435,6 +292,158 @@ func TestUserPrincipal(t *testing.T) {
 	}
 }
 
+// getAuthRequest returns the request token and is used in several methods
+func getAuthRequest(uri string, t *testing.T) (string, string) {
+	req, err := http.NewRequest("GET", "/oauth/authorize", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := req.URL.Query()
+
+	q.Add("response_type", "code")
+	q.Add("client_id", uuid.Must(uuid.NewRandom()).String())
+	q.Add("audience", "snowcrash")
+	q.Add("app_uri", uri)
+	q.Add("redirect_uri", uri)
+	q.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
+	q.Add("code_challenge", challenge)
+
+	req.URL.RawQuery = q.Encode()
+
+	rr := httptest.NewRecorder()
+
+	srv.Router().ServeHTTP(rr, req)
+
+	// Check the status code is what we expect.
+	if status := rr.Code; status != http.StatusFound {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	u, err := url.Parse(rr.Header().Get("Location"))
+	if err != nil {
+		t.Errorf("failed to parse location header %w", err)
+	}
+
+	return u.String(), u.Query().Get("request_token")
+}
+
+func getAuthCode(uri string, t *testing.T) (string, string) {
+	_, token := getAuthRequest(uri, t)
+
+	form := url.Values{}
+	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
+	form.Add("login", "hiro")
+	form.Add("password", "ratTh1Ng$")
+	form.Add("code_verifier", verifier)
+	form.Add("request_token", token)
+
+	req, err := http.NewRequest("POST", "/oauth/login", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	rr := httptest.NewRecorder()
+
+	srv.Router().ServeHTTP(rr, req)
+
+	// Check the status code is what we expect.
+	if status := rr.Code; status != http.StatusFound {
+		t.Fatalf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	u, err := url.Parse(rr.Header().Get("Location"))
+	if err != nil {
+		t.Fatalf("failed to parse location header %s", err.Error())
+	}
+
+	return u.String(), u.Query().Get("code")
+}
+
+func getAuthCodeToken(uri string, t *testing.T) *oauth.BearerToken {
+	_, code := getAuthCode(uri, t)
+
+	form := url.Values{}
+	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
+	form.Add("grant_type", oauth.GrantTypeAuthCode)
+	form.Add("audience", "snowcrash")
+	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
+	form.Add("code", code)
+	form.Add("code_verifier", verifier)
+	form.Add("refresh_nonce", challenge)
+
+	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	rr := httptest.NewRecorder()
+
+	srv.Router().ServeHTTP(rr, req)
+
+	// Check the status code is what we expect.
+	if status := rr.Code; status != http.StatusOK {
+		t.Fatalf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	data, err := ioutil.ReadAll(rr.Body)
+	if err != nil {
+		t.Fatalf("invalid token body")
+	}
+
+	token := &oauth.BearerToken{}
+	if err := json.Unmarshal(data, token); err != nil {
+		t.Fatalf("invalid token body:%s", err.Error())
+	}
+
+	return token
+}
+
+func getRefreshToken(t *testing.T) *oauth.BearerToken {
+	token := getAuthCodeToken(mockURI, t)
+
+	form := url.Values{}
+	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
+	form.Add("grant_type", oauth.GrantTypeRefreshToken)
+	form.Add("audience", "snowcrash")
+	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
+	form.Add("refresh_token", token.RefreshToken)
+	form.Add("refresh_verifier", verifier)
+	form.Add("refresh_nonce", verifier)
+
+	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	rr := httptest.NewRecorder()
+
+	srv.Router().ServeHTTP(rr, req)
+
+	// Check the status code is what we expect.
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	data, err := ioutil.ReadAll(rr.Body)
+	if err != nil {
+		t.Errorf("invalid token body")
+	}
+
+	token = &oauth.BearerToken{}
+	if err := json.Unmarshal(data, token); err != nil {
+		t.Errorf("invalid token body %w", err)
+	}
+
+	return token
+}
+
 func (c *mockController) ApplicationGet(id string) (*oauth.Application, error) {
 	return &oauth.Application{
 		ClientID:     id,
@@ -448,8 +457,8 @@ func (c *mockController) ApplicationGet(id string) (*oauth.Application, error) {
 			oauth.GrantTypePassword,
 			oauth.GrantTypeRefreshToken,
 		},
-		AppUris:       oauth.Permissions{"/"},
-		RedirectUris:  oauth.Permissions{"/"},
+		AppUris:       oauth.Permissions{mockURI},
+		RedirectUris:  oauth.Permissions{mockURI},
 		TokenLifetime: 60,
 	}, nil
 }
