@@ -78,7 +78,7 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 
 	}
 
-	apiOpts = append(apiOpts, api.Basepath(SpecDoc.Spec().BasePath))
+	apiOpts = append(apiOpts, api.WithBasepath(SpecDoc.Spec().BasePath))
 
 	const (
 		defaultSessionLifetime = time.Duration(time.Hour * 24 * 30)
@@ -202,9 +202,8 @@ func AllowPasswordGrant(allow bool) Option {
 // AddRoute adds a route using the scopes
 func (s *Server) AddRoute(path string, method string, params api.Parameters, handler interface{}, scopes ...oauth.Permissions) {
 	if len(scopes) > 0 {
-		s.Server.AddRoute(path, method, params, handler, s.auth(scopes...))
+		s.Server.AddRoute(path, method, params, handler, nil, s.auth(scopes...))
 	} else {
-
-		s.Server.AddRoute(path, method, params, handler)
+		s.Server.AddRoute(path, method, params, handler, nil)
 	}
 }
