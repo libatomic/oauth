@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
@@ -154,11 +155,13 @@ func (m *Application) validatePermissions(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := m.Permissions.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("permissions")
+	if v, ok := interface{}(m.Permissions).(runtime.Validatable); ok {
+		if err := v.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("permissions")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil

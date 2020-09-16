@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
@@ -159,11 +160,13 @@ func (m *Profile) validateAddress(formats strfmt.Registry) error {
 	}
 
 	if m.Address != nil {
-		if err := m.Address.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("address")
+		if v, ok := interface{}(m.Address).(runtime.Validatable); ok {
+			if err := v.Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("address")
+				}
+				return err
 			}
-			return err
 		}
 	}
 

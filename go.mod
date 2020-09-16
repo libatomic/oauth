@@ -2,7 +2,7 @@ module github.com/libatomic/oauth
 
 go 1.14
 
-// replace github.com/libatomic/api => ../api
+//replace github.com/libatomic/api => ../api
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

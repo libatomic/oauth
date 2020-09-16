@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-openapi/runtime"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/jwk"
@@ -145,7 +146,8 @@ func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
 	}
 
-	session, state, err := s.getSession(params.HTTPRequest)
+	rw, r := params.UnbindRequest()
+	session, state, err := s.getSession(r)
 	if err != nil {
 		s.Log().Error(err.Error())
 
@@ -164,7 +166,7 @@ func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 			Timeout:   time.Now().Add(s.sessionTimeout).Unix(),
 		}
 
-		if err := session.Save(params.HTTPRequest, params.HTTPResponse); err != nil {
+		if err := session.Save(r, rw); err != nil {
 			s.Log().Error(err.Error())
 
 			return api.Redirect(u, map[string]string{
@@ -200,7 +202,7 @@ func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 		return api.Redirect(u)
 	}
 
-	if err := s.destroySession(params.RW()); err != nil {
+	if err := s.destroySession(r, rw); err != nil {
 		s.Log().Error(err.Error())
 
 		return api.Redirect(u, map[string]string{
@@ -303,7 +305,9 @@ func (s *Server) login(params *auth.LoginParams) api.Responder {
 		})
 	}
 
-	session, err := s.sessions.Get(params.HTTPRequest, s.sessionCookie)
+	_, r := params.UnbindRequest()
+
+	session, err := s.sessions.Get(r, s.sessionCookie)
 	if err != nil {
 		s.Log().Error(err.Error())
 
@@ -337,7 +341,8 @@ func (s *Server) login(params *auth.LoginParams) api.Responder {
 
 	session.Options.Path = "/"
 
-	if err := session.Save(params.RW()); err != nil {
+	rw, r := params.UnbindRequest()
+	if err := session.Save(r, rw); err != nil {
 		s.Log().Error(err.Error())
 
 		return api.Redirect(u, map[string]string{
@@ -412,9 +417,8 @@ func (s *Server) signup(params *auth.SignupParams) api.Responder {
 
 	}
 
+	rw, r := params.UnbindRequest()
 	loginParams := &auth.LoginParams{
-		HTTPRequest: params.HTTPRequest,
-
 		CodeVerifier: params.CodeVerifier,
 
 		Login: params.Login,
@@ -423,6 +427,8 @@ func (s *Server) signup(params *auth.SignupParams) api.Responder {
 
 		RequestToken: params.RequestToken,
 	}
+
+	loginParams.BindRequest(rw, r, runtime.DiscardConsumer)
 
 	return s.login(loginParams)
 }
@@ -507,7 +513,7 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 
 	}
 
-	r := params.HTTPRequest
+	_, r := params.UnbindRequest()
 
 	signToken := func(claims jwt.MapClaims, ctx oauth.Context) (string, error) {
 		var token *jwt.Token
@@ -841,7 +847,8 @@ func (s *Server) logout(params *auth.LogoutParams) api.Responder {
 		return api.StatusErrorf(http.StatusUnauthorized, "unauthorized logout uri")
 	}
 
-	if err := s.destroySession(params.RW()); err != nil {
+	rw, r := params.UnbindRequest()
+	if err := s.destroySession(r, rw); err != nil {
 		s.Log().Error(err.Error())
 
 		api.Redirect(u, map[string]string{

@@ -6,6 +6,7 @@ package auth
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -27,12 +28,6 @@ func NewSignupParams() SignupParams {
 //
 // swagger:parameters Signup
 type SignupParams struct {
-
-	// HTTP Request Object
-	HTTPRequest *http.Request `json:"-"`
-
-	HTTPResponse http.ResponseWriter `json:"-"`
-
 	/*The PKCE code verifier
 	  Required: true
 	  In: formData
@@ -74,27 +69,28 @@ type SignupParams struct {
 	  In: formData
 	*/
 	RequestToken string
+
+	// HTTP Request
+	req *http.Request
+
+	// HTTP Response
+	res http.ResponseWriter
 }
 
-func (o *SignupParams) RW() (*http.Request, http.ResponseWriter) {
-	return o.HTTPRequest, o.HTTPResponse
+// Context returns the request context
+func (o *SignupParams) Context() context.Context {
+	return o.req.Context()
 }
 
-func (o *SignupParams) WR() (http.ResponseWriter, *http.Request) {
-	return o.HTTPResponse, o.HTTPRequest
+// UnbindRequest returns the response and request associated with the parameters
+func (o *SignupParams) UnbindRequest() (http.ResponseWriter, *http.Request) {
+	return o.res, o.req
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
 func (o *SignupParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
-	return o.BindRequestW(nil, r, c...)
-}
-
-// BindRequestW both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
-// for simple values it will use straight method calls.
-//
-func (o *SignupParams) BindRequestW(w http.ResponseWriter, r *http.Request, c ...runtime.Consumer) error {
 	var res []error
 
 	// ensure defaults
@@ -121,8 +117,8 @@ func (o *SignupParams) BindRequestW(w http.ResponseWriter, r *http.Request, c ..
 		route.Consumer = c[0]
 	}
 
-	o.HTTPRequest = r
-	o.HTTPResponse = w
+	o.req = r
+	o.res = w
 
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		if err != http.ErrNotMultipart {
