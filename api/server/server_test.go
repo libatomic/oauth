@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
@@ -444,7 +445,7 @@ func getRefreshToken(t *testing.T) *oauth.BearerToken {
 	return token
 }
 
-func (c *mockController) ApplicationGet(id string) (*oauth.Application, error) {
+func (c *mockController) ApplicationGet(ctx context.Context, id string) (*oauth.Application, error) {
 	return &oauth.Application{
 		ClientID:     id,
 		ClientSecret: "super-secret",
@@ -463,7 +464,7 @@ func (c *mockController) ApplicationGet(id string) (*oauth.Application, error) {
 	}, nil
 }
 
-func (c *mockController) AudienceGet(name string) (*oauth.Audience, error) {
+func (c *mockController) AudienceGet(ctx context.Context, name string) (*oauth.Audience, error) {
 	return &oauth.Audience{
 		Name:           name,
 		Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},

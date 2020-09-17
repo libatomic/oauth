@@ -33,7 +33,7 @@ func NewAuthorizer(ctrl AuthController) Authorizer {
 				if !ok {
 					return nil, ErrAccessDenied
 				}
-				aud, err = ctrl.AudienceGet(id)
+				aud, err = ctrl.AudienceGet(r.Context(), id)
 				if err != nil {
 					return nil, err
 				}
@@ -78,7 +78,7 @@ func NewAuthorizer(ctrl AuthController) Authorizer {
 			}
 
 			if azp, ok := claims["azp"].(string); ok {
-				app, err := ctrl.ApplicationGet(azp)
+				app, err := ctrl.ApplicationGet(r.Context(), azp)
 				if err != nil {
 					return nil, ErrAccessDenied
 				}

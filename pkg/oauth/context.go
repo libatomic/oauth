@@ -8,7 +8,11 @@
 
 package oauth
 
-import "github.com/dgrijalva/jwt-go"
+import (
+	"context"
+
+	"github.com/dgrijalva/jwt-go"
+)
 
 type (
 	authContext struct {
@@ -18,6 +22,7 @@ type (
 		prin  interface{}
 		token *jwt.Token
 		req   *AuthRequest
+		ctx   context.Context
 	}
 
 	// ContextOption defines a context option method
@@ -26,7 +31,9 @@ type (
 
 // BuildContext returns a new context from the paramters
 func BuildContext(opts ...ContextOption) Context {
-	ctx := &authContext{}
+	ctx := &authContext{
+		ctx: context.Background(),
+	}
 
 	for _, opt := range opts {
 		opt(ctx)
@@ -77,14 +84,21 @@ func WithRequest(req *AuthRequest) ContextOption {
 	}
 }
 
+// WithContext sets the internal context object
+func WithContext(ctx context.Context) ContextOption {
+	return func(a *authContext) {
+		a.ctx = ctx
+	}
+}
+
 // ContextFromRequest will create a context from the Controller and AuthRequest
-func ContextFromRequest(ctrl Controller, req *AuthRequest) (Context, error) {
-	aud, err := ctrl.AudienceGet(req.Audience)
+func ContextFromRequest(ctx context.Context, ctrl Controller, req *AuthRequest) (Context, error) {
+	aud, err := ctrl.AudienceGet(ctx, req.Audience)
 	if err != nil {
 		return nil, err
 	}
 
-	app, err := ctrl.ApplicationGet(req.ClientID)
+	app, err := ctrl.ApplicationGet(ctx, req.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,4 +132,8 @@ func (c *authContext) Token() *jwt.Token {
 
 func (c *authContext) Request() *AuthRequest {
 	return c.req
+}
+
+func (c *authContext) Context() context.Context {
+	return c.ctx
 }

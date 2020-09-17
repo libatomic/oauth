@@ -72,7 +72,7 @@ func (s *Server) ensureURI(uri string, search []string) (*url.URL, error) {
 
 func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 	// ensure this is a valid application
-	app, err := s.ctrl.ApplicationGet(params.ClientID)
+	app, err := s.ctrl.ApplicationGet(params.Context(), params.ClientID)
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
@@ -105,7 +105,7 @@ func (s *Server) authorize(params *auth.AuthorizeParams) api.Responder {
 	}
 
 	// ensure the audience
-	aud, err := s.ctrl.AudienceGet(params.Audience)
+	aud, err := s.ctrl.AudienceGet(params.Context(), params.Audience)
 	if err != nil {
 		s.Log().Error(err.Error())
 
@@ -268,7 +268,7 @@ func (s *Server) login(params *auth.LoginParams) api.Responder {
 		})
 	}
 
-	ctx, err := oauth.ContextFromRequest(s.ctrl, req)
+	ctx, err := oauth.ContextFromRequest(params.Context(), s.ctrl, req)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "invalid_request",
@@ -407,7 +407,7 @@ func (s *Server) signup(params *auth.SignupParams) api.Responder {
 		},
 	}
 
-	ctx, err := oauth.ContextFromRequest(s.ctrl, req)
+	ctx, err := oauth.ContextFromRequest(params.Context(), s.ctrl, req)
 	if err != nil {
 		return api.StatusError(http.StatusInternalServerError, err)
 	}
@@ -438,7 +438,7 @@ func (s *Server) publicKey(params *auth.PublicKeyGetParams) api.Responder {
 	var err error
 
 	if params.Audience != nil {
-		aud, err = s.ctrl.AudienceGet(*params.Audience)
+		aud, err = s.ctrl.AudienceGet(params.Context(), *params.Audience)
 		if err != nil {
 			return api.StatusError(http.StatusBadRequest, err)
 		}
@@ -478,7 +478,7 @@ func (s *Server) publicKey(params *auth.PublicKeyGetParams) api.Responder {
 
 func (s *Server) token(params *auth.TokenParams) api.Responder {
 	// ensure this is a valid application
-	app, err := s.ctrl.ApplicationGet(params.ClientID)
+	app, err := s.ctrl.ApplicationGet(params.Context(), params.ClientID)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 
@@ -499,7 +499,7 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 	}
 
 	// ensure the audience
-	aud, err := s.ctrl.AudienceGet(*params.Audience)
+	aud, err := s.ctrl.AudienceGet(params.Context(), *params.Audience)
 	if err != nil {
 		s.Log().Error(err.Error())
 
@@ -824,7 +824,7 @@ func (s *Server) token(params *auth.TokenParams) api.Responder {
 
 func (s *Server) logout(params *auth.LogoutParams) api.Responder {
 	// ensure this is a valid application
-	app, err := s.ctrl.ApplicationGet(params.ClientID)
+	app, err := s.ctrl.ApplicationGet(params.Context(), params.ClientID)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}

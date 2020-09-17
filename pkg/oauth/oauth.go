@@ -10,6 +10,7 @@
 package oauth
 
 import (
+	"context"
 	"crypto/rsa"
 
 	"github.com/dgrijalva/jwt-go"
@@ -62,6 +63,8 @@ type (
 
 		// Prinicipal is the implementor opaque principal
 		Principal() interface{}
+
+		Context() context.Context
 	}
 
 	// Controller is the interface implemented by consumers of the auth server
@@ -106,10 +109,10 @@ type (
 	// AuthController is used by the authorizer and is a readonly subset of Controller functionality
 	AuthController interface {
 		// AudienceGet should return an audience for the specified name
-		AudienceGet(name string) (*Audience, error)
+		AudienceGet(context.Context, string) (*Audience, error)
 
 		// ApplicationGet should return an application for the specified client id
-		ApplicationGet(id string) (*Application, error)
+		ApplicationGet(context.Context, string) (*Application, error)
 
 		// UserGet returns a user by subject id along with the underlying principal
 		UserGet(ctx Context, id string) (*User, interface{}, error)
