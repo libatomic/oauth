@@ -399,22 +399,19 @@ func (s *Server) signup(params *auth.SignupParams) api.Responder {
 
 	}
 
-	user := &oauth.User{
-		Login: params.Login,
-		Profile: oauth.Profile{
-			Name:  safestr(params.Name),
-			Email: params.Email,
-		},
-	}
-
 	ctx, err := oauth.ContextFromRequest(params.Context(), s.ctrl, req)
 	if err != nil {
 		return api.StatusError(http.StatusInternalServerError, err)
 	}
 
-	if err := s.ctrl.UserCreate(ctx, user, params.Password, safestr(params.InviteCode)); err != nil {
+	if _, err := s.ctrl.UserCreate(ctx, oauth.User{
+		Login: params.Login,
+		Profile: oauth.Profile{
+			Name:  safestr(params.Name),
+			Email: params.Email,
+		},
+	}, params.Password, safestr(params.InviteCode)); err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
-
 	}
 
 	rw, r := params.UnbindRequest()

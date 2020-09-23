@@ -504,8 +504,8 @@ func (c *mockController) UserAuthenticate(ctx oauth.Context, login string, passw
 	}, map[string]interface{}{"bff": "yt"}, nil
 }
 
-func (c *mockController) UserCreate(ctx oauth.Context, user *oauth.User, password string, invite ...string) error {
-	return nil
+func (c *mockController) UserCreate(ctx oauth.Context, user oauth.User, password string, invite ...string) (*oauth.User, error) {
+	return &user, nil
 }
 
 func (c *mockController) UserVerify(ctx oauth.Context, id string, code string) error {
