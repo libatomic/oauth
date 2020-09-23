@@ -81,7 +81,7 @@ type (
 		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
 		//
 		// The library will call the controller's UserVerify method with this id and code
-		UserCreate(ctx Context, user *User, password string, invite ...string) error
+		UserCreate(ctx Context, user User, password string, invite ...string) (*User, error)
 
 		// UserVerify should validate the code and update the user's email address as verified
 		UserVerify(ctx Context, id string, code string) error
