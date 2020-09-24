@@ -14,7 +14,6 @@ import (
 	"crypto/rsa"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/libatomic/api/pkg/api"
 )
 
 const (
@@ -120,9 +119,6 @@ type (
 		// TokenPublicKey returns the key for the specified context which is used to verify tokens
 		TokenPublicKey(ctx Context) (*rsa.PublicKey, error)
 	}
-
-	// Authorizer is an oauth authorizer interface
-	Authorizer func(scope ...Permissions) api.Authorizer
 
 	// CodeStore defines an AuthCode storage interface
 	// AuthCodes are used by the Oauth 2.0 `authorization_code` flow

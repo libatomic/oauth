@@ -202,7 +202,7 @@ func AllowPasswordGrant(allow bool) Option {
 // AddRoute adds a route using the scopes
 func (s *Server) AddRoute(path string, method string, params api.Parameters, handler interface{}, scopes ...oauth.Permissions) {
 	if len(scopes) > 0 {
-		s.Server.AddRoute(path, method, params, handler, nil, s.auth(scopes...))
+		s.Server.AddRoute(path, method, params, handler, nil, s.auth.Authorize(oauth.WithScope(scopes...)))
 	} else {
 		s.Server.AddRoute(path, method, params, handler, nil)
 	}

@@ -16,85 +16,120 @@ import (
 	"github.com/libatomic/api/pkg/api"
 )
 
+type (
+	// Authorizer is an oauth authorizer interface
+	Authorizer interface {
+		Authorize(opts ...AuthOption) api.Authorizer
+	}
+
+	authorizer struct {
+		ctrl AuthController
+	}
+
+	// AuthOption is an authorizer option
+	AuthOption func(a *authOptions)
+
+	authOptions struct {
+		scope []Permissions
+	}
+)
+
 // NewAuthorizer returns a new oauth authorizer
 func NewAuthorizer(ctrl AuthController) Authorizer {
-	return func(scope ...Permissions) api.Authorizer {
-		return func(r *http.Request) (interface{}, error) {
-			var claims jwt.MapClaims
-			var err error
-			var aud *Audience
+	return &authorizer{
+		ctrl: ctrl,
+	}
+}
 
-			bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
+	o := &authOptions{}
 
-			token, err := jwt.Parse(bearer, func(token *jwt.Token) (interface{}, error) {
-				claims = token.Claims.(jwt.MapClaims)
+	for _, opt := range opts {
+		opt(o)
+	}
 
-				id, ok := claims["aud"].(string)
-				if !ok {
-					return nil, ErrAccessDenied
-				}
-				aud, err = ctrl.AudienceGet(r.Context(), id)
-				if err != nil {
-					return nil, err
-				}
+	return func(r *http.Request) (interface{}, error) {
+		var claims jwt.MapClaims
+		var err error
+		var aud *Audience
 
-				switch token.Method.(type) {
-				case *jwt.SigningMethodHMAC:
+		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
-					return []byte(aud.TokenSecret), nil
+		token, err := jwt.Parse(bearer, func(token *jwt.Token) (interface{}, error) {
+			claims = token.Claims.(jwt.MapClaims)
 
-				case *jwt.SigningMethodRSA:
-					return ctrl.TokenPublicKey(BuildContext(WithAudience(aud)))
-
-				default:
-					return nil, ErrUnsupportedAlogrithm
-				}
-			})
+			id, ok := claims["aud"].(string)
+			if !ok {
+				return nil, ErrAccessDenied
+			}
+			aud, err = a.ctrl.AudienceGet(r.Context(), id)
 			if err != nil {
 				return nil, err
 			}
 
-			if !token.Valid {
-				return nil, ErrInvalidToken
+			switch token.Method.(type) {
+			case *jwt.SigningMethodHMAC:
+
+				return []byte(aud.TokenSecret), nil
+
+			case *jwt.SigningMethodRSA:
+				return a.ctrl.TokenPublicKey(BuildContext(WithAudience(aud)))
+
+			default:
+				return nil, ErrUnsupportedAlogrithm
 			}
+		})
+		if err != nil {
+			return nil, err
+		}
 
-			scopes := Permissions(strings.Fields(claims["scope"].(string)))
+		if !token.Valid {
+			return nil, ErrInvalidToken
+		}
 
-			allowed := false
-			for _, s := range scope {
-				if scopes.Every(s...) {
-					allowed = true
-					break
-				}
+		scopes := Permissions(strings.Fields(claims["scope"].(string)))
+
+		allowed := false
+		for _, s := range o.scope {
+			if scopes.Every(s...) {
+				allowed = true
+				break
 			}
+		}
 
-			if !allowed {
+		if !allowed {
+			return nil, ErrAccessDenied
+		}
+
+		c := &authContext{
+			aud:   aud,
+			token: token,
+		}
+
+		if azp, ok := claims["azp"].(string); ok {
+			app, err := a.ctrl.ApplicationGet(r.Context(), azp)
+			if err != nil {
 				return nil, ErrAccessDenied
 			}
-
-			c := &authContext{
-				aud:   aud,
-				token: token,
-			}
-
-			if azp, ok := claims["azp"].(string); ok {
-				app, err := ctrl.ApplicationGet(r.Context(), azp)
-				if err != nil {
-					return nil, ErrAccessDenied
-				}
-				c.app = app
-			}
-
-			if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
-				user, prin, err := ctrl.UserGet(c, sub)
-				if err != nil {
-					return nil, ErrAccessDenied
-				}
-				c.user = user
-				c.prin = prin
-			}
-
-			return c, nil
+			c.app = app
 		}
+
+		if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
+			user, prin, err := a.ctrl.UserGet(c, sub)
+			if err != nil {
+				return nil, ErrAccessDenied
+			}
+			c.user = user
+			c.prin = prin
+		}
+
+		return c, nil
+	}
+}
+
+// WithScope will create an api.Authorizer with the scope
+func WithScope(scope ...Permissions) AuthOption {
+	return func(o *authOptions) {
+		o.scope = scope
 	}
 }
