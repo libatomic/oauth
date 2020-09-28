@@ -30,8 +30,8 @@ func New(defaultExpiration, cleanupInterval time.Duration) oauth.CodeStore {
 	}
 }
 
-// CodeCreate creates a new authcode from the request
-func (m *memstore) CodeCreate(authCode *oauth.AuthCode) error {
+// AuthCodeCreate creates a new authcode from the request
+func (m *memstore) AuthCodeCreate(_ oauth.Context, authCode *oauth.AuthCode) error {
 	code, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -55,8 +55,8 @@ func (m *memstore) CodeCreate(authCode *oauth.AuthCode) error {
 	return nil
 }
 
-// CodeGet returns a code from the store
-func (m *memstore) CodeGet(code string) (*oauth.AuthCode, error) {
+// AuthCodeGet returns a code from the store
+func (m *memstore) AuthCodeGet(_ oauth.Context, code string) (*oauth.AuthCode, error) {
 	authCode, ok := m.Get(code)
 	if !ok {
 		return nil, oauth.ErrCodeNotFound
@@ -66,7 +66,7 @@ func (m *memstore) CodeGet(code string) (*oauth.AuthCode, error) {
 }
 
 // CodeDestroy removes a code from the store
-func (m *memstore) CodeDestroy(code string) error {
+func (m *memstore) AuthCodeDestroy(_ oauth.Context, code string) error {
 	m.Delete(code)
 	return nil
 }

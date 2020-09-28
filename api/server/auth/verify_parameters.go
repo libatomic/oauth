@@ -32,19 +32,19 @@ type VerifyParams struct {
 	  Required: true
 	  In: query
 	*/
-	Code string
+	Code string `json:"code"`
 
 	/*The redirect uri
 	  Required: true
 	  In: query
 	*/
-	RedirectURI string
+	RedirectURI string `json:"redirect_uri"`
 
 	/*The user's subject identifier
 	  Required: true
 	  In: query
 	*/
-	Sub string
+	Sub string `json:"sub"`
 
 	// HTTP Request
 	req *http.Request

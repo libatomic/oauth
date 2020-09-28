@@ -31,7 +31,7 @@ type UserInfoUpdateParams struct {
 	/*The new profile
 	  In: body
 	*/
-	Profile oauth.Profile
+	Profile oauth.Profile `json:"profile,omitempty"`
 
 	// HTTP Request
 	req *http.Request
@@ -90,8 +90,10 @@ func (o *UserInfoUpdateParams) BindRequest(w http.ResponseWriter, r *http.Reques
 			res = append(res, errors.NewParseError("profile", "body", "", err))
 		} else {
 			// validate body object
-			if err := body.Validate(route.Formats); err != nil {
-				res = append(res, err)
+			if v, ok := interface{}(body).(runtime.Validatable); ok {
+				if err := v.Validate(route.Formats); err != nil {
+					res = append(res, err)
+				}
 			}
 
 			if len(res) == 0 {

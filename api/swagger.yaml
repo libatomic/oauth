@@ -225,29 +225,6 @@ definitions:
               If this is false the session was created in am SSO flow without capture user credentials
               Some audiences may request credentials
 
-  Session:
-    description: |
-      A Session is a browser based session object that stores the currently authenticate user principal
-    type: "object"
-    properties:
-      id:
-        type: "string"
-        description: "The session id"
-      client_id:
-        type: "string"
-        description: "The client that created the user session"
-      subject:
-        type: "string"
-        description: "Subject is the user subject id"
-      created_at:
-        type: "integer"
-        description: "The token creation time"
-        format: "int64"
-      expires_at:
-        type: "integer"
-        description: "The token expiration time"
-        format: "int64"
-
   Application:
     description: |
       Applications are API clients that access APIs managed by the integration
@@ -1012,6 +989,7 @@ paths:
           type: "string"
           description: "The reqest audience for client_credentials flows"
           in: "formData"
+          required: true
         - name: "scope"
           type: "array"
           description: "The scopes"

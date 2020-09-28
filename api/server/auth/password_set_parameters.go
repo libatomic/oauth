@@ -32,30 +32,30 @@ type PasswordSetParams struct {
 	  Required: true
 	  In: formData
 	*/
-	CodeVerifier string
+	CodeVerifier string `json:"code_verifier"`
 
 	/*The user's login
 	  Required: true
 	  In: formData
 	*/
-	Login string
+	Login string `json:"login"`
 
 	/*The new password
 	  Required: true
 	  In: formData
 	*/
-	Password string
+	Password string `json:"password"`
 
 	/*The uri to redirect to after password reset
 	  In: formData
 	*/
-	RedirectURI *strfmt.URI
+	RedirectURI *strfmt.URI `json:"redirect_uri"`
 
 	/*The reset verification code
 	  Required: true
 	  In: formData
 	*/
-	ResetCode string
+	ResetCode string `json:"reset_code"`
 
 	// HTTP Request
 	req *http.Request

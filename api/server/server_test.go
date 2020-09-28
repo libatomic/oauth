@@ -1,456 +1,45 @@
 package server
 
 import (
-	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"math/rand"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"os"
-	"strings"
-	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
+	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
+	"github.com/stretchr/testify/mock"
 )
 
 type (
-	mockController struct{}
-)
+	mockController struct {
+		mock.Mock
+	}
 
-var (
-	srv  *Server
-	ctrl = &mockController{}
-
-	verifier  string
-	challenge string
+	mockAuthorizer struct {
+		handler api.Authorizer
+	}
 )
 
 const (
 	mockURI = "https://meta.org/"
 )
 
-func setup() error {
-	srv = New(ctrl, oauth.NewAuthorizer(ctrl), AllowPasswordGrant(true))
-
-	token := make([]byte, 32)
-
-	if _, err := rand.Read(token); err != nil {
-		return err
-	}
-
-	verifier = base64.RawURLEncoding.EncodeToString(token)
-
-	sum := sha256.Sum256(token)
-
-	challenge = base64.RawURLEncoding.EncodeToString(sum[:])
-
-	return nil
-}
-
-func TestMain(m *testing.M) {
-	log.Println("starting tests")
-	if err := setup(); err != nil {
-		log.Fatalln(err)
-	}
-
-	exitVal := m.Run()
-
-	os.Exit(exitVal)
-}
-
-func TestAuthorize(t *testing.T) {
-	loc, _ := getAuthRequest(mockURI, t)
-
-	if !strings.HasPrefix(loc, mockURI) {
-		t.Errorf("handler returned unexpected location header: got %v want %v",
-			loc, mockURI)
-	}
-}
-
-func TestAuthorizeWithURIParams(t *testing.T) {
-	p := fmt.Sprintf("%s?foo=bar", mockURI)
-
-	loc, _ := getAuthRequest(p, t)
-
-	if !strings.HasPrefix(loc, mockURI) {
-		t.Errorf("handler returned unexpected location header: got %v want %v",
-			loc, mockURI)
-	}
-}
-
-func TestLogin(t *testing.T) {
-	loc, code := getAuthCode(mockURI, t)
-
-	if !strings.HasPrefix(loc, mockURI) {
-		t.Errorf("handler returned unexpected location header: got %v want %v",
-			loc, mockURI)
-	}
-
-	t.Logf("got authcode %s", code)
-}
-
-func TestAuthCodeToken(t *testing.T) {
-	token := getAuthCodeToken(mockURI, t)
-
-	t.Logf("got bearer token %s", token.AccessToken)
-}
-
-func TestRefreshToken(t *testing.T) {
-	token := getRefreshToken(t)
-
-	t.Logf("got bearer token %s", token.AccessToken)
-}
-
-func TestUserInfoGet(t *testing.T) {
-	token := getAuthCodeToken(mockURI, t)
-
-	req, err := http.NewRequest("GET", "/oauth/userInfo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	profile := oauth.Profile{}
-	if err := json.Unmarshal(data, &profile); err != nil {
-		t.Errorf("invalid profile body %w", err)
-	}
-
-	if profile.FamilyName != "Protagonist" || profile.GivenName != "Hiro" {
-		t.Errorf("handler returned unexpected profile data: %#v", profile)
-	}
-}
-
-func TestClientCredentialsToken(t *testing.T) {
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("client_secret", "super-secret")
-	form.Add("grant_type", oauth.GrantTypeClientCredentials)
-	form.Add("audience", "snowcrash")
-	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-
-	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	token := &oauth.BearerToken{}
-	if err := json.Unmarshal(data, token); err != nil {
-		t.Errorf("invalid token body %w", err)
-	}
-}
-
-func TestUserPasswordToken(t *testing.T) {
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("client_secret", "super-secret")
-	form.Add("username", "hiro@metaverse.org")
-	form.Add("password", "ratTh1Ng$")
-	form.Add("grant_type", oauth.GrantTypePassword)
-	form.Add("audience", "snowcrash")
-	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-
-	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	token := &oauth.BearerToken{}
-	if err := json.Unmarshal(data, token); err != nil {
-		t.Errorf("invalid token body %w", err)
-	}
-}
-
-func TestUserInfoUpdate(t *testing.T) {
-	token := getAuthCodeToken(mockURI, t)
-
-	profile := oauth.Profile{
-		FamilyName: "Stephenson",
-		GivenName:  "Neal",
-	}
-	data, _ := json.Marshal(profile)
-
-	req, err := http.NewRequest("PUT", "/oauth/userInfo", bytes.NewBuffer(data))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err = ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	profile = oauth.Profile{}
-	if err := json.Unmarshal(data, &profile); err != nil {
-		t.Errorf("invalid profile body %w", err)
-	}
-
-	if profile.FamilyName != "Stephenson" || profile.GivenName != "Neal" {
-		t.Errorf("handler returned unexpected profile data: %#v", profile)
-	}
-}
-
-func TestUserPrincipal(t *testing.T) {
-	token := getAuthCodeToken(mockURI, t)
-
-	req, err := http.NewRequest("GET", "/oauth/userPrincipal", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	prin := make(map[string]interface{})
-	if err := json.Unmarshal(data, &prin); err != nil {
-		t.Errorf("invalid profile body %w", err)
-	}
-
-	if bff, ok := prin["bff"].(string); !ok || bff != "yt" {
-		t.Errorf("handler returned unexpected principal data: %#v", prin)
-	}
-}
-
-// getAuthRequest returns the request token and is used in several methods
-func getAuthRequest(uri string, t *testing.T) (string, string) {
-	req, err := http.NewRequest("GET", "/oauth/authorize", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	q := req.URL.Query()
-
-	q.Add("response_type", "code")
-	q.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	q.Add("audience", "snowcrash")
-	q.Add("app_uri", uri)
-	q.Add("redirect_uri", uri)
-	q.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-	q.Add("code_challenge", challenge)
-
-	req.URL.RawQuery = q.Encode()
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusFound {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	u, err := url.Parse(rr.Header().Get("Location"))
-	if err != nil {
-		t.Errorf("failed to parse location header %w", err)
-	}
-
-	return u.String(), u.Query().Get("request_token")
-}
-
-func getAuthCode(uri string, t *testing.T) (string, string) {
-	_, token := getAuthRequest(uri, t)
-
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("login", "hiro")
-	form.Add("password", "ratTh1Ng$")
-	form.Add("code_verifier", verifier)
-	form.Add("request_token", token)
-
-	req, err := http.NewRequest("POST", "/oauth/login", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusFound {
-		t.Fatalf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	u, err := url.Parse(rr.Header().Get("Location"))
-	if err != nil {
-		t.Fatalf("failed to parse location header %s", err.Error())
-	}
-
-	return u.String(), u.Query().Get("code")
-}
-
-func getAuthCodeToken(uri string, t *testing.T) *oauth.BearerToken {
-	_, code := getAuthCode(uri, t)
-
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("grant_type", oauth.GrantTypeAuthCode)
-	form.Add("audience", "snowcrash")
-	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-	form.Add("code", code)
-	form.Add("code_verifier", verifier)
-	form.Add("refresh_nonce", challenge)
-
-	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Fatalf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Fatalf("invalid token body")
-	}
-
-	token := &oauth.BearerToken{}
-	if err := json.Unmarshal(data, token); err != nil {
-		t.Fatalf("invalid token body:%s", err.Error())
-	}
-
-	return token
-}
-
-func getRefreshToken(t *testing.T) *oauth.BearerToken {
-	token := getAuthCodeToken(mockURI, t)
-
-	form := url.Values{}
-	form.Add("client_id", uuid.Must(uuid.NewRandom()).String())
-	form.Add("grant_type", oauth.GrantTypeRefreshToken)
-	form.Add("audience", "snowcrash")
-	form.Add("scope", "metaverse:read metaverse:write openid profile offline_access")
-	form.Add("refresh_token", token.RefreshToken)
-	form.Add("refresh_verifier", verifier)
-	form.Add("refresh_nonce", verifier)
-
-	req, err := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	srv.Router().ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	data, err := ioutil.ReadAll(rr.Body)
-	if err != nil {
-		t.Errorf("invalid token body")
-	}
-
-	token = &oauth.BearerToken{}
-	if err := json.Unmarshal(data, token); err != nil {
-		t.Errorf("invalid token body %w", err)
-	}
-
-	return token
-}
-
-func (c *mockController) ApplicationGet(ctx context.Context, id string) (*oauth.Application, error) {
-	return &oauth.Application{
-		ClientID:     id,
+var (
+	verifier  string
+	challenge string
+
+	testApp = &oauth.Application{
+		ClientID:     "00000000-0000-0000-0000-000000000000",
 		ClientSecret: "super-secret",
 		Permissions: oauth.PermissionSet{
-			"snowcrash": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+			"snowcrash": oauth.Permissions{
+				"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 		},
 		AllowedGrants: oauth.Permissions{
 			oauth.GrantTypeClientCredentials,
@@ -461,36 +50,25 @@ func (c *mockController) ApplicationGet(ctx context.Context, id string) (*oauth.
 		AppUris:       oauth.Permissions{mockURI},
 		RedirectUris:  oauth.Permissions{mockURI},
 		TokenLifetime: 60,
-	}, nil
-}
+	}
 
-func (c *mockController) AudienceGet(ctx context.Context, name string) (*oauth.Audience, error) {
-	return &oauth.Audience{
-		Name:           name,
+	testAud = &oauth.Audience{
+		Name:           "snowcrash",
 		Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 		TokenAlgorithm: "HS256",
 		TokenSecret:    "super-duper-secret",
 		TokenLifetime:  60,
-	}, nil
-}
+	}
 
-func (c *mockController) UserGet(ctx oauth.Context, id string) (*oauth.User, interface{}, error) {
-	return &oauth.User{
-		Login:             "hiro@metaverse.org",
-		PasswordExpiresAt: strfmt.DateTime(time.Now().Add(time.Hour)),
-		Permissions: oauth.PermissionSet{
-			"snowcrash": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
-		},
-		Profile: oauth.Profile{
-			Subject:    id,
-			GivenName:  "Hiro",
-			FamilyName: "Protagonist",
-		},
-	}, map[string]interface{}{"bff": "yt"}, nil
-}
+	testSession = &oauth.Session{
+		ClientID:  "00000000-0000-0000-0000-000000000000",
+		CreatedAt: time.Now().Unix(),
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		ID:        "00000000-0000-0000-0000-000000000000",
+		Subject:   "00000000-0000-0000-0000-000000000000",
+	}
 
-func (c *mockController) UserAuthenticate(ctx oauth.Context, login string, password string) (*oauth.User, interface{}, error) {
-	return &oauth.User{
+	testUser = &oauth.User{
 		Login:             "hiro@metaverse.org",
 		PasswordExpiresAt: strfmt.DateTime(time.Now().Add(time.Hour)),
 		Permissions: oauth.PermissionSet{
@@ -501,11 +79,183 @@ func (c *mockController) UserAuthenticate(ctx oauth.Context, login string, passw
 			GivenName:  "Hiro",
 			FamilyName: "Protagonist",
 		},
-	}, map[string]interface{}{"bff": "yt"}, nil
+	}
+
+	testGrantTypes = oauth.Permissions{
+		oauth.GrantTypePassword,
+		oauth.GrantTypeAuthCode,
+		oauth.GrantTypeClientCredentials,
+		oauth.GrantTypeRefreshToken,
+	}
+
+	testPrin = &struct {
+		oauth.User
+		SecretPower string
+	}{
+		User:        *testUser,
+		SecretPower: "blades of death",
+	}
+
+	testRequest *oauth.AuthRequest
+
+	emptyScopeReq oauth.AuthRequest
+
+	testCode *oauth.AuthCode
+
+	testToken string
+
+	expiredToken string
+
+	badToken string
+
+	misMatchToken string
+
+	emptyScopeToken string
+
+	testKey *rsa.PrivateKey
+)
+
+func init() {
+	var err error
+
+	token := make([]byte, 32)
+	if _, err := rand.Read(token); err != nil {
+		panic(err)
+	}
+
+	verifier = base64.RawURLEncoding.EncodeToString(token)
+
+	sum := sha256.Sum256(token)
+
+	challenge = base64.RawURLEncoding.EncodeToString(sum[:])
+
+	testKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+
+	err = testKey.Validate()
+	if err != nil {
+		panic(err)
+	}
+
+	state := "foo"
+
+	testRequest = &oauth.AuthRequest{
+		ClientID:            "00000000-0000-0000-0000-000000000000",
+		RedirectURI:         mockURI,
+		Scope:               oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+		Audience:            "snowcrash",
+		CodeChallenge:       challenge,
+		CodeChallengeMethod: "S256",
+		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
+		State:               &state,
+	}
+
+	testCode = &oauth.AuthCode{
+		AuthRequest:       *testRequest,
+		Code:              "00000000-0000-0000-0000-000000000000",
+		IssuedAt:          time.Now().Unix(),
+		SessionID:         "00000000-0000-0000-0000-000000000000",
+		Subject:           "00000000-0000-0000-0000-000000000000",
+		UserAuthenticated: true,
+	}
+
+	testToken, err = signValue(context.TODO(), testKey, AuthRequestParam, testRequest)
+	if err != nil {
+		panic(err)
+	}
+
+	expiredReq := *testRequest
+	expiredReq.ExpiresAt = time.Now().Add(time.Minute * -10).Unix()
+
+	expiredToken, err = signValue(context.TODO(), testKey, AuthRequestParam, expiredReq)
+	if err != nil {
+		panic(err)
+	}
+
+	badReq := *testRequest
+	badReq.CodeChallenge += "bad stuff"
+
+	badToken, err = signValue(context.TODO(), testKey, AuthRequestParam, badReq)
+	if err != nil {
+		panic(err)
+	}
+
+	token = make([]byte, 32)
+	if _, err := rand.Read(token); err != nil {
+		panic(err)
+	}
+
+	misSum := sha256.Sum256(token)
+
+	misChal := base64.RawURLEncoding.EncodeToString(misSum[:])
+
+	misMatchReq := *testRequest
+	misMatchReq.CodeChallenge = misChal
+
+	misMatchToken, err = signValue(context.TODO(), testKey, AuthRequestParam, misMatchReq)
+	if err != nil {
+		panic(err)
+	}
+
+	emptyScopeReq = *testRequest
+	emptyScopeReq.Scope = oauth.Permissions{}
+
+	emptyScopeToken, err = signValue(context.TODO(), testKey, AuthRequestParam, emptyScopeReq)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (c *mockController) ApplicationGet(ctx context.Context, id string) (*oauth.Application, error) {
+	args := c.Called(ctx, id)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*oauth.Application), args.Error(1)
+}
+
+func (c *mockController) AudienceGet(ctx context.Context, name string) (*oauth.Audience, error) {
+	args := c.Called(ctx, name)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*oauth.Audience), args.Error(1)
+}
+
+func (c *mockController) UserGet(ctx oauth.Context, login string) (*oauth.User, interface{}, error) {
+	args := c.Called(ctx, login)
+
+	if args.Get(0) == nil {
+		return nil, args.Get(1), args.Error(2)
+	}
+
+	return args.Get(0).(*oauth.User), args.Get(1), args.Error(2)
+}
+
+func (c *mockController) UserAuthenticate(ctx oauth.Context, login string, password string) (*oauth.User, interface{}, error) {
+	args := c.Called(ctx, login, password)
+
+	if args.Get(0) == nil {
+		return nil, args.Get(1), args.Error(2)
+	}
+
+	return args.Get(0).(*oauth.User), args.Get(1), args.Error(2)
 }
 
 func (c *mockController) UserCreate(ctx oauth.Context, user oauth.User, password string, invite ...string) (*oauth.User, error) {
-	return &user, nil
+	args := c.Called(ctx, user, password)
+
+	user.Profile.Subject = "00000000-0000-0000-0000-000000000000"
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*oauth.User), args.Error(1)
 }
 
 func (c *mockController) UserVerify(ctx oauth.Context, id string, code string) error {
@@ -513,7 +263,9 @@ func (c *mockController) UserVerify(ctx oauth.Context, id string, code string) e
 }
 
 func (c *mockController) UserUpdate(ctx oauth.Context, user *oauth.User) error {
-	return nil
+	args := c.Called(ctx, user)
+
+	return args.Error(0)
 }
 
 func (c *mockController) UserResetPassword(ctx oauth.Context, login string, resetCode string) error {
@@ -529,11 +281,117 @@ func (c *mockController) TokenFinalize(ctx oauth.Context, scope oauth.Permission
 }
 
 func (c *mockController) TokenPrivateKey(ctx oauth.Context) (*rsa.PrivateKey, error) {
-	// tests use HS256 so we dont need a signing key
-	return nil, nil
+	args := c.Called(ctx)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*rsa.PrivateKey), args.Error(1)
 }
 
 func (c *mockController) TokenPublicKey(ctx oauth.Context) (*rsa.PublicKey, error) {
-	// tests use HS256 so we dont need a signing key
+	args := c.Called(ctx)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*rsa.PublicKey), args.Error(1)
+}
+
+// AuthCodeCreate creates a new authcode from the request if code expires at is set
+// the store should use that value, otherwise set the defaults
+func (c *mockController) AuthCodeCreate(ctx oauth.Context, code *oauth.AuthCode) error {
+	args := c.Called(ctx, code)
+
+	if code != nil {
+		code.Code = "00000000-0000-0000-0000-000000000000"
+	}
+
+	return args.Error(0)
+}
+
+// AuthCodeGet returns a code from the store
+func (c *mockController) AuthCodeGet(ctx oauth.Context, id string) (*oauth.AuthCode, error) {
+	args := c.Called(ctx, id)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*oauth.AuthCode), args.Error(1)
+}
+
+// AuthCodeDestroy removes a code from the store
+func (c *mockController) AuthCodeDestroy(ctx oauth.Context, id string) error {
+	args := c.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+// SessionCreate creates a session
+func (c *mockController) SessionCreate(oauth.Context, *oauth.Session) error {
+	return nil
+}
+
+// SessionGet gets a session by id
+func (c *mockController) SessionGet(oauth.Context, string) (*oauth.Session, error) {
 	return nil, nil
+}
+
+// SessionUpdate updates a session
+func (c *mockController) SessionUpdate(oauth.Context, *oauth.Session) error {
+	return nil
+}
+
+// SessionDelete deletes a session from the store
+func (c *mockController) SessionDelete(oauth.Context, string) error {
+	return nil
+}
+
+// SessionRead retrieves the session from the request
+func (c *mockController) SessionRead(r *http.Request) (*oauth.Session, error) {
+	args := c.Called(r)
+
+	sess := args.Get(0)
+
+	if sess == nil {
+		return nil, args.Error(1)
+	}
+	return sess.(*oauth.Session), args.Error(1)
+}
+
+// SessionWrite writes a session to the response
+func (c *mockController) SessionWrite(ctx oauth.Context, w http.ResponseWriter, s *oauth.Session) error {
+	args := c.Called(ctx, w, s)
+
+	return args.Error(0)
+}
+
+// SessionDestroy destroys the session in the response
+func (c *mockController) SessionDestroy(ctx oauth.Context, w http.ResponseWriter, r *http.Request) error {
+	args := c.Called(ctx, w, r)
+
+	return args.Error(0)
+}
+
+func (c *mockController) AuthorizedGrantTypes(ctx oauth.Context) oauth.Permissions {
+	args := c.Called(ctx)
+
+	return args.Get(0).(oauth.Permissions)
+
+}
+
+func (c *mockController) Authorize(opts ...oauth.AuthOption) api.Authorizer {
+	return func(r *http.Request) (interface{}, error) {
+		return struct{}{}, nil
+	}
+}
+
+func (c *mockAuthorizer) Authorize(opts ...oauth.AuthOption) api.Authorizer {
+	return func(r *http.Request) (interface{}, error) {
+		return c.handler(r)
+	}
+}
+
+func (c *mockAuthorizer) Handler(h api.Authorizer) {
+	c.handler = h
 }

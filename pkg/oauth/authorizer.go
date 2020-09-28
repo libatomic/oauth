@@ -73,7 +73,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 				return []byte(aud.TokenSecret), nil
 
 			case *jwt.SigningMethodRSA:
-				return a.ctrl.TokenPublicKey(BuildContext(WithAudience(aud)))
+				return a.ctrl.TokenPublicKey(NewContext(r.Context(), WithAudience(aud)))
 
 			default:
 				return nil, ErrUnsupportedAlogrithm
@@ -104,6 +104,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		c := &authContext{
 			aud:   aud,
 			token: token,
+			ctx:   r.Context(),
 		}
 
 		if azp, ok := claims["azp"].(string); ok {

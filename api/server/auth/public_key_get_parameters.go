@@ -30,7 +30,7 @@ type PublicKeyGetParams struct {
 	/*The audience for the request
 	  In: query
 	*/
-	Audience *string
+	Audience *string `json:"audience"`
 
 	// HTTP Request
 	req *http.Request

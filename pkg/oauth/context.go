@@ -15,6 +15,30 @@ import (
 )
 
 type (
+	// Context provides the oauth user and underlying principal from the authorizer
+	Context interface {
+		// Application is the client for the context
+		Application() *Application
+
+		// Audience is the context audience
+		Audience() *Audience
+
+		// User is the oauth user for the context
+		User() *User
+
+		// Token is the oauth token object
+		Token() *jwt.Token
+
+		// Request provides the auth request
+		Request() *AuthRequest
+
+		// Prinicipal is the implementor opaque principal
+		Principal() interface{}
+
+		// Context is the exec context for this context
+		Context() context.Context
+	}
+
 	authContext struct {
 		app   *Application
 		aud   *Audience
@@ -29,17 +53,17 @@ type (
 	ContextOption func(*authContext)
 )
 
-// BuildContext returns a new context from the paramters
-func BuildContext(opts ...ContextOption) Context {
-	ctx := &authContext{
-		ctx: context.Background(),
+// NewContext returns a new context from the paramters
+func NewContext(ctx context.Context, opts ...ContextOption) Context {
+	authCtx := &authContext{
+		ctx: ctx,
 	}
 
 	for _, opt := range opts {
-		opt(ctx)
+		opt(authCtx)
 	}
 
-	return ctx
+	return authCtx
 }
 
 // WithApplication is used to build a context with the specified application
@@ -84,13 +108,6 @@ func WithRequest(req *AuthRequest) ContextOption {
 	}
 }
 
-// WithContext sets the internal context object
-func WithContext(ctx context.Context) ContextOption {
-	return func(a *authContext) {
-		a.ctx = ctx
-	}
-}
-
 // ContextFromRequest will create a context from the Controller and AuthRequest
 func ContextFromRequest(ctx context.Context, ctrl Controller, req *AuthRequest) (Context, error) {
 	aud, err := ctrl.AudienceGet(ctx, req.Audience)
@@ -107,6 +124,7 @@ func ContextFromRequest(ctx context.Context, ctrl Controller, req *AuthRequest) 
 		aud: aud,
 		app: app,
 		req: req,
+		ctx: ctx,
 	}, nil
 }
 

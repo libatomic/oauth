@@ -40,25 +40,25 @@ type AuthorizeParams struct {
 	/*The URL to which the authentication server redirects the browser for action
 	  In: query
 	*/
-	AppURI *string
+	AppURI *string `json:"app_uri"`
 
 	/*
 	  Required: true
 	  In: query
 	*/
-	Audience string
+	Audience string `json:"audience"`
 
 	/*The client id
 	  Required: true
 	  In: query
 	*/
-	ClientID string
+	ClientID string `json:"client_id"`
 
 	/*The generated challenge from the code_verifier.
 	  Required: true
 	  In: query
 	*/
-	CodeChallenge string
+	CodeChallenge string `json:"code_challenge"`
 
 	/*The method used to generate the challenge. The PKCE RFC defines two methods, S256 and plain;
 	however, the authentication serivce supports only S256.
@@ -66,35 +66,35 @@ type AuthorizeParams struct {
 	  In: query
 	  Default: "S256"
 	*/
-	CodeChallengeMethod *string
+	CodeChallengeMethod *string `json:"code_challenge_method"`
 
 	/*The URL to which the authentication server redirects the browser after authorization has been granted by the user
 	  In: query
 	*/
-	RedirectURI *string
+	RedirectURI *string `json:"redirect_uri"`
 
 	/*The authorization code response type
 	  Required: true
 	  In: query
 	*/
-	ResponseType string
+	ResponseType string `json:"response_type"`
 
 	/*The requested scopes, if empty will request all the user permissions.
 
 	  In: query
 	  Collection Format: ssv
 	*/
-	Scope []string
+	Scope []string `json:"scope"`
 
 	/*Opaque state returned the redirect uri
 	  In: query
 	*/
-	State *string
+	State *string `json:"state"`
 
 	/*The user pool to authorize against
 	  In: query
 	*/
-	UserPool *string
+	UserPool *string `json:"user_pool"`
 
 	// HTTP Request
 	req *http.Request

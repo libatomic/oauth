@@ -613,7 +613,8 @@ func init() {
             "type": "string",
             "description": "The reqest audience for client_credentials flows",
             "name": "audience",
-            "in": "formData"
+            "in": "formData",
+            "required": true
           },
           {
             "type": "array",
@@ -1337,34 +1338,6 @@ func init() {
           "package": "github.com/libatomic/oauth/pkg/oauth"
         },
         "type": "Profile"
-      }
-    },
-    "Session": {
-      "description": "A Session is a browser based session object that stores the currently authenticate user principal\n",
-      "type": "object",
-      "properties": {
-        "client_id": {
-          "description": "The client that created the user session",
-          "type": "string"
-        },
-        "created_at": {
-          "description": "The token creation time",
-          "type": "integer",
-          "format": "int64"
-        },
-        "expires_at": {
-          "description": "The token expiration time",
-          "type": "integer",
-          "format": "int64"
-        },
-        "id": {
-          "description": "The session id",
-          "type": "string"
-        },
-        "subject": {
-          "description": "Subject is the user subject id",
-          "type": "string"
-        }
       }
     },
     "User": {
@@ -2018,7 +1991,8 @@ func init() {
             "type": "string",
             "description": "The reqest audience for client_credentials flows",
             "name": "audience",
-            "in": "formData"
+            "in": "formData",
+            "required": true
           },
           {
             "type": "array",
@@ -2742,34 +2716,6 @@ func init() {
           "package": "github.com/libatomic/oauth/pkg/oauth"
         },
         "type": "Profile"
-      }
-    },
-    "Session": {
-      "description": "A Session is a browser based session object that stores the currently authenticate user principal\n",
-      "type": "object",
-      "properties": {
-        "client_id": {
-          "description": "The client that created the user session",
-          "type": "string"
-        },
-        "created_at": {
-          "description": "The token creation time",
-          "type": "integer",
-          "format": "int64"
-        },
-        "expires_at": {
-          "description": "The token expiration time",
-          "type": "integer",
-          "format": "int64"
-        },
-        "id": {
-          "description": "The session id",
-          "type": "string"
-        },
-        "subject": {
-          "description": "Subject is the user subject id",
-          "type": "string"
-        }
       }
     },
     "User": {

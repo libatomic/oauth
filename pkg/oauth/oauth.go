@@ -12,8 +12,7 @@ package oauth
 import (
 	"context"
 	"crypto/rsa"
-
-	"github.com/dgrijalva/jwt-go"
+	"net/http"
 )
 
 const (
@@ -43,33 +42,14 @@ const (
 )
 
 type (
-	// Context provides the oauth user and underlying principal from the authorizer
-	Context interface {
-		// Application is the client for the context
-		Application() *Application
-
-		// Audience is the context audience
-		Audience() *Audience
-
-		// User is the oauth user for the context
-		User() *User
-
-		// Token is the oauth token object
-		Token() *jwt.Token
-
-		// Request provides the auth request
-		Request() *AuthRequest
-
-		// Prinicipal is the implementor opaque principal
-		Principal() interface{}
-
-		Context() context.Context
-	}
-
 	// Controller is the interface implemented by consumers of the auth server
 	// This provides the backend functionality for user, application, and audience management
 	Controller interface {
 		AuthController
+
+		CodeStore
+
+		SessionController
 
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return an oauth user and the principal
@@ -103,6 +83,9 @@ type (
 
 		// TokenPrivateKey returns the key for the specified context which is used to sign tokens
 		TokenPrivateKey(ctx Context) (*rsa.PrivateKey, error)
+
+		// AuthorizedGrantTypes returns the list of grant types the controller with authorize
+		AuthorizedGrantTypes(ctx Context) Permissions
 	}
 
 	// AuthController is used by the authorizer and is a readonly subset of Controller functionality
@@ -114,7 +97,7 @@ type (
 		ApplicationGet(context.Context, string) (*Application, error)
 
 		// UserGet returns a user by subject id along with the underlying principal
-		UserGet(ctx Context, id string) (*User, interface{}, error)
+		UserGet(Context, string) (*User, interface{}, error)
 
 		// TokenPublicKey returns the key for the specified context which is used to verify tokens
 		TokenPublicKey(ctx Context) (*rsa.PublicKey, error)
@@ -123,14 +106,38 @@ type (
 	// CodeStore defines an AuthCode storage interface
 	// AuthCodes are used by the Oauth 2.0 `authorization_code` flow
 	CodeStore interface {
-		// CodeCreate creates a new authcode from the request if code expires at is set
+		// AuthCodeCreate creates a new authcode from the request if code expires at is set
 		// the store should use that value, otherwise set the defaults
-		CodeCreate(req *AuthCode) error
+		AuthCodeCreate(Context, *AuthCode) error
 
-		// CodeGet returns a code from the store
-		CodeGet(code string) (*AuthCode, error)
+		// AuthCodeGet returns a code from the store
+		AuthCodeGet(Context, string) (*AuthCode, error)
 
-		// CodeDestroy removes a code from the store
-		CodeDestroy(code string) error
+		// AuthCodeDestroy removes a code from the store
+		AuthCodeDestroy(Context, string) error
+	}
+
+	// SessionController provides session persistence for oauth user flows
+	SessionController interface {
+		// SessionCreate creates a session
+		SessionCreate(Context, *Session) error
+
+		// SessionGet gets a session by id
+		SessionGet(Context, string) (*Session, error)
+
+		// SessionUpdate updates a session
+		SessionUpdate(Context, *Session) error
+
+		// SessionDelete deletes a session from the store
+		SessionDelete(Context, string) error
+
+		// SessionRead retrieves the session from the request
+		SessionRead(r *http.Request) (*Session, error)
+
+		// SessionWrite writes a session to the response
+		SessionWrite(Context, http.ResponseWriter, *Session) error
+
+		// SessionDestroy destroys the session in the response
+		SessionDestroy(Context, http.ResponseWriter, *http.Request) error
 	}
 )

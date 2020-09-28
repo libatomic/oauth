@@ -17,6 +17,15 @@ var (
 	// ErrCodeNotFound is returned when the store could not find the code
 	ErrCodeNotFound = errors.New("code not found")
 
+	// ErrApplicationNotFound is returned when the store could not find the application
+	ErrApplicationNotFound = errors.New("application not found")
+
+	// ErrAudienceNotFound is returned when the store could not find the audience
+	ErrAudienceNotFound = errors.New("audience not found")
+
+	// ErrSessionNotFound is returned when the session was not found by the controller
+	ErrSessionNotFound = errors.New("session not found")
+
 	// ErrUnsupportedAlogrithm is returned when the Authorizer gets a bad token
 	ErrUnsupportedAlogrithm = errors.New("unsupported signing algorithm")
 

@@ -32,26 +32,26 @@ type LoginParams struct {
 	  Required: true
 	  In: formData
 	*/
-	CodeVerifier string
+	CodeVerifier string `json:"code_verifier"`
 
 	/*The user login
 	  Required: true
 	  In: formData
 	*/
-	Login string
+	Login string `json:"login"`
 
 	/*The user password
 	  Required: true
 	  In: formData
 	*/
-	Password string
+	Password string `json:"password"`
 
 	/*"The authorization request token"
 
 	  Required: true
 	  In: formData
 	*/
-	RequestToken string
+	RequestToken string `json:"request_token"`
 
 	// HTTP Request
 	req *http.Request

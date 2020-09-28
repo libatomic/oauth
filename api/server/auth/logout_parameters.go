@@ -32,17 +32,17 @@ type LogoutParams struct {
 	  Required: true
 	  In: query
 	*/
-	ClientID string
+	ClientID string `json:"client_id"`
 
 	/*The uri to redirect to after logout
 	  In: query
 	*/
-	RedirectURI *string
+	RedirectURI *string `json:"redirect_uri"`
 
 	/*Logout state
 	  In: query
 	*/
-	State *string
+	State *string `json:"state"`
 
 	// HTTP Request
 	req *http.Request

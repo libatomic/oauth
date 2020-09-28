@@ -32,43 +32,43 @@ type SignupParams struct {
 	  Required: true
 	  In: formData
 	*/
-	CodeVerifier string
+	CodeVerifier string `json:"code_verifier"`
 
 	/*The user's email address
 	  Required: true
 	  In: formData
 	*/
-	Email strfmt.Email
+	Email strfmt.Email `json:"email"`
 
 	/*Inivitation codes allow for users to sign up when public sign up is disabled.
 
 	  In: formData
 	*/
-	InviteCode *string
+	InviteCode *string `json:"invite_code"`
 
 	/*The user's login
 	  Required: true
 	  In: formData
 	*/
-	Login string
+	Login string `json:"login"`
 
 	/*The user's full name
 	  In: formData
 	*/
-	Name *string
+	Name *string `json:"name"`
 
 	/*The user's password
 	  Required: true
 	  In: formData
 	*/
-	Password string
+	Password string `json:"password"`
 
 	/*"The authorization request token"
 
 	  Required: true
 	  In: formData
 	*/
-	RequestToken string
+	RequestToken string `json:"request_token"`
 
 	// HTTP Request
 	req *http.Request
