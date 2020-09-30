@@ -1,4 +1,5 @@
 # Atomic Auth Provider
+![Go](https://github.com/libatomic/oauth/workflows/Go/badge.svg)
 
 The `oauth.Controller` interface provides simple user, application, and audience management for api servers.
 
