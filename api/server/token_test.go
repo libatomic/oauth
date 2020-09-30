@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/apex/log"
+	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/litmus/pkg/litmus"
 	"github.com/libatomic/oauth/pkg/oauth"
@@ -69,6 +71,137 @@ func TestTokenAuthcode(t *testing.T) {
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
 			ExpectedStatus:     http.StatusOK,
+			RequestContentType: "application/x-www-form-urlencoded",
+			Request: litmus.BeginQuery().
+				Add("grant_type", oauth.GrantTypeAuthCode).
+				Add("client_id", "00000000-0000-0000-0000-000000000000").
+				Add("audience", "snowcrash").
+				Add("scope", "metaverse:read metaverse:write openid profile offline_access").
+				Add("code", testCode.Code).
+				Add("code_verifier", verifier).
+				Add("refresh_nonce", testCode.Code).
+				Encode(),
+		},
+		"TokenAuthBadUserPerms": {
+			Operations: []litmus.Operation{
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
+				},
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "AuthorizedGrantTypes",
+					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext")},
+					Returns: litmus.Returns{testGrantTypes},
+				},
+				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testCode, nil},
+				},
+				{
+					Name:    "AuthCodeDestroy",
+					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Returns: litmus.Returns{nil},
+				},
+				{
+					Name:    "SessionRead",
+					Args:    litmus.Args{mock.AnythingOfType("*http.Request")},
+					Returns: litmus.Returns{nil, nil},
+				},
+				{
+					Name: "UserGet",
+					Args: litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Returns: litmus.Returns{&oauth.User{
+						Login:             "hiro@metaverse.org",
+						PasswordExpiresAt: strfmt.DateTime(time.Now().Add(time.Hour)),
+						Permissions: oauth.PermissionSet{
+							"crypto": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+						},
+						Profile: oauth.Profile{
+							Subject:    uuid.Must(uuid.NewRandom()).String(),
+							GivenName:  "Hiro",
+							FamilyName: "Protagonist",
+						},
+					}, testPrin, nil},
+				},
+			},
+			Method:             http.MethodPost,
+			Path:               "/oauth/token",
+			ExpectedStatus:     http.StatusUnauthorized,
+			RequestContentType: "application/x-www-form-urlencoded",
+			Request: litmus.BeginQuery().
+				Add("grant_type", oauth.GrantTypeAuthCode).
+				Add("client_id", "00000000-0000-0000-0000-000000000000").
+				Add("audience", "snowcrash").
+				Add("scope", "metaverse:read metaverse:write openid profile offline_access").
+				Add("code", testCode.Code).
+				Add("code_verifier", verifier).
+				Add("refresh_nonce", testCode.Code).
+				Encode(),
+		},
+		"TokenAuthBadAppPerms": {
+			Operations: []litmus.Operation{
+				{
+					Name: "ApplicationGet",
+					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{&oauth.Application{
+						ClientID:     "00000000-0000-0000-0000-000000000000",
+						ClientSecret: "super-secret",
+						Permissions: oauth.PermissionSet{
+							"crypto": oauth.Permissions{
+								"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+						},
+						AllowedGrants: oauth.Permissions{
+							oauth.GrantTypeClientCredentials,
+							oauth.GrantTypeAuthCode,
+							oauth.GrantTypePassword,
+							oauth.GrantTypeRefreshToken,
+						},
+						AppUris:       oauth.Permissions{mockURI},
+						RedirectUris:  oauth.Permissions{mockURI},
+						TokenLifetime: 60,
+					}, nil},
+				},
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "AuthorizedGrantTypes",
+					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext")},
+					Returns: litmus.Returns{testGrantTypes},
+				},
+				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testCode, nil},
+				},
+				{
+					Name:    "AuthCodeDestroy",
+					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Returns: litmus.Returns{nil},
+				},
+				{
+					Name:    "SessionRead",
+					Args:    litmus.Args{mock.AnythingOfType("*http.Request")},
+					Returns: litmus.Returns{nil, nil},
+				},
+				{
+					Name:    "UserGet",
+					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testUser, testPrin, nil},
+				},
+			},
+			Method:             http.MethodPost,
+			Path:               "/oauth/token",
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).

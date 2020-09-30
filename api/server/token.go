@@ -350,23 +350,16 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 				})
 
 				if err := dec.Decode(user.Profile); err != nil {
-					log.Error(err.Error())
-
 					return api.StatusError(http.StatusInternalServerError, err)
 				}
 			}
 
 			token, err := signToken(claims, octx)
 			if err != nil {
-				log.Error(err.Error())
-
 				return api.StatusError(http.StatusInternalServerError, err)
 			}
 			bearer.IDToken = token
 		}
-
-	default:
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid grant type")
 	}
 
 	return api.NewResponse(bearer)

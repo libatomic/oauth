@@ -18,10 +18,12 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/sessions v1.2.0
+	github.com/kr/pretty v0.2.1
 	github.com/lestrrat-go/jwx v1.0.3
 	github.com/libatomic/api v1.0.3
 	github.com/libatomic/litmus v0.5.0
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/stretchr/testify v1.6.1
+	github.com/tj/assert v0.0.3
 )
