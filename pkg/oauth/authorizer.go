@@ -23,7 +23,7 @@ type (
 	}
 
 	authorizer struct {
-		ctrl AuthController
+		ctrl Controller
 	}
 
 	// AuthOption is an authorizer option
@@ -35,7 +35,7 @@ type (
 )
 
 // NewAuthorizer returns a new oauth authorizer
-func NewAuthorizer(ctrl AuthController) Authorizer {
+func NewAuthorizer(ctrl Controller) Authorizer {
 	return &authorizer{
 		ctrl: ctrl,
 	}
