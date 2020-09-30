@@ -20,7 +20,7 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/lestrrat-go/jwx v1.0.3
 	github.com/libatomic/api v1.0.4
-	github.com/libatomic/litmus v0.5.1
+	github.com/libatomic/litmus v0.5.2
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/stretchr/testify v1.6.1
