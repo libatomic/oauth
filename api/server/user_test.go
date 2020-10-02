@@ -9,6 +9,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -28,7 +29,7 @@ func TestUserInfoUpdate(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "UserUpdate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.User")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.User")},
 					Returns: litmus.Returns{nil},
 				},
 			},
@@ -38,11 +39,12 @@ func TestUserInfoUpdate(t *testing.T) {
 			RequestContentType: "application/json",
 			Request:            testUser.Profile,
 			Setup: func(r *http.Request) {
-				auth.Handler(func(r *http.Request) (interface{}, error) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
 						r.Context(),
-						oauth.WithUser(testUser),
-					), nil
+						oauth.Context{
+							User: testUser,
+						}), nil
 				})
 			},
 		},
@@ -54,11 +56,12 @@ func TestUserInfoUpdate(t *testing.T) {
 			RequestContentType: "application/json",
 			Request:            testUser.Profile,
 			Setup: func(r *http.Request) {
-				auth.Handler(func(r *http.Request) (interface{}, error) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
 						r.Context(),
-						oauth.WithUser(nil),
-					), nil
+						oauth.Context{
+							User: nil,
+						}), nil
 				})
 			},
 		},
@@ -66,7 +69,7 @@ func TestUserInfoUpdate(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "UserUpdate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.User")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.User")},
 					Returns: litmus.Returns{errors.New("access denied")},
 				},
 			},
@@ -76,11 +79,12 @@ func TestUserInfoUpdate(t *testing.T) {
 			RequestContentType: "application/json",
 			Request:            testUser.Profile,
 			Setup: func(r *http.Request) {
-				auth.Handler(func(r *http.Request) (interface{}, error) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
 						r.Context(),
-						oauth.WithUser(testUser),
-					), nil
+						oauth.Context{
+							User: testUser,
+						}), nil
 				})
 			},
 		},
@@ -106,11 +110,12 @@ func TestUserInfo(t *testing.T) {
 			Path:           "/oauth/userInfo",
 			ExpectedStatus: http.StatusOK,
 			Setup: func(r *http.Request) {
-				auth.Handler(func(r *http.Request) (interface{}, error) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
 						r.Context(),
-						oauth.WithUser(testUser),
-					), nil
+						oauth.Context{
+							User: testUser,
+						}), nil
 				})
 			},
 		},
@@ -120,11 +125,12 @@ func TestUserInfo(t *testing.T) {
 			Path:           "/oauth/userInfo",
 			ExpectedStatus: http.StatusUnauthorized,
 			Setup: func(r *http.Request) {
-				auth.Handler(func(r *http.Request) (interface{}, error) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
 						r.Context(),
-						oauth.WithUser(nil),
-					), nil
+						oauth.Context{
+							User: nil,
+						}), nil
 				})
 			},
 		},
@@ -150,11 +156,13 @@ func TestUserPrincipal(t *testing.T) {
 			Path:           "/oauth/userPrincipal",
 			ExpectedStatus: http.StatusOK,
 			Setup: func(r *http.Request) {
-				auth.Handler(func(r *http.Request) (interface{}, error) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
 						r.Context(),
-						oauth.WithPrincipal(testUser),
-					), nil
+						oauth.Context{
+							User:      testUser,
+							Principal: testUser,
+						}), nil
 				})
 			},
 		},
@@ -164,11 +172,12 @@ func TestUserPrincipal(t *testing.T) {
 			Path:           "/oauth/userPrincipal",
 			ExpectedStatus: http.StatusUnauthorized,
 			Setup: func(r *http.Request) {
-				auth.Handler(func(r *http.Request) (interface{}, error) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
 						r.Context(),
-						oauth.WithUser(testUser),
-					), nil
+						oauth.Context{
+							User: testUser,
+						}), nil
 				})
 			},
 		},

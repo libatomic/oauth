@@ -30,46 +30,46 @@ type (
 		ApplicationGet(context.Context, string) (*Application, error)
 
 		// UserGet returns a user by subject id along with the underlying principal
-		UserGet(Context, string) (*User, interface{}, error)
+		UserGet(context.Context, string) (*User, interface{}, error)
 
 		// TokenPublicKey returns the key for the specified context which is used to verify tokens
-		TokenPublicKey(ctx Context) (*rsa.PublicKey, error)
+		TokenPublicKey(ctx context.Context) (*rsa.PublicKey, error)
 
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return an oauth user and the principal
-		UserAuthenticate(ctx Context, login string, password string) (*User, interface{}, error)
+		UserAuthenticate(ctx context.Context, login string, password string) (*User, interface{}, error)
 
 		// UserCreate will create the user, optionally validating the invite code
 		// This method should send the user an email verification link with the format:
 		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
 		//
 		// The library will call the controller's UserVerify method with this id and code
-		UserCreate(ctx Context, user User, password string, invite ...string) (*User, error)
+		UserCreate(ctx context.Context, user User, password string, invite ...string) (*User, error)
 
 		// UserVerify should validate the code and update the user's email address as verified
-		UserVerify(ctx Context, id string, code string) error
+		UserVerify(ctx context.Context, id string, code string) error
 
 		// UserUpdate updates a user
-		UserUpdate(ctx Context, user *User) error
+		UserUpdate(ctx context.Context, user *User) error
 
 		// UserResetPassword should notify the user with a reset password link to the
 		// which includes the user's password reset code i.e.:
 		// - https://domain.tld/setPassword?code={reset_code}
 		//
 		// These values should be the posted along with the new password to `/oauth/passwordSet`
-		UserResetPassword(ctx Context, login string, resetCode string) error
+		UserResetPassword(ctx context.Context, login string, resetCode string) error
 
 		// UserSetPassword will set a user's password
-		UserSetPassword(ctx Context, id string, password string) error
+		UserSetPassword(ctx context.Context, id string, password string) error
 
 		// TokenFinalize finalizes the scope prior to signing
-		TokenFinalize(ctx Context, scope Permissions, claims map[string]interface{})
+		TokenFinalize(ctx context.Context, scope Permissions, claims map[string]interface{})
 
 		// TokenPrivateKey returns the key for the specified context which is used to sign tokens
-		TokenPrivateKey(ctx Context) (*rsa.PrivateKey, error)
+		TokenPrivateKey(ctx context.Context) (*rsa.PrivateKey, error)
 
 		// AuthorizedGrantTypes returns the list of grant types the controller with authorize
-		AuthorizedGrantTypes(ctx Context) Permissions
+		AuthorizedGrantTypes(ctx context.Context) Permissions
 	}
 
 	// CodeStore defines an AuthCode storage interface
@@ -77,24 +77,24 @@ type (
 	CodeStore interface {
 		// AuthCodeCreate creates a new authcode from the request if code expires at is set
 		// the store should use that value, otherwise set the defaults
-		AuthCodeCreate(Context, *AuthCode) error
+		AuthCodeCreate(context.Context, *AuthCode) error
 
 		// AuthCodeGet returns a code from the store
-		AuthCodeGet(Context, string) (*AuthCode, error)
+		AuthCodeGet(context.Context, string) (*AuthCode, error)
 
 		// AuthCodeDestroy removes a code from the store
-		AuthCodeDestroy(Context, string) error
+		AuthCodeDestroy(context.Context, string) error
 	}
 
 	// SessionStore provides session persistence for oauth user flows
 	SessionStore interface {
 		// SessionCreate creates a new session, overwriting an exising session
-		SessionCreate(r *http.Request, ctx Context) (Session, error)
+		SessionCreate(*http.Request, *Context) (Session, error)
 
 		// SessionRead returns the session
-		SessionRead(r *http.Request) (Session, error)
+		SessionRead(*http.Request) (Session, error)
 
 		// SessionDestroy should cleanup an session in the response
-		SessionDestroy(w http.ResponseWriter, r *http.Request) error
+		SessionDestroy(http.ResponseWriter, *http.Request) error
 	}
 )

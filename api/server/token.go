@@ -57,14 +57,15 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
 
+	ctx = oauth.NewContext(
+		ctx,
+		oauth.Context{
+			Application: app,
+			Audience:    aud,
+		})
+
 	// ensure the controller allows these grants
-	if !ctrl.AuthorizedGrantTypes(
-		oauth.NewContext(
-			ctx,
-			oauth.WithApplication(app),
-			oauth.WithAudience(aud),
-		),
-	).Contains(params.GrantType) {
+	if !ctrl.AuthorizedGrantTypes(ctx).Contains(params.GrantType) {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid grant type")
 	}
 
@@ -75,7 +76,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 
 	_, r := params.UnbindRequest()
 
-	signToken := func(claims jwt.MapClaims, ctx oauth.Context) (string, error) {
+	signToken := func(ctx context.Context, claims jwt.MapClaims) (string, error) {
 		var token *jwt.Token
 		var key interface{}
 
@@ -101,12 +102,6 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 	var code *oauth.AuthCode
 	var user *oauth.User
 
-	octx := oauth.NewContext(
-		ctx,
-		oauth.WithApplication(app),
-		oauth.WithAudience(aud),
-	)
-
 	switch params.GrantType {
 	case oauth.GrantTypePassword:
 
@@ -122,11 +117,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		}
 
 		user, _, err = ctrl.UserAuthenticate(
-			oauth.NewContext(
-				ctx,
-				oauth.WithApplication(app),
-				oauth.WithAudience(aud),
-			),
+			ctx,
 			*params.Username,
 			*params.Password,
 		)
@@ -165,12 +156,12 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		claims["scope"] = strings.Join(params.Scope, " ")
 
 		ctrl.TokenFinalize(
-			octx,
+			ctx,
 			params.Scope,
 			claims,
 		)
 
-		token, err := signToken(claims, octx)
+		token, err := signToken(ctx, claims)
 		if err != nil {
 			return api.StatusError(http.StatusInternalServerError, err)
 
@@ -183,7 +174,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusBadRequest, "missing refresh token or verifier")
 		}
 
-		code, err = ctrl.AuthCodeGet(octx, *params.RefreshToken)
+		code, err = ctrl.AuthCodeGet(ctx, *params.RefreshToken)
 		if err != nil {
 			return api.StatusErrorf(http.StatusUnauthorized, "invalid refresh token")
 		}
@@ -208,10 +199,12 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 				return api.StatusErrorf(http.StatusBadRequest, "missing code or verifier")
 			}
 
-			code, err = ctrl.AuthCodeGet(octx, *params.Code)
+			code, err = ctrl.AuthCodeGet(ctx, *params.Code)
 			if err != nil {
 				return api.StatusErrorf(http.StatusUnauthorized, "invalid code")
 			}
+
+			oauth.GetContext(ctx).Request = &code.AuthRequest
 
 			verifier, err := base64.RawURLEncoding.DecodeString(*params.CodeVerifier)
 			if err != nil {
@@ -226,19 +219,15 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			}
 		}
 
-		ctrl.AuthCodeDestroy(octx, code.Code)
+		ctrl.AuthCodeDestroy(ctx, code.Code)
 
-		user, prin, err := ctrl.UserGet(
-			oauth.NewContext(
-				ctx,
-				oauth.WithApplication(app),
-				oauth.WithAudience(aud),
-				oauth.WithRequest(&code.AuthRequest),
-			),
-			code.Subject)
+		user, prin, err := ctrl.UserGet(ctx, code.Subject)
 		if err != nil {
 			return api.StatusErrorf(http.StatusUnauthorized, err.Error())
 		}
+
+		oauth.GetContext(ctx).User = user
+		oauth.GetContext(ctx).Principal = prin
 
 		perms, ok := user.Permissions[code.Audience]
 		if len(params.Scope) == 0 {
@@ -277,22 +266,13 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			"azp":   app.ClientID,
 		}
 
-		octx = oauth.NewContext(
-			ctx,
-			oauth.WithApplication(app),
-			oauth.WithAudience(aud),
-			oauth.WithUser(user),
-			oauth.WithPrincipal(prin),
-			oauth.WithRequest(&code.AuthRequest),
-		)
-
 		ctrl.TokenFinalize(
-			octx,
+			ctx,
 			params.Scope,
 			claims,
 		)
 
-		token, err := signToken(claims, octx)
+		token, err := signToken(ctx, claims)
 		if err != nil {
 			return api.StatusError(http.StatusInternalServerError, err)
 		}
@@ -312,7 +292,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			}
 			code.RefreshNonce = *params.RefreshNonce
 
-			if err := ctrl.AuthCodeCreate(octx, code); err != nil {
+			if err := ctrl.AuthCodeCreate(ctx, code); err != nil {
 				return api.StatusError(http.StatusInternalServerError, err)
 			}
 
@@ -342,7 +322,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 				}
 			}
 
-			token, err := signToken(claims, octx)
+			token, err := signToken(ctx, claims)
 			if err != nil {
 				return api.StatusError(http.StatusInternalServerError, err)
 			}

@@ -27,16 +27,16 @@ func init() {
 
 func userInfoUpdate(ctx context.Context, params *user.UserInfoUpdateParams) api.Responder {
 	ctrl := getController(ctx)
-	auth := api.Principal(ctx).(oauth.Context)
+	auth := oauth.GetContext(ctx)
 
-	if auth.User() == nil {
+	if auth.User == nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	user := auth.User()
+	user := auth.User
 	user.Profile = params.Profile
 
-	if err := ctrl.UserUpdate(auth, user); err != nil {
+	if err := ctrl.UserUpdate(ctx, user); err != nil {
 		return api.Error(err)
 	}
 
@@ -44,21 +44,21 @@ func userInfoUpdate(ctx context.Context, params *user.UserInfoUpdateParams) api.
 }
 
 func userInfo(ctx context.Context, params *user.UserInfoGetParams) api.Responder {
-	auth := api.Principal(ctx).(oauth.Context)
+	auth := oauth.GetContext(ctx)
 
-	if auth.User() == nil {
+	if auth.User == nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	return api.NewResponse(auth.User().Profile)
+	return api.NewResponse(auth.User.Profile)
 }
 
 func userPrincipal(ctx context.Context, params *user.UserPrincipalGetParams) api.Responder {
-	auth := api.Principal(ctx).(oauth.Context)
+	auth := oauth.GetContext(ctx)
 
-	if auth.Principal() == nil {
+	if auth.Principal == nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	return api.NewResponse(auth.Principal())
+	return api.NewResponse(auth.Principal)
 }

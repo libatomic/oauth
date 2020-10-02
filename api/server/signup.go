@@ -30,7 +30,7 @@ func signup(ctx context.Context, params *auth.SignupParams) api.Responder {
 
 	ctrl := getController(ctx)
 
-	pubKey, err := ctrl.TokenPublicKey(oauth.NewContext(ctx))
+	pubKey, err := ctrl.TokenPublicKey(ctx)
 	if err != nil {
 		return api.Error(err)
 	}

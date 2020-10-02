@@ -42,7 +42,7 @@ func TestAuthorize(t *testing.T) {
 				},
 				{
 					Name:    "TokenPrivateKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext")},
+					Args:    litmus.Args{litmus.Context},
 					Returns: litmus.Returns{testKey, nil},
 				},
 			},
@@ -79,7 +79,7 @@ func TestAuthorize(t *testing.T) {
 				},
 				{
 					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.AuthCode")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
 				},
 			},
@@ -353,7 +353,7 @@ func TestAuthorize(t *testing.T) {
 				},
 				{
 					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.AuthCode")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{errors.New("something bad")},
 				},
 			},
@@ -393,7 +393,7 @@ func TestAuthorize(t *testing.T) {
 				},
 				{
 					Name:    "TokenPrivateKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext")},
+					Args:    litmus.Args{litmus.Context},
 					Returns: litmus.Returns{nil, errors.New("something bad")},
 				},
 			},

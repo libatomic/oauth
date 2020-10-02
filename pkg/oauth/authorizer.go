@@ -9,6 +9,7 @@
 package oauth
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -48,10 +49,12 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		opt(o)
 	}
 
-	return func(r *http.Request) (interface{}, error) {
+	return func(r *http.Request) (context.Context, error) {
 		var claims jwt.MapClaims
 		var err error
 		var aud *Audience
+
+		ctx := r.Context()
 
 		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
@@ -73,7 +76,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 				return []byte(aud.TokenSecret), nil
 
 			case *jwt.SigningMethodRSA:
-				return a.ctrl.TokenPublicKey(NewContext(r.Context(), WithAudience(aud)))
+				return a.ctrl.TokenPublicKey(NewContext(ctx, Context{Audience: aud}))
 
 			default:
 				return nil, ErrUnsupportedAlogrithm
@@ -101,30 +104,29 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 			return nil, ErrAccessDenied
 		}
 
-		c := &authContext{
-			aud:   aud,
-			token: token,
-			ctx:   r.Context(),
+		c := Context{
+			Audience: aud,
+			Token:    token,
 		}
 
 		if azp, ok := claims["azp"].(string); ok {
-			app, err := a.ctrl.ApplicationGet(r.Context(), azp)
+			app, err := a.ctrl.ApplicationGet(ctx, azp)
 			if err != nil {
 				return nil, ErrAccessDenied
 			}
-			c.app = app
+			c.Application = app
 		}
 
 		if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
-			user, prin, err := a.ctrl.UserGet(c, sub)
+			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), sub)
 			if err != nil {
 				return nil, ErrAccessDenied
 			}
-			c.user = user
-			c.prin = prin
+			c.User = user
+			c.Principal = prin
 		}
 
-		return c, nil
+		return NewContext(ctx, c), nil
 	}
 }
 

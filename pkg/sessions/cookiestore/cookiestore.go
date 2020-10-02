@@ -98,14 +98,14 @@ func WithSessionKey(key [64]byte) Option {
 }
 
 // SessionCreate creates a session
-func (c *cookieStore) SessionCreate(r *http.Request, ctx oauth.Context) (oauth.Session, error) {
+func (c *cookieStore) SessionCreate(r *http.Request, ctx *oauth.Context) (oauth.Session, error) {
 	s, err := c.store.New(r, c.sessionCookie)
 	if err != nil {
 		return nil, err
 	}
 
-	s.Values["client_id"] = ctx.Application().ClientID
-	s.Values["subject"] = ctx.User().Profile.Subject
+	s.Values["client_id"] = ctx.Application.ClientID
+	s.Values["subject"] = ctx.User.Profile.Subject
 
 	s.Values["created_at"] = time.Now().Unix()
 	s.Values["expires_at"] = time.Now().Add(c.sessionLifetime).Unix()

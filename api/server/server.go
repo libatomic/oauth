@@ -155,7 +155,7 @@ func (s *Server) publicKey(ctx context.Context, params *auth.PublicKeyGetParams)
 		}
 	}
 
-	pubKey, err := s.ctrl.TokenPublicKey(oauth.NewContext(ctx, oauth.WithAudience(aud)))
+	pubKey, err := s.ctrl.TokenPublicKey(oauth.NewContext(ctx, oauth.Context{Audience: aud}))
 	if err != nil {
 		return api.StatusError(http.StatusInternalServerError, err)
 	}

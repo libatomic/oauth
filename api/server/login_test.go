@@ -26,7 +26,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -41,17 +41,17 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "UserAuthenticate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.authContext")},
+					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{
 					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.AuthCode")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
 				},
 			},
@@ -73,7 +73,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -88,17 +88,17 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "UserAuthenticate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.authContext")},
+					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{
 					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.AuthCode")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
 				},
 			},
@@ -120,7 +120,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, errors.New("bad key")},
 				},
 			},
@@ -139,7 +139,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 			},
@@ -162,7 +162,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 			},
@@ -181,7 +181,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 			},
@@ -200,7 +200,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 			},
@@ -222,7 +222,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 			},
@@ -244,7 +244,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -271,7 +271,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -286,7 +286,7 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "UserAuthenticate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, nil, oauth.ErrAccessDenied},
 				},
 			},
@@ -308,7 +308,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -323,7 +323,7 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name: "UserAuthenticate",
-					Args: litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{
 						&oauth.User{
 							Permissions: oauth.PermissionSet{
@@ -350,7 +350,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -365,7 +365,7 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name: "UserAuthenticate",
-					Args: litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{
 						&oauth.User{
 							Permissions: oauth.PermissionSet{
@@ -392,7 +392,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -407,12 +407,12 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "UserAuthenticate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.authContext")},
+					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
 					Returns: litmus.Returns{nil, errors.New("bad session")},
 				},
 			},
@@ -434,7 +434,7 @@ func TestLogin(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&testKey.PublicKey, nil},
 				},
 				{
@@ -449,17 +449,17 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "UserAuthenticate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.authContext")},
+					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{
 					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.AuthCode")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{errors.New("authcode create failed")},
 				},
 			},

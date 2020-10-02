@@ -10,6 +10,7 @@
 package memstore
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +32,7 @@ func New(defaultExpiration, cleanupInterval time.Duration) oauth.CodeStore {
 }
 
 // AuthCodeCreate creates a new authcode from the request
-func (m *memstore) AuthCodeCreate(_ oauth.Context, authCode *oauth.AuthCode) error {
+func (m *memstore) AuthCodeCreate(_ context.Context, authCode *oauth.AuthCode) error {
 	code, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -57,7 +58,7 @@ func (m *memstore) AuthCodeCreate(_ oauth.Context, authCode *oauth.AuthCode) err
 }
 
 // AuthCodeGet returns a code from the store
-func (m *memstore) AuthCodeGet(_ oauth.Context, code string) (*oauth.AuthCode, error) {
+func (m *memstore) AuthCodeGet(_ context.Context, code string) (*oauth.AuthCode, error) {
 	authCode, ok := m.Get(code)
 	if !ok {
 		return nil, oauth.ErrCodeNotFound
@@ -67,7 +68,7 @@ func (m *memstore) AuthCodeGet(_ oauth.Context, code string) (*oauth.AuthCode, e
 }
 
 // CodeDestroy removes a code from the store
-func (m *memstore) AuthCodeDestroy(_ oauth.Context, code string) error {
+func (m *memstore) AuthCodeDestroy(_ context.Context, code string) error {
 	m.Delete(code)
 	return nil
 }

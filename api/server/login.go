@@ -31,7 +31,7 @@ func init() {
 func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	ctrl := getController(ctx)
 
-	pubKey, err := ctrl.TokenPublicKey(oauth.NewContext(ctx))
+	pubKey, err := ctrl.TokenPublicKey(ctx)
 	if err != nil {
 		return api.Error(err)
 	}
@@ -74,7 +74,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		})
 	}
 
-	octx, err := oauth.ContextFromRequest(ctx, ctrl, req)
+	ctx, err = oauth.ContextFromRequest(ctx, ctrl, req)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "bad_request",
@@ -82,13 +82,15 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		})
 	}
 
-	user, _, err := ctrl.UserAuthenticate(octx, params.Login, params.Password)
+	user, _, err := ctrl.UserAuthenticate(ctx, params.Login, params.Password)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
 			"error_description": "user authentication failed",
 		})
 	}
+
+	oauth.GetContext(ctx).User = user
 
 	perms, ok := user.Permissions[req.Audience]
 	if !ok {
@@ -111,13 +113,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 
 	w, r := params.UnbindRequest()
 
-	userCtx := oauth.NewContext(
-		ctx,
-		oauth.WithContext(octx),
-		oauth.WithUser(user),
-	)
-
-	session, err := ctrl.SessionCreate(r, userCtx)
+	session, err := ctrl.SessionCreate(r, oauth.GetContext(ctx))
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
@@ -138,7 +134,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		SessionID:         session.ID(),
 		UserAuthenticated: true,
 	}
-	if err := ctrl.AuthCodeCreate(octx, authCode); err != nil {
+	if err := ctrl.AuthCodeCreate(ctx, authCode); err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),

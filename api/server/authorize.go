@@ -130,8 +130,10 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 		}
 		if err := ctrl.AuthCodeCreate(oauth.NewContext(
 			ctx,
-			oauth.WithApplication(app),
-			oauth.WithAudience(aud),
+			oauth.Context{
+				Application: app,
+				Audience:    aud,
+			},
 		), authCode); err != nil {
 			log.Error(err.Error())
 
@@ -156,8 +158,10 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 
 	privKey, err := ctrl.TokenPrivateKey(oauth.NewContext(
 		ctx,
-		oauth.WithApplication(app),
-		oauth.WithAudience(aud),
+		oauth.Context{
+			Application: app,
+			Audience:    aud,
+		},
 	))
 	if err != nil {
 		return api.Redirect(u, map[string]string{
