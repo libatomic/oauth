@@ -19,7 +19,7 @@ require (
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/sessions v1.2.0
 	github.com/lestrrat-go/jwx v1.0.3
-	github.com/libatomic/api v1.0.4
+	github.com/libatomic/api v1.0.5
 	github.com/libatomic/litmus v0.5.3
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/mr-tron/base58 v1.2.0
