@@ -32,7 +32,6 @@ func TestLogout(t *testing.T) {
 				{
 					Name: "SessionDestroy",
 					Args: litmus.Args{
-						mock.AnythingOfType("*oauth.authContext"),
 						mock.AnythingOfTypeArgument("*api.responseWriter"),
 						mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{nil},
@@ -122,7 +121,6 @@ func TestLogout(t *testing.T) {
 				{
 					Name: "SessionDestroy",
 					Args: litmus.Args{
-						mock.AnythingOfType("*oauth.authContext"),
 						mock.AnythingOfTypeArgument("*api.responseWriter"),
 						mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{errors.New("bad stuff")},

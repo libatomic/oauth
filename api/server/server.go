@@ -13,19 +13,15 @@ import (
 	"context"
 	"crypto"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/url"
 	"sync"
-	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/api/server/auth"
-	"github.com/libatomic/oauth/pkg/codestore/memstore"
 	"github.com/libatomic/oauth/pkg/oauth"
 )
 
@@ -37,31 +33,13 @@ type (
 		// ctrl is the auth.Controller interface the server uses to complete requests
 		ctrl oauth.Controller
 
-		// codes is the authcode store for the server
-		codes oauth.CodeStore
-
 		auth oauth.Authorizer
 
-		hash  []byte
-		block []byte
-
-		sessionCookie      string
-		sessionLifetime    time.Duration
-		sessionTimeout     time.Duration
-		jwks               []byte
-		allowPasswordGrant bool
-
-		// session is the store for the sessions
-		sessions sessions.Store
+		jwks []byte
 	}
 
 	// Option provides the server options, these will override th defaults and instance values.
 	Option func(s *Server)
-
-	sessionToken struct {
-		Timeout   int64
-		SessionID string
-	}
 
 	route struct {
 		Path    string
@@ -87,12 +65,6 @@ var (
 	ctrlKey contextKey = "oauth.Controller"
 )
 
-func init() {
-	// register the session type so the store can encode/decode it
-	gob.Register(oauth.Session{})
-	gob.Register(sessionToken{})
-}
-
 // New returns a new Server instance
 func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Server {
 	apiOpts := make([]api.Option, 0)
@@ -111,27 +83,10 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 
 	apiOpts = append(apiOpts, api.WithBasepath(SpecDoc.Spec().BasePath))
 
-	const (
-		defaultSessionLifetime = time.Duration(time.Hour * 24 * 30)
-		defaultSessionTimeout  = time.Duration(time.Hour * 24 * 3)
-		defaultSessionCookie   = "_atomic_session"
-	)
-
-	var (
-		defaultHash  = []byte("40taMVGESjzOvpYx3FvskNYN7r1AtM9M")
-		defaultBlock = []byte("seX4pGzKmw0MS0arKYIvoGZAecOR58UP")
-	)
-
 	s := &Server{
-		Server:          api.NewServer(apiOpts...),
-		auth:            athr,
-		ctrl:            ctrl,
-		sessionCookie:   defaultSessionCookie,
-		sessionLifetime: defaultSessionLifetime,
-		sessionTimeout:  defaultSessionTimeout,
-		codes:           memstore.New(time.Minute*5, time.Minute*10),
-		hash:            defaultHash,
-		block:           defaultBlock,
+		Server: api.NewServer(apiOpts...),
+		auth:   athr,
+		ctrl:   ctrl,
 	}
 
 	// apply the server options
@@ -139,70 +94,18 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 		o(s)
 	}
 
-	if s.sessions == nil {
-		store := sessions.NewCookieStore(s.hash[0:32], s.block[0:32])
-
-		store.Options = &sessions.Options{
-			Secure:   true,
-			MaxAge:   int(s.sessionLifetime / time.Second),
-			HttpOnly: true,
-			Path:     "/",
-		}
-
-		s.sessions = store
-	}
-
 	for _, r := range routes {
 		s.addRoute(r.Path, r.Method, r.Params, r.Handler, r.Auth)
 	}
 
+	s.addRoute(
+		"/.well-known/jwks.json",
+		http.MethodGet,
+		&auth.PublicKeyGetParams{},
+		s.publicKey,
+		oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
+
 	return s
-}
-
-// SessionIntervals sets the session lifetime and activity timeout
-func SessionIntervals(lifetime, timeout time.Duration) Option {
-	return func(s *Server) {
-		if timeout > 0 && lifetime > timeout {
-			s.sessionLifetime = lifetime
-			s.sessionTimeout = timeout
-		}
-	}
-}
-
-// SessionStore sets the session store
-func SessionStore(store sessions.Store) Option {
-	return func(s *Server) {
-		s.sessions = store
-	}
-}
-
-// CodeStore sets the code store for the server
-func CodeStore(store oauth.CodeStore) Option {
-	return func(s *Server) {
-		s.codes = store
-	}
-}
-
-// SessionCookieName sets the session cookie name
-func SessionCookieName(name string) Option {
-	return func(s *Server) {
-		s.sessionCookie = name
-	}
-}
-
-// SessionCookieKeys sets the session cookie keys
-func SessionCookieKeys(hash, block []byte) Option {
-	return func(s *Server) {
-		s.hash = hash
-		s.block = block
-	}
-}
-
-// AllowPasswordGrant enables password grants which require client secrets
-func AllowPasswordGrant(allow bool) Option {
-	return func(s *Server) {
-		s.allowPasswordGrant = allow
-	}
 }
 
 func (s *Server) addRoute(path string, method string, params api.Parameters, handler interface{}, scopes ...oauth.Permissions) {

@@ -21,7 +21,7 @@ type (
 	Controller interface {
 		CodeStore
 
-		SessionController
+		SessionStore
 
 		// AudienceGet should return an audience for the specified name
 		AudienceGet(context.Context, string) (*Audience, error)
@@ -86,27 +86,15 @@ type (
 		AuthCodeDestroy(Context, string) error
 	}
 
-	// SessionController provides session persistence for oauth user flows
-	SessionController interface {
-		// SessionCreate creates a session
-		SessionCreate(Context, *Session) error
+	// SessionStore provides session persistence for oauth user flows
+	SessionStore interface {
+		// SessionCreate creates a new session, overwriting an exising session
+		SessionCreate(r *http.Request, ctx Context) (Session, error)
 
-		// SessionGet gets a session by id
-		SessionGet(Context, string) (*Session, error)
+		// SessionRead returns the session
+		SessionRead(r *http.Request) (Session, error)
 
-		// SessionUpdate updates a session
-		SessionUpdate(Context, *Session) error
-
-		// SessionDelete deletes a session from the store
-		SessionDelete(Context, string) error
-
-		// SessionRead retrieves the session from the request
-		SessionRead(r *http.Request) (*Session, error)
-
-		// SessionWrite writes a session to the response
-		SessionWrite(Context, http.ResponseWriter, *Session) error
-
-		// SessionDestroy destroys the session in the response
-		SessionDestroy(Context, http.ResponseWriter, *http.Request) error
+		// SessionDestroy should cleanup an session in the response
+		SessionDestroy(w http.ResponseWriter, r *http.Request) error
 	}
 )

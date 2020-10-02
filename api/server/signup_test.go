@@ -52,18 +52,9 @@ func TestSignup(t *testing.T) {
 					Returns: litmus.Returns{testUser, testPrin, nil},
 				},
 				{
-					Name:    "SessionRead",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request")},
-					Returns: litmus.Returns{nil, nil},
-				},
-				{
-					Name: "SessionWrite",
-					Args: litmus.Args{
-						mock.AnythingOfType("*oauth.authContext"),
-						mock.AnythingOfTypeArgument("*api.responseWriter"),
-						mock.AnythingOfType("*oauth.Session"),
-					},
-					Returns: litmus.Returns{nil},
+					Name:    "SessionCreate",
+					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.authContext")},
+					Returns: litmus.Returns{testSession, nil},
 				},
 				{
 					Name:    "AuthCodeCreate",

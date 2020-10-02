@@ -10,6 +10,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/libatomic/api/pkg/api"
@@ -42,8 +43,7 @@ func logout(ctx context.Context, params *auth.LogoutParams) api.Responder {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 
-	w, r := params.UnbindRequest()
-	if err := ctrl.SessionDestroy(oauth.NewContext(ctx, oauth.WithApplication(app)), w, r); err != nil {
+	if err := ctrl.SessionDestroy(params.UnbindRequest()); err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {
 		log.Error(err.Error())
 
 		api.Redirect(u, map[string]string{

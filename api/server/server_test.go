@@ -24,6 +24,14 @@ type (
 	mockAuthorizer struct {
 		handler api.Authorizer
 	}
+
+	mockSession struct {
+		id        string
+		sub       string
+		clientID  string
+		createdAt int64
+		expiresAt int64
+	}
 )
 
 const (
@@ -60,12 +68,12 @@ var (
 		TokenLifetime:  60,
 	}
 
-	testSession = &oauth.Session{
-		ClientID:  "00000000-0000-0000-0000-000000000000",
-		CreatedAt: time.Now().Unix(),
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
-		ID:        "00000000-0000-0000-0000-000000000000",
-		Subject:   "00000000-0000-0000-0000-000000000000",
+	testSession = &mockSession{
+		clientID:  "00000000-0000-0000-0000-000000000000",
+		createdAt: time.Now().Unix(),
+		expiresAt: time.Now().Add(time.Hour).Unix(),
+		id:        "00000000-0000-0000-0000-000000000000",
+		sub:       "00000000-0000-0000-0000-000000000000",
 	}
 
 	testUser = &oauth.User{
@@ -328,47 +336,28 @@ func (c *mockController) AuthCodeDestroy(ctx oauth.Context, id string) error {
 }
 
 // SessionCreate creates a session
-func (c *mockController) SessionCreate(oauth.Context, *oauth.Session) error {
-	return nil
-}
+func (c *mockController) SessionCreate(r *http.Request, ctx oauth.Context) (oauth.Session, error) {
+	args := c.Called(r, ctx)
 
-// SessionGet gets a session by id
-func (c *mockController) SessionGet(oauth.Context, string) (*oauth.Session, error) {
-	return nil, nil
-}
-
-// SessionUpdate updates a session
-func (c *mockController) SessionUpdate(oauth.Context, *oauth.Session) error {
-	return nil
-}
-
-// SessionDelete deletes a session from the store
-func (c *mockController) SessionDelete(oauth.Context, string) error {
-	return nil
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(oauth.Session), args.Error(1)
 }
 
 // SessionRead retrieves the session from the request
-func (c *mockController) SessionRead(r *http.Request) (*oauth.Session, error) {
+func (c *mockController) SessionRead(r *http.Request) (oauth.Session, error) {
 	args := c.Called(r)
 
-	sess := args.Get(0)
-
-	if sess == nil {
+	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return sess.(*oauth.Session), args.Error(1)
-}
-
-// SessionWrite writes a session to the response
-func (c *mockController) SessionWrite(ctx oauth.Context, w http.ResponseWriter, s *oauth.Session) error {
-	args := c.Called(ctx, w, s)
-
-	return args.Error(0)
+	return args.Get(0).(oauth.Session), args.Error(1)
 }
 
 // SessionDestroy destroys the session in the response
-func (c *mockController) SessionDestroy(ctx oauth.Context, w http.ResponseWriter, r *http.Request) error {
-	args := c.Called(ctx, w, r)
+func (c *mockController) SessionDestroy(w http.ResponseWriter, r *http.Request) error {
+	args := c.Called(w, r)
 
 	return args.Error(0)
 }
@@ -394,4 +383,49 @@ func (c *mockAuthorizer) Authorize(opts ...oauth.AuthOption) api.Authorizer {
 
 func (c *mockAuthorizer) Handler(h api.Authorizer) {
 	c.handler = h
+}
+
+// ID is the session id
+func (s *mockSession) ID() string {
+	return s.id
+}
+
+// ClientID is the client that created the user session
+func (s *mockSession) ClientID() string {
+	return s.clientID
+}
+
+// CreatedAt is the session creation time
+func (s *mockSession) CreatedAt() time.Time {
+	return time.Unix(s.createdAt, 0)
+}
+
+// ExpiresAt is the session expriation time
+func (s *mockSession) ExpiresAt() time.Time {
+	return time.Unix(s.expiresAt, 0)
+}
+
+// Subject is the user subject id
+func (s *mockSession) Subject() string {
+	return s.sub
+}
+
+// Set sets a value in the session interface
+func (s *mockSession) Set(key string, value interface{}) {
+
+}
+
+// Get gets a value from the session interface
+func (s *mockSession) Get(key string) interface{} {
+	return struct{}{}
+}
+
+// Write writes the session to the response
+func (s *mockSession) Write(http.ResponseWriter) error {
+	return nil
+}
+
+// Destroy clears the session from the response
+func (s *mockSession) Destroy(http.ResponseWriter) error {
+	return nil
 }

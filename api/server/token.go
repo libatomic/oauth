@@ -228,18 +228,6 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 
 		ctrl.AuthCodeDestroy(octx, code.Code)
 
-		sess, err := ctrl.SessionRead(r)
-		if err != nil {
-			return api.StatusError(http.StatusBadRequest, err)
-		}
-
-		if sess == nil {
-			sess = &oauth.Session{
-				Subject:   code.Subject,
-				CreatedAt: code.IssuedAt,
-			}
-		}
-
 		user, prin, err := ctrl.UserGet(
 			oauth.NewContext(
 				ctx,
@@ -247,7 +235,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 				oauth.WithAudience(aud),
 				oauth.WithRequest(&code.AuthRequest),
 			),
-			sess.Subject)
+			code.Subject)
 		if err != nil {
 			return api.StatusErrorf(http.StatusUnauthorized, err.Error())
 		}
@@ -283,7 +271,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		claims := jwt.MapClaims{
 			"iat":   time.Now().Unix(),
 			"aud":   aud.Name,
-			"sub":   sess.Subject,
+			"sub":   code.Subject,
 			"scope": strings.Join(params.Scope, " "),
 			"exp":   exp,
 			"azp":   app.ClientID,
@@ -335,9 +323,9 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		if scope.Contains(oauth.ScopeOpenID) {
 			claims := jwt.MapClaims{
 				"iat":       time.Now().Unix(),
-				"auth_time": sess.CreatedAt,
+				"auth_time": code.IssuedAt,
 				"aud":       aud.Name,
-				"sub":       sess.Subject,
+				"sub":       code.Subject,
 				"exp":       time.Now().Add(time.Duration(app.TokenLifetime)).Unix(),
 				"azp":       app.ClientID,
 				"name":      user.Profile.Name,

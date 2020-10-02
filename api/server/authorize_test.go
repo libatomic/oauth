@@ -78,15 +78,6 @@ func TestAuthorize(t *testing.T) {
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{
-					Name: "SessionWrite",
-					Args: litmus.Args{
-						mock.AnythingOfType("*oauth.authContext"),
-						mock.AnythingOfTypeArgument("*api.responseWriter"),
-						mock.AnythingOfType("*oauth.Session"),
-					},
-					Returns: litmus.Returns{nil},
-				},
-				{
 					Name:    "AuthCodeCreate",
 					Args:    litmus.Args{mock.AnythingOfType("*oauth.authContext"), mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
@@ -343,50 +334,6 @@ func TestAuthorize(t *testing.T) {
 				"Location": `https:\/\/meta\.org\/\?error=server_error&error_description=something\+bad`,
 			},
 		},
-		"AuthorizeSessionWriteError": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "SessionRead",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request")},
-					Returns: litmus.Returns{testSession, nil},
-				},
-				{
-					Name: "SessionWrite",
-					Args: litmus.Args{
-						mock.AnythingOfType("*oauth.authContext"),
-						mock.AnythingOfTypeArgument("*api.responseWriter"),
-						mock.AnythingOfType("*oauth.Session"),
-					},
-					Returns: litmus.Returns{errors.New("something bad")},
-				},
-			},
-			Method: http.MethodGet,
-			Path:   "/oauth/authorize",
-			Query: litmus.BeginQuery().
-				Add("response_type", "code").
-				Add("client_id", uuid.Must(uuid.NewRandom()).String()).
-				Add("audience", "snowcrash").
-				Add("app_uri", mockURI).
-				Add("redirect_uri", mockURI).
-				Add("state", "foo").
-				Add("scope", "metaverse:read metaverse:write openid profile offline_access").
-				Add("code_challenge", challenge).
-				EndQuery(),
-			ExpectedStatus: http.StatusFound,
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=server_error&error_description=something\+bad`,
-			},
-		},
 		"AuthorizeAuthCodeCreateError": {
 			Operations: []litmus.Operation{
 				{
@@ -403,15 +350,6 @@ func TestAuthorize(t *testing.T) {
 					Name:    "SessionRead",
 					Args:    litmus.Args{mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{testSession, nil},
-				},
-				{
-					Name: "SessionWrite",
-					Args: litmus.Args{
-						mock.AnythingOfType("*oauth.authContext"),
-						mock.AnythingOfTypeArgument("*api.responseWriter"),
-						mock.AnythingOfType("*oauth.Session"),
-					},
-					Returns: litmus.Returns{nil},
 				},
 				{
 					Name:    "AuthCodeCreate",

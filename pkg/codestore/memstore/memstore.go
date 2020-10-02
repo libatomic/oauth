@@ -42,10 +42,11 @@ func (m *memstore) AuthCodeCreate(_ oauth.Context, authCode *oauth.AuthCode) err
 
 	exp := DefaultExpiration
 
-	if authCode.ExpiresAt > 0 {
+	// set the default expiration
+	if authCode.ExpiresAt == 0 {
+		authCode.ExpiresAt = time.Now().Add(m.defaultExpiration).Unix()
+	} else if authCode.ExpiresAt > 0 {
 		exp = time.Duration(authCode.ExpiresAt-time.Now().Unix()) * time.Second
-	} else {
-		authCode.ExpiresAt = time.Now().Add(exp).Unix()
 	}
 
 	if err := m.Add(authCode.Code, authCode, exp); err != nil {

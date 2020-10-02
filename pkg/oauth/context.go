@@ -108,6 +108,39 @@ func WithRequest(req *AuthRequest) ContextOption {
 	}
 }
 
+// WithContext copies in the valid values from the context
+func WithContext(ctx Context) ContextOption {
+	return func(a *authContext) {
+		if ctx.Application() != nil {
+			a.app = ctx.Application()
+		}
+
+		if ctx.Audience() != nil {
+			a.aud = ctx.Audience()
+		}
+
+		if ctx.User() != nil {
+			a.user = ctx.User()
+		}
+
+		if ctx.Principal() != nil {
+			a.prin = ctx.Principal()
+		}
+
+		if ctx.Token() != nil {
+			a.token = ctx.Token()
+		}
+
+		if ctx.Request() != nil {
+			a.req = ctx.Request()
+		}
+
+		if ctx.Context() != nil {
+			a.ctx = ctx.Context()
+		}
+	}
+}
+
 // ContextFromRequest will create a context from the Controller and AuthRequest
 func ContextFromRequest(ctx context.Context, ctrl Controller, req *AuthRequest) (Context, error) {
 	aud, err := ctrl.AudienceGet(ctx, req.Audience)

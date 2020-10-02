@@ -30,7 +30,6 @@ func init() {
 
 func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	ctrl := getController(ctx)
-	log := api.Log(ctx)
 
 	pubKey, err := ctrl.TokenPublicKey(oauth.NewContext(ctx))
 	if err != nil {
@@ -51,8 +50,6 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	// validate the code verifier
 	verifier, err := base64.RawURLEncoding.DecodeString(params.CodeVerifier)
 	if err != nil {
-		log.Error(err.Error())
-
 		return api.Redirect(u, map[string]string{
 			"error":             "invalid_request",
 			"error_description": "invalid code_verifier",
@@ -63,8 +60,6 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	// validate the code challenge
 	chal, err := base64.RawURLEncoding.DecodeString(req.CodeChallenge)
 	if err != nil {
-		log.Error(err.Error())
-
 		return api.Redirect(u, map[string]string{
 			"error":             "bad_request",
 			"error_description": "invalid code_challenge",
@@ -89,8 +84,6 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 
 	user, _, err := ctrl.UserAuthenticate(octx, params.Login, params.Password)
 	if err != nil {
-		log.Error(err.Error())
-
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
 			"error_description": "user authentication failed",
@@ -118,26 +111,21 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 
 	w, r := params.UnbindRequest()
 
-	session, err := ctrl.SessionRead(r)
-	if err != nil && err != oauth.ErrSessionNotFound {
-		log.Error(err.Error())
+	userCtx := oauth.NewContext(
+		ctx,
+		oauth.WithContext(octx),
+		oauth.WithUser(user),
+	)
 
+	session, err := ctrl.SessionCreate(r, userCtx)
+	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),
 		})
 	}
 
-	if session == nil {
-		session = &oauth.Session{
-			ClientID: req.ClientID,
-			Subject:  user.Profile.Subject,
-		}
-	}
-
-	if err := ctrl.SessionWrite(octx, w, session); err != nil {
-		log.Error(err.Error())
-
+	if err := session.Write(w); err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),
@@ -147,12 +135,10 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	authCode := &oauth.AuthCode{
 		AuthRequest:       *req,
 		Subject:           user.Profile.Subject,
-		SessionID:         session.ID,
+		SessionID:         session.ID(),
 		UserAuthenticated: true,
 	}
 	if err := ctrl.AuthCodeCreate(octx, authCode); err != nil {
-		log.Error(err.Error())
-
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),

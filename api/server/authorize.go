@@ -10,6 +10,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -104,28 +105,18 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 	}
 
 	w, r := params.UnbindRequest()
-	session, err := ctrl.SessionRead(r)
-	if err != nil && err != oauth.ErrSessionNotFound {
-		log.Error(err.Error())
 
+	session, err := ctrl.SessionRead(r)
+	if err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),
 		})
 	}
 
-	// if we already gave a session, use that to create the code
+	// if we already have a session, use that to create the code
 	if session != nil {
-		// set this to zero so the controller resets it
-		session.ExpiresAt = 0
-
-		if err := ctrl.SessionWrite(oauth.NewContext(
-			ctx,
-			oauth.WithApplication(app),
-			oauth.WithAudience(aud),
-		), w, session); err != nil {
-			log.Error(err.Error())
-
+		if err := session.Write(w); err != nil {
 			return api.Redirect(u, map[string]string{
 				"error":             "server_error",
 				"error_description": err.Error(),
@@ -134,8 +125,8 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 
 		authCode := &oauth.AuthCode{
 			AuthRequest: *req,
-			Subject:     session.Subject,
-			SessionID:   session.ID,
+			Subject:     session.Subject(),
+			SessionID:   session.ID(),
 		}
 		if err := ctrl.AuthCodeCreate(oauth.NewContext(
 			ctx,
