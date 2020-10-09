@@ -10,6 +10,8 @@
 package cookiestore
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -98,14 +100,23 @@ func WithSessionKey(key [64]byte) Option {
 }
 
 // SessionCreate creates a session
-func (c *cookieStore) SessionCreate(r *http.Request, ctx *oauth.Context) (oauth.Session, error) {
-	s, err := c.store.New(r, c.sessionCookie)
+func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth.Session, error) {
+	octx := oauth.GetContext(ctx)
+
+	name := c.sessionCookie
+
+	if octx.Audience != nil {
+		name = fmt.Sprintf("%s#%s", c.sessionCookie, octx.Audience.Name)
+	}
+
+	s, err := c.store.New(r, name)
 	if err != nil {
 		return nil, err
 	}
 
-	s.Values["client_id"] = ctx.Application.ClientID
-	s.Values["subject"] = ctx.User.Profile.Subject
+	s.Values["client_id"] = octx.Application.ClientID
+	s.Values["subject"] = octx.User.Profile.Subject
+	s.Values["aud"] = octx.Audience.Name
 
 	s.Values["created_at"] = time.Now().Unix()
 	s.Values["expires_at"] = time.Now().Add(c.sessionLifetime).Unix()
@@ -116,8 +127,16 @@ func (c *cookieStore) SessionCreate(r *http.Request, ctx *oauth.Context) (oauth.
 }
 
 // SessionRead returns the session
-func (c *cookieStore) SessionRead(r *http.Request) (oauth.Session, error) {
-	s, err := c.store.Get(r, c.sessionCookie)
+func (c *cookieStore) SessionRead(ctx context.Context, r *http.Request) (oauth.Session, error) {
+	octx := oauth.GetContext(ctx)
+
+	name := c.sessionCookie
+
+	if octx.Audience != nil {
+		name = fmt.Sprintf("%s#%s", c.sessionCookie, octx.Audience.Name)
+	}
+
+	s, err := c.store.Get(r, name)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +150,8 @@ func (c *cookieStore) SessionRead(r *http.Request) (oauth.Session, error) {
 	return &session{s}, nil
 }
 
-func (c *cookieStore) SessionDestroy(w http.ResponseWriter, r *http.Request) error {
-	s, err := c.SessionRead(r)
+func (c *cookieStore) SessionDestroy(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	s, err := c.SessionRead(ctx, r)
 	if err != nil {
 		return err
 	}

@@ -336,8 +336,8 @@ func (c *mockController) AuthCodeDestroy(ctx context.Context, id string) error {
 }
 
 // SessionCreate creates a session
-func (c *mockController) SessionCreate(r *http.Request, ctx *oauth.Context) (oauth.Session, error) {
-	args := c.Called(r, ctx)
+func (c *mockController) SessionCreate(ctx context.Context, r *http.Request) (oauth.Session, error) {
+	args := c.Called(ctx, r)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -346,8 +346,8 @@ func (c *mockController) SessionCreate(r *http.Request, ctx *oauth.Context) (oau
 }
 
 // SessionRead retrieves the session from the request
-func (c *mockController) SessionRead(r *http.Request) (oauth.Session, error) {
-	args := c.Called(r)
+func (c *mockController) SessionRead(ctx context.Context, r *http.Request) (oauth.Session, error) {
+	args := c.Called(ctx, r)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -356,8 +356,8 @@ func (c *mockController) SessionRead(r *http.Request) (oauth.Session, error) {
 }
 
 // SessionDestroy destroys the session in the response
-func (c *mockController) SessionDestroy(w http.ResponseWriter, r *http.Request) error {
-	args := c.Called(w, r)
+func (c *mockController) SessionDestroy(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	args := c.Called(ctx, w, r)
 
 	return args.Error(0)
 }

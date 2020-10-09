@@ -89,12 +89,12 @@ type (
 	// SessionStore provides session persistence for oauth user flows
 	SessionStore interface {
 		// SessionCreate creates a new session, overwriting an exising session
-		SessionCreate(*http.Request, *Context) (Session, error)
+		SessionCreate(context.Context, *http.Request) (Session, error)
 
 		// SessionRead returns the session
-		SessionRead(*http.Request) (Session, error)
+		SessionRead(context.Context, *http.Request) (Session, error)
 
 		// SessionDestroy should cleanup an session in the response
-		SessionDestroy(http.ResponseWriter, *http.Request) error
+		SessionDestroy(context.Context, http.ResponseWriter, *http.Request) error
 	}
 )

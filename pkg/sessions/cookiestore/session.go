@@ -1,6 +1,7 @@
 package cookiestore
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -21,6 +22,10 @@ func (s *session) ID() string {
 // ClientID is the client that created the user session
 func (s *session) ClientID() string {
 	return s.s.Values["client_id"].(string)
+}
+
+func (s *session) Audience() string {
+	return s.s.Values["aud"].(string)
 }
 
 // CreatedAt is the session creation time
@@ -50,6 +55,19 @@ func (s *session) Get(key string) interface{} {
 
 // Write writes the session to the response
 func (s *session) Write(w http.ResponseWriter) error {
+
+	// write the id cookie here as well
+	id := &http.Cookie{
+		Name:     fmt.Sprintf("%s#id", s.s.Name()),
+		Value:    s.s.ID,
+		Expires:  s.ExpiresAt(),
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	}
+
+	http.SetCookie(w, id)
+
 	return s.s.Save(nil, w)
 }
 

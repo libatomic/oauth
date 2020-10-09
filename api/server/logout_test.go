@@ -30,8 +30,14 @@ func TestLogout(t *testing.T) {
 					Returns: litmus.Returns{testApp, nil},
 				},
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name: "SessionDestroy",
 					Args: litmus.Args{
+						litmus.Context,
 						mock.AnythingOfTypeArgument("*api.responseWriter"),
 						mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{nil},
@@ -42,6 +48,7 @@ func TestLogout(t *testing.T) {
 			Query: litmus.BeginQuery().
 				Add("client_id", "00000000-0000-0000-0000-000000000000").
 				Add("state", "foo").
+				Add("audience", testAud.Name).
 				EndQuery(),
 			ExpectedStatus: http.StatusFound,
 			ExpectedHeaders: map[string]string{
@@ -61,6 +68,7 @@ func TestLogout(t *testing.T) {
 			Query: litmus.BeginQuery().
 				Add("client_id", "00000000-0000-0000-0000-000000000000").
 				Add("redirect_uri", mockURI+"?logout").
+				Add("audience", testAud.Name).
 				EndQuery(),
 			ExpectedStatus: http.StatusBadRequest,
 			ExpectedResponse: `
@@ -78,12 +86,18 @@ func TestLogout(t *testing.T) {
 							RedirectUris: oauth.Permissions{string([]byte{0x7f})},
 						}, nil},
 				},
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
 			},
 			Method: http.MethodGet,
 			Path:   "/oauth/logout",
 			Query: litmus.BeginQuery().
 				Add("client_id", "00000000-0000-0000-0000-000000000000").
 				Add("redirect_uri", string([]byte{0x7f})).
+				Add("audience", testAud.Name).
 				EndQuery(),
 			ExpectedStatus: http.StatusBadRequest,
 			ExpectedResponse: `
@@ -98,12 +112,18 @@ func TestLogout(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testApp, nil},
 				},
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
 			},
 			Method: http.MethodGet,
 			Path:   "/oauth/logout",
 			Query: litmus.BeginQuery().
 				Add("client_id", "00000000-0000-0000-0000-000000000000").
 				Add("redirect_uri", "https://www.google.com").
+				Add("audience", testAud.Name).
 				EndQuery(),
 			ExpectedStatus: http.StatusBadRequest,
 			ExpectedResponse: `
@@ -119,8 +139,14 @@ func TestLogout(t *testing.T) {
 					Returns: litmus.Returns{testApp, nil},
 				},
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name: "SessionDestroy",
 					Args: litmus.Args{
+						litmus.Context,
 						mock.AnythingOfTypeArgument("*api.responseWriter"),
 						mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{errors.New("bad stuff")},
@@ -130,6 +156,7 @@ func TestLogout(t *testing.T) {
 			Path:   "/oauth/logout",
 			Query: litmus.BeginQuery().
 				Add("client_id", "00000000-0000-0000-0000-000000000000").
+				Add("audience", testAud.Name).
 				EndQuery(),
 			ExpectedStatus: http.StatusFound,
 			ExpectedHeaders: map[string]string{

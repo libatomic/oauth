@@ -53,7 +53,7 @@ func TestSignup(t *testing.T) {
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{

@@ -113,7 +113,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 
 	w, r := params.UnbindRequest()
 
-	session, err := ctrl.SessionCreate(r, oauth.GetContext(ctx))
+	session, err := ctrl.SessionCreate(ctx, r)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",

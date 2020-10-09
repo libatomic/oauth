@@ -46,7 +46,7 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{
@@ -93,7 +93,7 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{
@@ -412,7 +412,7 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{nil, errors.New("bad session")},
 				},
 			},
@@ -454,7 +454,7 @@ func TestLogin(t *testing.T) {
 				},
 				{
 					Name:    "SessionCreate",
-					Args:    litmus.Args{mock.AnythingOfType("*http.Request"), mock.AnythingOfType("*oauth.Context")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{

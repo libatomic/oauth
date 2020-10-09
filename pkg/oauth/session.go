@@ -22,14 +22,17 @@ type (
 		// ClientID is the client that created the user session
 		ClientID() string
 
+		// Audience is the session audience
+		Audience() string
+
+		// Subject is the user subject id
+		Subject() string
+
 		// CreatedAt is the session creation time
 		CreatedAt() time.Time
 
 		// ExpiresAt is the session expriation time
 		ExpiresAt() time.Time
-
-		// Subject is the user subject id
-		Subject() string
 
 		// Set sets a value in the session interface
 		Set(key string, value interface{})

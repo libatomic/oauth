@@ -4,7 +4,7 @@ go 1.14
 
 // replace github.com/libatomic/api => ../api
 
-// replace github.com/libatomic/litmus => ../litmus
+replace github.com/libatomic/litmus => ../litmus
 
 require (
 	github.com/apex/log v1.8.0

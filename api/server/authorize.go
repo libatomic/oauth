@@ -73,6 +73,11 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 		})
 	}
 
+	ctx = oauth.NewContext(ctx, oauth.Context{
+		Application: app,
+		Audience:    aud,
+	})
+
 	if len(params.Scope) > 0 && len(app.Permissions) > 0 {
 		// check the scope against the app and audience
 		perms, ok := app.Permissions[params.Audience]
@@ -106,7 +111,7 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 
 	w, r := params.UnbindRequest()
 
-	session, err := ctrl.SessionRead(r)
+	session, err := ctrl.SessionRead(ctx, r)
 	if err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",

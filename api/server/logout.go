@@ -34,6 +34,16 @@ func logout(ctx context.Context, params *auth.LogoutParams) api.Responder {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
 
+	aud, err := ctrl.AudienceGet(ctx, params.Audience)
+	if err != nil {
+		return api.StatusError(http.StatusBadRequest, err)
+	}
+
+	ctx = oauth.NewContext(ctx, oauth.Context{
+		Application: app,
+		Audience:    aud,
+	})
+
 	if (params.RedirectURI == nil || *params.RedirectURI == "") && len(app.RedirectUris) > 0 {
 		params.RedirectURI = &app.RedirectUris[0]
 	}
@@ -43,7 +53,8 @@ func logout(ctx context.Context, params *auth.LogoutParams) api.Responder {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 
-	if err := ctrl.SessionDestroy(params.UnbindRequest()); err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {
+	w, r := params.UnbindRequest()
+	if err := ctrl.SessionDestroy(ctx, w, r); err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {
 		log.Error(err.Error())
 
 		api.Redirect(u, map[string]string{

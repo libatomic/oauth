@@ -28,6 +28,12 @@ func NewLogoutParams() LogoutParams {
 //
 // swagger:parameters Logout
 type LogoutParams struct {
+	/*
+	  Required: true
+	  In: query
+	*/
+	Audience string `json:"audience"`
+
 	/*The client id
 	  Required: true
 	  In: query
@@ -96,6 +102,11 @@ func (o *LogoutParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...
 
 	qs := runtime.Values(r.URL.Query())
 
+	qAudience, qhkAudience, _ := qs.GetOK("audience")
+	if err := o.bindAudience(qAudience, qhkAudience, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qClientID, qhkClientID, _ := qs.GetOK("client_id")
 	if err := o.bindClientID(qClientID, qhkClientID, route.Formats); err != nil {
 		res = append(res, err)
@@ -114,6 +125,27 @@ func (o *LogoutParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAudience binds and validates parameter Audience from query.
+func (o *LogoutParams) bindAudience(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	if !hasKey {
+		return errors.Required("audience", "query", rawData)
+	}
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+	// AllowEmptyValue: false
+	if err := validate.RequiredString("audience", "query", raw); err != nil {
+		return err
+	}
+
+	o.Audience = raw
+
 	return nil
 }
 
