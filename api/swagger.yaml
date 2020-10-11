@@ -488,11 +488,6 @@ paths:
           description: "The user password"
           in: "formData"
           required: true
-        - name: "code_verifier"
-          type: "string"
-          description: "The PKCE code verifier"
-          in: "formData"
-          required: true
         - name: "request_token"
           type: "string"
           description: |
@@ -596,11 +591,6 @@ paths:
           description: |
             Inivitation codes allow for users to sign up when public sign up is disabled.
           in: "formData"
-        - name: "code_verifier"
-          type: "string"
-          description: "The PKCE code verifier"
-          in: "formData"
-          required: true
         - name: "request_token"
           type: "string"
           description: |

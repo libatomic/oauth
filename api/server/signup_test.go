@@ -70,7 +70,6 @@ func TestSignup(t *testing.T) {
 				Add("login", "hiro@metaverse.org").
 				Add("email", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -93,7 +92,6 @@ func TestSignup(t *testing.T) {
 				Add("login", "hiro@metaverse.org").
 				Add("email", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedResponse: `
@@ -117,7 +115,6 @@ func TestSignup(t *testing.T) {
 				Add("login", "hiro@metaverse.org").
 				Add("email", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", "bad-token").
 				Encode(),
 			ExpectedResponse: `
@@ -141,7 +138,6 @@ func TestSignup(t *testing.T) {
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
 				Add("email", "hiro@metaverse.org").
-				Add("code_verifier", verifier).
 				Add("request_token", expiredToken).
 				Encode(),
 		},
@@ -166,7 +162,6 @@ func TestSignup(t *testing.T) {
 				Add("login", "hiro@metaverse.org").
 				Add("email", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 		},
@@ -204,7 +199,6 @@ func TestSignup(t *testing.T) {
 				Add("login", "hiro@metaverse.org").
 				Add("email", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 		},

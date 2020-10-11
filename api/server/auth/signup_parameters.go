@@ -28,12 +28,6 @@ func NewSignupParams() SignupParams {
 //
 // swagger:parameters Signup
 type SignupParams struct {
-	/*The PKCE code verifier
-	  Required: true
-	  In: formData
-	*/
-	CodeVerifier string `json:"code_verifier"`
-
 	/*The user's email address
 	  Required: true
 	  In: formData
@@ -129,11 +123,6 @@ func (o *SignupParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...
 	}
 	fds := runtime.Values(r.Form)
 
-	fdCodeVerifier, fdhkCodeVerifier, _ := fds.GetOK("code_verifier")
-	if err := o.bindCodeVerifier(fdCodeVerifier, fdhkCodeVerifier, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
 	fdEmail, fdhkEmail, _ := fds.GetOK("email")
 	if err := o.bindEmail(fdEmail, fdhkEmail, route.Formats); err != nil {
 		res = append(res, err)
@@ -167,27 +156,6 @@ func (o *SignupParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-// bindCodeVerifier binds and validates parameter CodeVerifier from formData.
-func (o *SignupParams) bindCodeVerifier(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	if !hasKey {
-		return errors.Required("code_verifier", "formData", rawData)
-	}
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: true
-
-	if err := validate.RequiredString("code_verifier", "formData", raw); err != nil {
-		return err
-	}
-
-	o.CodeVerifier = raw
-
 	return nil
 }
 

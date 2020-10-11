@@ -62,7 +62,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -109,7 +108,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", emptyScopeToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -131,7 +129,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 		},
@@ -150,7 +147,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", "bad-token").
 				Encode(),
 			ExpectedResponse: `
@@ -173,72 +169,8 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", expiredToken).
 				Encode(),
-		},
-		"LoginBadVerifier": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("code_verifier", verifier+"bad stuff").
-				Add("request_token", testToken).
-				Encode(),
-		},
-		"LoginBadChallenge": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("code_verifier", verifier).
-				Add("request_token", badToken).
-				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=bad_request&error_description=invalid\+code_challenge`,
-			},
-		},
-		"LoginMismatchChallenge": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("code_verifier", verifier).
-				Add("request_token", misMatchToken).
-				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=bad_request&error_description=code\+verification\+failed`,
-			},
 		},
 		"LoginContextError": {
 			Operations: []litmus.Operation{
@@ -260,7 +192,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -297,7 +228,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -339,7 +269,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -381,7 +310,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -423,7 +351,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{
@@ -470,7 +397,6 @@ func TestLogin(t *testing.T) {
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
-				Add("code_verifier", verifier).
 				Add("request_token", testToken).
 				Encode(),
 			ExpectedHeaders: map[string]string{

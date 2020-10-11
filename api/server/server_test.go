@@ -27,6 +27,7 @@ type (
 
 	mockSession struct {
 		id        string
+		aud       string
 		sub       string
 		clientID  string
 		createdAt int64
@@ -70,6 +71,7 @@ var (
 
 	testSession = &mockSession{
 		clientID:  "00000000-0000-0000-0000-000000000000",
+		aud:       testAud.Name,
 		createdAt: time.Now().Unix(),
 		expiresAt: time.Now().Add(time.Hour).Unix(),
 		id:        "00000000-0000-0000-0000-000000000000",
@@ -393,6 +395,11 @@ func (s *mockSession) ID() string {
 // ClientID is the client that created the user session
 func (s *mockSession) ClientID() string {
 	return s.clientID
+}
+
+// Audience is the audiene the session was for
+func (s *mockSession) Audience() string {
+	return s.aud
 }
 
 // CreatedAt is the session creation time

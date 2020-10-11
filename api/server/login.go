@@ -9,10 +9,7 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
 	"net/http"
 	"net/url"
 	"time"
@@ -46,33 +43,6 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	}
 
 	u, _ := url.Parse(req.RedirectURI)
-
-	// validate the code verifier
-	verifier, err := base64.RawURLEncoding.DecodeString(params.CodeVerifier)
-	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "invalid_request",
-			"error_description": "invalid code_verifier",
-		})
-	}
-	code := sha256.Sum256([]byte(verifier))
-
-	// validate the code challenge
-	chal, err := base64.RawURLEncoding.DecodeString(req.CodeChallenge)
-	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
-			"error_description": "invalid code_challenge",
-		})
-	}
-
-	// verify the code verifier against the challenge
-	if !bytes.Equal(code[:], chal) {
-		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
-			"error_description": "code verification failed",
-		})
-	}
 
 	ctx, err = oauth.ContextFromRequest(ctx, ctrl, req)
 	if err != nil {

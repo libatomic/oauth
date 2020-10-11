@@ -61,8 +61,6 @@ func signup(ctx context.Context, params *auth.SignupParams) api.Responder {
 	rw, r := params.UnbindRequest()
 
 	loginParams := &auth.LoginParams{
-		CodeVerifier: params.CodeVerifier,
-
 		Login: params.Login,
 
 		Password: params.Password,

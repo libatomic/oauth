@@ -218,13 +218,6 @@ func init() {
           },
           {
             "type": "string",
-            "description": "The PKCE code verifier",
-            "name": "code_verifier",
-            "in": "formData",
-            "required": true
-          },
-          {
-            "type": "string",
             "description": "\"The authorization request token\"\n",
             "name": "request_token",
             "in": "formData",
@@ -518,13 +511,6 @@ func init() {
             "description": "Inivitation codes allow for users to sign up when public sign up is disabled.\n",
             "name": "invite_code",
             "in": "formData"
-          },
-          {
-            "type": "string",
-            "description": "The PKCE code verifier",
-            "name": "code_verifier",
-            "in": "formData",
-            "required": true
           },
           {
             "type": "string",
@@ -1507,13 +1493,6 @@ func init() {
           },
           {
             "type": "string",
-            "description": "The PKCE code verifier",
-            "name": "code_verifier",
-            "in": "formData",
-            "required": true
-          },
-          {
-            "type": "string",
             "description": "\"The authorization request token\"\n",
             "name": "request_token",
             "in": "formData",
@@ -1807,13 +1786,6 @@ func init() {
             "description": "Inivitation codes allow for users to sign up when public sign up is disabled.\n",
             "name": "invite_code",
             "in": "formData"
-          },
-          {
-            "type": "string",
-            "description": "The PKCE code verifier",
-            "name": "code_verifier",
-            "in": "formData",
-            "required": true
           },
           {
             "type": "string",

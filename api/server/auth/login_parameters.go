@@ -28,12 +28,6 @@ func NewLoginParams() LoginParams {
 //
 // swagger:parameters Login
 type LoginParams struct {
-	/*The PKCE code verifier
-	  Required: true
-	  In: formData
-	*/
-	CodeVerifier string `json:"code_verifier"`
-
 	/*The user login
 	  Required: true
 	  In: formData
@@ -112,11 +106,6 @@ func (o *LoginParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...r
 	}
 	fds := runtime.Values(r.Form)
 
-	fdCodeVerifier, fdhkCodeVerifier, _ := fds.GetOK("code_verifier")
-	if err := o.bindCodeVerifier(fdCodeVerifier, fdhkCodeVerifier, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
 	fdLogin, fdhkLogin, _ := fds.GetOK("login")
 	if err := o.bindLogin(fdLogin, fdhkLogin, route.Formats); err != nil {
 		res = append(res, err)
@@ -135,27 +124,6 @@ func (o *LoginParams) BindRequest(w http.ResponseWriter, r *http.Request, c ...r
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-// bindCodeVerifier binds and validates parameter CodeVerifier from formData.
-func (o *LoginParams) bindCodeVerifier(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	if !hasKey {
-		return errors.Required("code_verifier", "formData", rawData)
-	}
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: true
-
-	if err := validate.RequiredString("code_verifier", "formData", raw); err != nil {
-		return err
-	}
-
-	o.CodeVerifier = raw
-
 	return nil
 }
 
