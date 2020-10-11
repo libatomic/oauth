@@ -15,8 +15,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/libatomic/oauth/pkg/oauth"
+	"github.com/mr-tron/base58"
 )
 
 type (
@@ -112,6 +114,11 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 	s, err := c.store.New(r, name)
 	if err != nil {
 		return nil, err
+	}
+
+	if s.IsNew || s.ID == "" {
+		uid := uuid.Must(uuid.NewRandom())
+		s.ID = base58.Encode(uid[:])
 	}
 
 	s.Values["client_id"] = octx.Application.ClientID
