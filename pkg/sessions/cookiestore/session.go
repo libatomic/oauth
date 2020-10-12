@@ -73,8 +73,20 @@ func (s *session) Write(w http.ResponseWriter) error {
 
 // Destroy clears the session from the response
 func (s *session) Destroy(w http.ResponseWriter) error {
+	id := &http.Cookie{
+		Name:     fmt.Sprintf("%s#id", s.s.Name()),
+		Value:    "",
+		MaxAge:   -1,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	}
+
+	http.SetCookie(w, id)
+
 	copy := *s.s
 	copy.Options.MaxAge = -1
 	copy.Values = make(map[interface{}]interface{})
+
 	return copy.Save(nil, w)
 }
