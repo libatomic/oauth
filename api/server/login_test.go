@@ -187,16 +187,13 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
+			ExpectedStatus:     http.StatusInternalServerError,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
 				Add("request_token", testToken).
 				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=bad_request&error_description=context\+verification\+failed`,
-			},
 		},
 		"LoginAuthFail": {
 			Operations: []litmus.Operation{
@@ -223,16 +220,13 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
 				Add("request_token", testToken).
 				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=access_denied&error_description=user\+authentication\+failed`,
-			},
 		},
 		"LoginUserAudMissing": {
 			Operations: []litmus.Operation{
@@ -264,16 +258,13 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
 				Add("request_token", testToken).
 				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=access_denied&error_description=user\+authorization\+failed`,
-			},
 		},
 		"LoginReqBadUserScope": {
 			Operations: []litmus.Operation{
@@ -305,18 +296,15 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
 				Add("request_token", testToken).
 				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=access_denied&error_description=user\+authorization\+failed`,
-			},
 		},
-		"LoginMissingSession": {
+		"LoginSessionCreateFail": {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenPublicKey",
@@ -346,16 +334,13 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
+			ExpectedStatus:     http.StatusInternalServerError,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
 				Add("request_token", testToken).
 				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=server_error&error_description=bad\+session`,
-			},
 		},
 		"LoginAuthCodeCreateFail": {
 			Operations: []litmus.Operation{
@@ -392,16 +377,13 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
+			ExpectedStatus:     http.StatusInternalServerError,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
 				Add("password", "password").
 				Add("request_token", testToken).
 				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=server_error&error_description=authcode\+create\+failed`,
-			},
 		},
 	}
 

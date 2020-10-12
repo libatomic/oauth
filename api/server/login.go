@@ -46,28 +46,19 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 
 	ctx, err = oauth.ContextFromRequest(ctx, ctrl, req)
 	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
-			"error_description": "context verification failed",
-		})
+		return api.Error(err)
 	}
 
 	user, _, err := ctrl.UserAuthenticate(ctx, params.Login, params.Password)
 	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authentication failed",
-		})
+		return api.Error(err).WithStatus(http.StatusUnauthorized)
 	}
 
 	oauth.GetContext(ctx).User = user
 
 	perms, ok := user.Permissions[req.Audience]
 	if !ok {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authorization failed",
-		})
+		return api.Errorf("user authorization failed").WithStatus(http.StatusUnauthorized)
 	}
 
 	if len(req.Scope) == 0 {
@@ -75,27 +66,18 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	}
 
 	if !perms.Every(req.Scope...) {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authorization failed",
-		})
+		return api.Errorf("user authorization failed").WithStatus(http.StatusUnauthorized)
 	}
 
 	w, r := params.UnbindRequest()
 
 	session, err := ctrl.SessionCreate(ctx, r)
 	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
+		return api.Error(err)
 	}
 
 	if err := session.Write(w); err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
+		return api.Error(err)
 	}
 
 	authCode := &oauth.AuthCode{
@@ -105,10 +87,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		UserAuthenticated: true,
 	}
 	if err := ctrl.AuthCodeCreate(ctx, authCode); err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
+		return api.Error(err)
 	}
 
 	u, _ = url.Parse(req.RedirectURI)
