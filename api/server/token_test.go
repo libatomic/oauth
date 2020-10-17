@@ -113,7 +113,7 @@ func TestTokenAuthcode(t *testing.T) {
 						Permissions: oauth.PermissionSet{
 							"crypto": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 						},
-						Profile: oauth.Profile{
+						Profile: &oauth.Profile{
 							Subject:    uuid.Must(uuid.NewRandom()).String(),
 							GivenName:  "Hiro",
 							FamilyName: "Protagonist",

@@ -50,7 +50,7 @@ func signup(ctx context.Context, params *auth.SignupParams) api.Responder {
 
 	if _, err := ctrl.UserCreate(octx, oauth.User{
 		Login: params.Login,
-		Profile: oauth.Profile{
+		Profile: &oauth.Profile{
 			Name:  safestr(params.Name),
 			Email: params.Email,
 		},

@@ -954,7 +954,8 @@ func init() {
         },
         "description": {
           "description": "The application description",
-          "type": "string"
+          "type": "string",
+          "x-nullable": true
         },
         "name": {
           "description": "The application name",
@@ -1221,7 +1222,7 @@ func init() {
           "type": "string"
         }
       },
-      "x-nullable": false
+      "x-nullable": true
     },
     "ProfileRef": {
       "description": "Profile reference object for go consumers\n",
@@ -1252,7 +1253,8 @@ func init() {
         "password_expires_at": {
           "description": "The time the user password expirts",
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": false
         },
         "permissions": {
           "$ref": "#/definitions/PermissionSet"
@@ -2229,7 +2231,8 @@ func init() {
         },
         "description": {
           "description": "The application description",
-          "type": "string"
+          "type": "string",
+          "x-nullable": true
         },
         "name": {
           "description": "The application name",
@@ -2496,7 +2499,7 @@ func init() {
           "type": "string"
         }
       },
-      "x-nullable": false
+      "x-nullable": true
     },
     "ProfileRef": {
       "description": "Profile reference object for go consumers\n",
@@ -2527,7 +2530,8 @@ func init() {
         "password_expires_at": {
           "description": "The time the user password expirts",
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": false
         },
         "permissions": {
           "$ref": "#/definitions/PermissionSet"

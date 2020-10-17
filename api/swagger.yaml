@@ -178,6 +178,7 @@ definitions:
       description:
         type: "string"
         description: "The application description"
+        x-nullable: true
       type:
         type: "string"
         description: "The application type"
@@ -280,6 +281,7 @@ definitions:
         type: "string"
         description: "The time the user password expirts"
         format: "date-time"
+        x-nullable: false
 
   UserRef:
     description: |
@@ -295,7 +297,7 @@ definitions:
     description: |
       A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).
     type: "object"
-    x-nullable: false
+    x-nullable: true
     properties:
       sub:
         type: "string"

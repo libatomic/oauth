@@ -59,7 +59,7 @@ type Application struct {
 	ClientSecret string `json:"client_secret,omitempty"`
 
 	// The application description
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 
 	// The application name
 	Name string `json:"name,omitempty"`

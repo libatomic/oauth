@@ -31,7 +31,7 @@ type UserInfoUpdateParams struct {
 	/*The new profile
 	  In: body
 	*/
-	Profile oauth.Profile `json:"profile,omitempty"`
+	Profile *oauth.Profile `json:"profile,omitempty"`
 
 	// HTTP Request
 	req *http.Request
@@ -97,7 +97,7 @@ func (o *UserInfoUpdateParams) BindRequest(w http.ResponseWriter, r *http.Reques
 			}
 
 			if len(res) == 0 {
-				o.Profile = body
+				o.Profile = &body
 			}
 		}
 	}

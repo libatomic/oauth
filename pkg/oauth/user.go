@@ -36,7 +36,7 @@ type User struct {
 	Permissions PermissionSet `json:"permissions,omitempty"`
 
 	// profile
-	Profile Profile `json:"profile,omitempty"`
+	Profile *Profile `json:"profile,omitempty"`
 }
 
 // Validate validates this user
@@ -111,12 +111,14 @@ func (m *User) validateProfile(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.Profile).(runtime.Validatable); ok {
-		if err := v.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("profile")
+	if m.Profile != nil {
+		if v, ok := interface{}(m.Profile).(runtime.Validatable); ok {
+			if err := v.Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("profile")
+				}
+				return err
 			}
-			return err
 		}
 	}
 

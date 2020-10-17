@@ -18,6 +18,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/sessions v1.2.0
+	github.com/kr/pretty v0.2.1
 	github.com/lestrrat-go/jwx v1.0.3
 	github.com/libatomic/api v1.0.5
 	github.com/libatomic/litmus v0.5.3

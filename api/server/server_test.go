@@ -84,7 +84,7 @@ var (
 		Permissions: oauth.PermissionSet{
 			"snowcrash": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 		},
-		Profile: oauth.Profile{
+		Profile: &oauth.Profile{
 			Subject:    uuid.Must(uuid.NewRandom()).String(),
 			GivenName:  "Hiro",
 			FamilyName: "Protagonist",
