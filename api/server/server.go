@@ -17,6 +17,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"sync"
 
 	"github.com/lestrrat-go/jwx/jwk"
@@ -136,12 +137,15 @@ func ensureURI(uri string, search []string) (*url.URL, error) {
 		}
 
 		uu, _ := url.Parse(a)
-		if uu.Scheme == u.Scheme && u.Host == uu.Host && u.Path == uu.Path {
-			return u, nil
+		if uu.Scheme == u.Scheme && u.Host == uu.Host {
+			if ok, _ := filepath.Match(uu.Path, u.Path); ok {
+
+				return u, nil
+			}
 		}
 	}
 
-	return nil, errors.New("unauthorized redirect uri")
+	return nil, errors.New("unauthorized uri")
 }
 
 func (s *Server) publicKey(ctx context.Context, params *auth.PublicKeyGetParams) api.Responder {
