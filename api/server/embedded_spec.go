@@ -1261,6 +1261,9 @@ func init() {
         },
         "profile": {
           "$ref": "#/definitions/Profile"
+        },
+        "roles": {
+          "$ref": "#/definitions/PermissionSet"
         }
       }
     },
@@ -2538,6 +2541,9 @@ func init() {
         },
         "profile": {
           "$ref": "#/definitions/Profile"
+        },
+        "roles": {
+          "$ref": "#/definitions/PermissionSet"
         }
       }
     },

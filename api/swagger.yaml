@@ -275,6 +275,8 @@ definitions:
         x-nullable: false
       permissions:
         $ref: "#/definitions/PermissionSet"
+      roles:
+        $ref: "#/definitions/PermissionSet"
       profile:
         $ref: "#/definitions/Profile"
       password_expires_at:

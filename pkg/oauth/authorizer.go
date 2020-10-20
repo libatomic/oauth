@@ -32,6 +32,7 @@ type (
 
 	authOptions struct {
 		scope []Permissions
+		roles []Permissions
 	}
 )
 
@@ -92,7 +93,13 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 		scopes := Permissions(strings.Fields(claims["scope"].(string)))
 
-		allowed := false
+		allowed := true
+
+		// check scopes
+		if len(o.scope) > 0 {
+			allowed = false
+		}
+
 		for _, s := range o.scope {
 			if scopes.Every(s...) {
 				allowed = true
@@ -122,6 +129,28 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 			if err != nil {
 				return nil, ErrAccessDenied
 			}
+
+			// check roles
+			if len(o.roles) > 0 {
+				roles, ok := user.Roles[aud.Name]
+				if !ok {
+					return nil, ErrAccessDenied
+				}
+
+				allowed := false
+
+				for _, r := range o.roles {
+					if roles.Some(r...) {
+						allowed = true
+						break
+					}
+				}
+
+				if !allowed {
+					return nil, ErrAccessDenied
+				}
+			}
+
 			c.User = user
 			c.Principal = prin
 		}
@@ -134,5 +163,12 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 func WithScope(scope ...Permissions) AuthOption {
 	return func(o *authOptions) {
 		o.scope = scope
+	}
+}
+
+// WithRoles enforces the user roles
+func WithRoles(roles ...Permissions) AuthOption {
+	return func(o *authOptions) {
+		o.roles = roles
 	}
 }

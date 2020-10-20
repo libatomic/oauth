@@ -37,6 +37,9 @@ type User struct {
 
 	// profile
 	Profile *Profile `json:"profile,omitempty"`
+
+	// roles
+	Roles PermissionSet `json:"roles,omitempty"`
 }
 
 // Validate validates this user
@@ -56,6 +59,10 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProfile(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRoles(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -119,6 +126,24 @@ func (m *User) validateProfile(formats strfmt.Registry) error {
 				}
 				return err
 			}
+		}
+	}
+
+	return nil
+}
+
+func (m *User) validateRoles(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Roles) { // not required
+		return nil
+	}
+
+	if v, ok := interface{}(m.Roles).(runtime.Validatable); ok {
+		if err := v.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("roles")
+			}
+			return err
 		}
 	}
 
