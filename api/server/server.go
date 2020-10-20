@@ -139,7 +139,6 @@ func ensureURI(uri string, search []string) (*url.URL, error) {
 		uu, _ := url.Parse(a)
 		if uu.Scheme == u.Scheme && u.Host == uu.Host {
 			if ok, _ := filepath.Match(uu.Path, u.Path); ok {
-
 				return u, nil
 			}
 		}

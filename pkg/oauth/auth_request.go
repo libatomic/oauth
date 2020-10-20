@@ -38,6 +38,10 @@ type AuthRequest struct {
 	// The request expiration epoch
 	ExpiresAt int64 `json:"expires_at,omitempty"`
 
+	// The request app uri
+	// Required: true
+	AppURI string `json:"app_uri"`
+
 	// The request redirect uri
 	// Required: true
 	RedirectURI string `json:"redirect_uri"`
@@ -69,6 +73,10 @@ func (m *AuthRequest) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateCodeChallengeMethod(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateAppURI(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -147,6 +155,14 @@ func (m *AuthRequest) validateCodeChallengeMethod(formats strfmt.Registry) error
 
 	// value enum
 	if err := m.validateCodeChallengeMethodEnum("code_challenge_method", "body", m.CodeChallengeMethod); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *AuthRequest) validateAppURI(formats strfmt.Registry) error {
+	if err := validate.RequiredString("app_uri", "body", string(m.AppURI)); err != nil {
 		return err
 	}
 

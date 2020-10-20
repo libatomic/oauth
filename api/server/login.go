@@ -42,23 +42,32 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		return api.Errorf("expired request token").WithStatus(http.StatusUnauthorized)
 	}
 
-	u, _ := url.Parse(req.RedirectURI)
+	u, _ := url.Parse(req.AppURI)
 
 	ctx, err = oauth.ContextFromRequest(ctx, ctrl, req)
 	if err != nil {
-		return api.Error(err)
+		return api.Redirect(u, map[string]string{
+			"error":             "bad_request",
+			"error_description": "context verification failed",
+		})
 	}
 
 	user, _, err := ctrl.UserAuthenticate(ctx, params.Login, params.Password)
 	if err != nil {
-		return api.Error(err).WithStatus(http.StatusUnauthorized)
+		return api.Redirect(u, map[string]string{
+			"error":             "access_denied",
+			"error_description": "user authentication failed",
+		})
 	}
 
 	oauth.GetContext(ctx).User = user
 
 	perms, ok := user.Permissions[req.Audience]
 	if !ok {
-		return api.Errorf("user authorization failed").WithStatus(http.StatusUnauthorized)
+		return api.Redirect(u, map[string]string{
+			"error":             "access_denied",
+			"error_description": "user authorization failed",
+		})
 	}
 
 	if len(req.Scope) == 0 {
@@ -66,18 +75,27 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	}
 
 	if !perms.Every(req.Scope...) {
-		return api.Errorf("user authorization failed").WithStatus(http.StatusUnauthorized)
+		return api.Redirect(u, map[string]string{
+			"error":             "access_denied",
+			"error_description": "user authorization failed",
+		})
 	}
 
 	w, r := params.UnbindRequest()
 
 	session, err := ctrl.SessionCreate(ctx, r)
 	if err != nil {
-		return api.Error(err)
+		return api.Redirect(u, map[string]string{
+			"error":             "server_error",
+			"error_description": err.Error(),
+		})
 	}
 
 	if err := session.Write(w); err != nil {
-		return api.Error(err)
+		return api.Redirect(u, map[string]string{
+			"error":             "server_error",
+			"error_description": err.Error(),
+		})
 	}
 
 	authCode := &oauth.AuthCode{
@@ -87,7 +105,10 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		UserAuthenticated: true,
 	}
 	if err := ctrl.AuthCodeCreate(ctx, authCode); err != nil {
-		return api.Error(err)
+		return api.Redirect(u, map[string]string{
+			"error":             "server_error",
+			"error_description": err.Error(),
+		})
 	}
 
 	u, _ = url.Parse(req.RedirectURI)

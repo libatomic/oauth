@@ -99,6 +99,7 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 
 	req := &oauth.AuthRequest{
 		ClientID:            params.ClientID,
+		AppURI:              *params.AppURI,
 		RedirectURI:         *params.RedirectURI,
 		Scope:               params.Scope,
 		Audience:            params.Audience,
