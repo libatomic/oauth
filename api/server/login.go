@@ -75,10 +75,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 	}
 
 	if !perms.Every(req.Scope...) {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authorization failed",
-		})
+		req.Scope = perms
 	}
 
 	w, r := params.UnbindRequest()
