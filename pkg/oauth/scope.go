@@ -8,6 +8,8 @@
 
 package oauth
 
+import "context"
+
 // Scope returns specified scopes as a Permissions type
 func Scope(s ...string) Permissions {
 	return Permissions(s)
@@ -54,4 +56,28 @@ func (s Permissions) Without(elements ...string) Permissions {
 	}
 
 	return r
+}
+
+// CurrentRoles returns the user roles in the given context
+func (u User) CurrentRoles(ctx context.Context) Permissions {
+	if len(u.Roles) == 0 {
+		return Permissions{}
+	}
+
+	octx := GetContext(ctx)
+
+	if octx.Audience == nil {
+		return Permissions{}
+	}
+
+	if p, ok := u.Roles[octx.Audience.Name]; ok {
+		return p
+	}
+
+	return Permissions{}
+}
+
+// HasRole returns true if the user has the roles
+func (u User) HasRole(ctx context.Context, role ...string) bool {
+	return u.CurrentRoles(ctx).Every(role...)
 }
