@@ -57,6 +57,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
 			"error_description": "user authentication failed",
+			"request_token":     params.RequestToken,
 		})
 	}
 
