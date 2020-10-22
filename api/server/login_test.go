@@ -220,7 +220,7 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusOK,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
