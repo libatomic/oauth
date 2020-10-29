@@ -117,7 +117,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		}
 
 		if azp, ok := claims["azp"].(string); ok {
-			app, err := a.ctrl.ApplicationGet(ctx, azp)
+			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), azp)
 			if err != nil {
 				return nil, ErrAccessDenied
 			}

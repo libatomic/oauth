@@ -40,11 +40,6 @@ func logout(ctx context.Context, params *auth.LogoutParams) api.Responder {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
 
-	aud, err := ctrl.AudienceGet(ctx, params.Audience)
-	if err != nil {
-		return api.StatusError(http.StatusBadRequest, err)
-	}
-
 	ctx = oauth.NewContext(ctx, oauth.Context{
 		Application: app,
 		Audience:    aud,
