@@ -82,7 +82,7 @@ func ContextFromRequest(ctx context.Context, ctrl Controller, req *AuthRequest) 
 		return nil, err
 	}
 
-	app, err := ctrl.ApplicationGet(NewContext(ctx, Context{Audience: aud}), req.ClientID)
+	app, err := ctrl.ApplicationGet(NewContext(ctx, aud), req.ClientID)
 	if err != nil {
 		return nil, err
 	}

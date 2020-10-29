@@ -191,14 +191,12 @@ definitions:
         type: "string"
         description: "The application client secret used for oauth grants"
         readOnly: true
-      user_pools:
-        $ref: "#/definitions/Permissions"
       app_uris:
-        $ref: "#/definitions/Permissions"
+        $ref: "#/definitions/PermissionSet"
       redirect_uris:
-        $ref: "#/definitions/Permissions"
+        $ref: "#/definitions/PermissionSet"
       allowed_grants:
-        $ref: "#/definitions/Permissions"
+        $ref: "#/definitions/PermissionSet"
       token_lifetime:
         type: "integer"
         description: |

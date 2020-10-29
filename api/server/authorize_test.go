@@ -26,14 +26,14 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeOK": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
 				},
 				{
 					Name:    "SessionRead",
@@ -63,14 +63,14 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeExistingSession": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
 				},
 				{
 					Name:    "SessionRead",
@@ -103,6 +103,11 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeAppGetError": {
 			Operations: []litmus.Operation{
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name:    "ApplicationGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, oauth.ErrApplicationNotFound},
@@ -124,11 +129,6 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeAudGetError": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, oauth.ErrAudienceNotFound},
@@ -145,13 +145,15 @@ func TestAuthorize(t *testing.T) {
 				Add("scope", "metaverse:read metaverse:write openid profile offline_access").
 				Add("code_challenge", challenge).
 				EndQuery(),
-			ExpectedStatus: http.StatusFound,
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=bad_request&error_description=invalid\+audience`,
-			},
+			ExpectedStatus: http.StatusBadRequest,
 		},
 		"AuthorizeBadGrant": {
 			Operations: []litmus.Operation{
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
 				{
 					Name: "ApplicationGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -173,14 +175,21 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeBadRedirectURI": {
 			Operations: []litmus.Operation{
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name: "ApplicationGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{
 						&oauth.Application{
-							AllowedGrants: oauth.Permissions{
-								oauth.GrantTypeAuthCode,
+							AllowedGrants: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{oauth.GrantTypeAuthCode},
 							},
-							RedirectUris: oauth.Permissions{"http://foo"},
+							RedirectUris: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{"http://foo"},
+							},
 						}, nil},
 				},
 			},
@@ -199,15 +208,24 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeBadAppURI": {
 			Operations: []litmus.Operation{
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name: "ApplicationGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{
 						&oauth.Application{
-							AllowedGrants: oauth.Permissions{
-								oauth.GrantTypeAuthCode,
+							AllowedGrants: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{oauth.GrantTypeAuthCode},
 							},
-							AppUris:      oauth.Permissions{"http://foo"},
-							RedirectUris: oauth.Permissions{mockURI},
+							AppUris: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{"http://foo"},
+							},
+							RedirectUris: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{mockURI},
+							},
 						}, nil},
 				},
 			},
@@ -224,11 +242,16 @@ func TestAuthorize(t *testing.T) {
 				EndQuery(),
 			ExpectedStatus: http.StatusFound,
 			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=access_denied&error_description=unauthorized\+redirect\+uri`,
+				"Location": `https:\/\/meta\.org\/\?error=access_denied&error_description=unauthorized\+uri`,
 			},
 		},
 		"AuthorizeBadAppScope": {
 			Operations: []litmus.Operation{
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
 				{
 					Name: "ApplicationGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -238,17 +261,16 @@ func TestAuthorize(t *testing.T) {
 								"cryptonomicon": oauth.Permissions{
 									"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 							},
-							AllowedGrants: oauth.Permissions{
-								oauth.GrantTypeAuthCode,
+							AllowedGrants: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{oauth.GrantTypeAuthCode},
 							},
-							AppUris:      oauth.Permissions{mockURI},
-							RedirectUris: oauth.Permissions{mockURI},
+							AppUris: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{mockURI},
+							},
+							RedirectUris: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{mockURI},
+							},
 						}, nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
 				},
 			},
 			Method: http.MethodGet,
@@ -270,20 +292,20 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeBadAudScope": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
 					Name: "AudienceGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&oauth.Audience{
-						Name:           "funky-chicken",
+						Name:           "snowcrash",
 						Permissions:    oauth.Permissions{"metaverse:destroy"},
 						TokenAlgorithm: "HS256",
 						TokenSecret:    "super-duper-secret",
 						TokenLifetime:  60,
 					}, nil},
+				},
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
 				},
 			},
 			Method: http.MethodGet,
@@ -305,14 +327,14 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeSessionReadError": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
 				},
 				{
 					Name:    "SessionRead",
@@ -337,14 +359,14 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeAuthCodeCreateError": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
 				},
 				{
 					Name:    "SessionRead",
@@ -377,14 +399,14 @@ func TestAuthorize(t *testing.T) {
 		"AuthorizeRequestSignError": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
 				},
 				{
 					Name:    "SessionRead",

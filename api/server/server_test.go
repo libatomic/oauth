@@ -43,6 +43,14 @@ var (
 	verifier  string
 	challenge string
 
+	testAud = &oauth.Audience{
+		Name:           "snowcrash",
+		Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+		TokenAlgorithm: "HS256",
+		TokenSecret:    "super-duper-secret",
+		TokenLifetime:  60,
+	}
+
 	testApp = &oauth.Application{
 		ClientID:     "00000000-0000-0000-0000-000000000000",
 		ClientSecret: "super-secret",
@@ -50,23 +58,21 @@ var (
 			"snowcrash": oauth.Permissions{
 				"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 		},
-		AllowedGrants: oauth.Permissions{
-			oauth.GrantTypeClientCredentials,
-			oauth.GrantTypeAuthCode,
-			oauth.GrantTypePassword,
-			oauth.GrantTypeRefreshToken,
+		AllowedGrants: oauth.PermissionSet{
+			"snowcrash": oauth.Permissions{
+				oauth.GrantTypeClientCredentials,
+				oauth.GrantTypeAuthCode,
+				oauth.GrantTypePassword,
+				oauth.GrantTypeRefreshToken,
+			},
 		},
-		AppUris:       oauth.Permissions{mockURI},
-		RedirectUris:  oauth.Permissions{mockURI},
+		AppUris: oauth.PermissionSet{
+			"snowcrash": oauth.Permissions{mockURI},
+		},
+		RedirectUris: oauth.PermissionSet{
+			"snowcrash": oauth.Permissions{mockURI},
+		},
 		TokenLifetime: 60,
-	}
-
-	testAud = &oauth.Audience{
-		Name:           "snowcrash",
-		Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
-		TokenAlgorithm: "HS256",
-		TokenSecret:    "super-duper-secret",
-		TokenLifetime:  60,
 	}
 
 	testSession = &mockSession{

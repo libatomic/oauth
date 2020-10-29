@@ -126,6 +126,10 @@ func getController(ctx context.Context) oauth.Controller {
 }
 
 func ensureURI(uri string, search []string) (*url.URL, error) {
+	if search == nil || len(search) == 0 {
+		return nil, errors.New("unauthorized uri")
+	}
+
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err

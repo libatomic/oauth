@@ -45,10 +45,10 @@ import (
 type Application struct {
 
 	// allowed grants
-	AllowedGrants Permissions `json:"allowed_grants,omitempty"`
+	AllowedGrants PermissionSet `json:"allowed_grants,omitempty"`
 
 	// app uris
-	AppUris Permissions `json:"app_uris,omitempty"`
+	AppUris PermissionSet `json:"app_uris,omitempty"`
 
 	// The application client id used for oauth grants
 	// Read Only: true
@@ -68,7 +68,7 @@ type Application struct {
 	Permissions PermissionSet `json:"permissions,omitempty"`
 
 	// redirect uris
-	RedirectUris Permissions `json:"redirect_uris,omitempty"`
+	RedirectUris PermissionSet `json:"redirect_uris,omitempty"`
 
 	// The lifetime for identity tokens in seconds, provided the call requested the
 	// `openid` scopes.
@@ -78,9 +78,6 @@ type Application struct {
 	// The application type
 	// Enum: [web native machine]
 	Type string `json:"type,omitempty"`
-
-	// user pools
-	UserPools Permissions `json:"user_pools,omitempty"`
 }
 
 // Validate validates this application
@@ -107,10 +104,6 @@ func (m *Application) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateUserPools(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -123,11 +116,13 @@ func (m *Application) validateAllowedGrants(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := m.AllowedGrants.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("allowed_grants")
+	if v, ok := interface{}(m.AllowedGrants).(runtime.Validatable); ok {
+		if err := v.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("allowed_grants")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
@@ -139,11 +134,13 @@ func (m *Application) validateAppUris(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := m.AppUris.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("app_uris")
+	if v, ok := interface{}(m.AppUris).(runtime.Validatable); ok {
+		if err := v.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("app_uris")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
@@ -173,11 +170,13 @@ func (m *Application) validateRedirectUris(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := m.RedirectUris.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("redirect_uris")
+	if v, ok := interface{}(m.RedirectUris).(runtime.Validatable); ok {
+		if err := v.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("redirect_uris")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
@@ -223,22 +222,6 @@ func (m *Application) validateType(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateTypeEnum("type", "body", m.Type); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Application) validateUserPools(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.UserPools) { // not required
-		return nil
-	}
-
-	if err := m.UserPools.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("user_pools")
-		}
 		return err
 	}
 

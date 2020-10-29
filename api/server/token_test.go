@@ -138,6 +138,11 @@ func TestTokenAuthcode(t *testing.T) {
 		"TokenAuthBadAppPerms": {
 			Operations: []litmus.Operation{
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name: "ApplicationGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&oauth.Application{
@@ -147,14 +152,20 @@ func TestTokenAuthcode(t *testing.T) {
 							"crypto": oauth.Permissions{
 								"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 						},
-						AllowedGrants: oauth.Permissions{
-							oauth.GrantTypeClientCredentials,
-							oauth.GrantTypeAuthCode,
-							oauth.GrantTypePassword,
-							oauth.GrantTypeRefreshToken,
+						AllowedGrants: oauth.PermissionSet{
+							"snowcrash": oauth.Permissions{
+								oauth.GrantTypeClientCredentials,
+								oauth.GrantTypeAuthCode,
+								oauth.GrantTypePassword,
+								oauth.GrantTypeRefreshToken,
+							},
 						},
-						AppUris:       oauth.Permissions{mockURI},
-						RedirectUris:  oauth.Permissions{mockURI},
+						AppUris: oauth.PermissionSet{
+							"snowcrash": oauth.Permissions{mockURI},
+						},
+						RedirectUris: oauth.PermissionSet{
+							"snowcrash": oauth.Permissions{mockURI},
+						},
 						TokenLifetime: 60,
 					}, nil},
 				},
@@ -373,6 +384,11 @@ func TestTokenAuthcode(t *testing.T) {
 		"TokenAppErr": {
 			Operations: []litmus.Operation{
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name:    "ApplicationGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, errors.New("bad app")},
@@ -394,11 +410,6 @@ func TestTokenAuthcode(t *testing.T) {
 		},
 		"TokenAudErr": {
 			Operations: []litmus.Operation{
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
 				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -422,11 +433,18 @@ func TestTokenAuthcode(t *testing.T) {
 		"TokenBadAppGrant": {
 			Operations: []litmus.Operation{
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name: "ApplicationGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&oauth.Application{
-						AllowedGrants: oauth.Permissions{
-							oauth.GrantTypeClientCredentials,
+						AllowedGrants: oauth.PermissionSet{
+							"snowcrash": oauth.Permissions{
+								oauth.GrantTypeClientCredentials,
+							},
 						},
 					}, nil},
 				},
@@ -1001,14 +1019,20 @@ func TestTokenClientCredentials(t *testing.T) {
 							"snowcrash": oauth.Permissions{
 								"metaverse:destroy", "metaverse:write", "openid", "profile", "offline_access"},
 						},
-						AllowedGrants: oauth.Permissions{
-							oauth.GrantTypeClientCredentials,
-							oauth.GrantTypeAuthCode,
-							oauth.GrantTypePassword,
-							oauth.GrantTypeRefreshToken,
+						AllowedGrants: oauth.PermissionSet{
+							"snowcrash": oauth.Permissions{
+								oauth.GrantTypeClientCredentials,
+								oauth.GrantTypeAuthCode,
+								oauth.GrantTypePassword,
+								oauth.GrantTypeRefreshToken,
+							},
 						},
-						AppUris:       oauth.Permissions{mockURI},
-						RedirectUris:  oauth.Permissions{mockURI},
+						AppUris: oauth.PermissionSet{
+							"snowcrash": oauth.Permissions{mockURI},
+						},
+						RedirectUris: oauth.PermissionSet{
+							"snowcrash": oauth.Permissions{mockURI},
+						},
 						TokenLifetime: 60,
 					}, nil},
 				},

@@ -175,19 +175,19 @@ func TestLogin(t *testing.T) {
 		"LoginContextError": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
-				},
-				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, errors.New("bad stuff")},
 				},
+				{
+					Name:    "TokenPublicKey",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{&testKey.PublicKey, nil},
+				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusInternalServerError,
+			ExpectedStatus:     http.StatusFound,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
@@ -220,7 +220,7 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusFound,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
@@ -258,7 +258,7 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusFound,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
@@ -296,7 +296,7 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusFound,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
@@ -334,7 +334,7 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusInternalServerError,
+			ExpectedStatus:     http.StatusFound,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
@@ -377,7 +377,7 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusInternalServerError,
+			ExpectedStatus:     http.StatusFound,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").

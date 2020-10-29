@@ -937,10 +937,10 @@ func init() {
       "type": "object",
       "properties": {
         "allowed_grants": {
-          "$ref": "#/definitions/Permissions"
+          "$ref": "#/definitions/PermissionSet"
         },
         "app_uris": {
-          "$ref": "#/definitions/Permissions"
+          "$ref": "#/definitions/PermissionSet"
         },
         "client_id": {
           "description": "The application client id used for oauth grants",
@@ -966,7 +966,7 @@ func init() {
           "$ref": "#/definitions/PermissionSet"
         },
         "redirect_uris": {
-          "$ref": "#/definitions/Permissions"
+          "$ref": "#/definitions/PermissionSet"
         },
         "token_lifetime": {
           "description": "The lifetime for identity tokens in seconds, provided the call requested the \n` + "`" + `openid` + "`" + ` scopes.\n",
@@ -981,9 +981,6 @@ func init() {
             "native",
             "machine"
           ]
-        },
-        "user_pools": {
-          "$ref": "#/definitions/Permissions"
         }
       }
     },
@@ -2217,10 +2214,10 @@ func init() {
       "type": "object",
       "properties": {
         "allowed_grants": {
-          "$ref": "#/definitions/Permissions"
+          "$ref": "#/definitions/PermissionSet"
         },
         "app_uris": {
-          "$ref": "#/definitions/Permissions"
+          "$ref": "#/definitions/PermissionSet"
         },
         "client_id": {
           "description": "The application client id used for oauth grants",
@@ -2246,7 +2243,7 @@ func init() {
           "$ref": "#/definitions/PermissionSet"
         },
         "redirect_uris": {
-          "$ref": "#/definitions/Permissions"
+          "$ref": "#/definitions/PermissionSet"
         },
         "token_lifetime": {
           "description": "The lifetime for identity tokens in seconds, provided the call requested the \n` + "`" + `openid` + "`" + ` scopes.\n",
@@ -2261,9 +2258,6 @@ func init() {
             "native",
             "machine"
           ]
-        },
-        "user_pools": {
-          "$ref": "#/definitions/Permissions"
         }
       }
     },

@@ -50,26 +50,40 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 		Application: app,
 	})
 
-	// enusure this app supports the authorization_code flow
-	if !app.AllowedGrants.Contains("authorization_code") {
-		return api.Errorf("authorization_code grant not permitted").WithStatus(http.StatusUnauthorized)
+	if len(app.RedirectUris) == 0 || len(app.RedirectUris[aud.Name]) == 0 {
+		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
 
-	if params.RedirectURI == nil && len(app.RedirectUris) > 0 {
-		params.RedirectURI = &app.RedirectUris[0]
+	if params.RedirectURI == nil && len(app.RedirectUris[aud.Name]) > 0 {
+		params.RedirectURI = &app.RedirectUris[aud.Name][0]
 	}
 
 	// ensure the redirect uri path is allowed
-	u, err := ensureURI(*params.RedirectURI, app.RedirectUris)
+	u, err := ensureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
 	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
 
-	if params.AppURI == nil && len(app.AppUris) > 0 {
-		params.AppURI = &app.AppUris[0]
+	// enusure this app supports the authorization_code flow
+	if g, ok := app.AllowedGrants[aud.Name]; !ok || !g.Contains("authorization_code") {
+		return api.Redirect(u, map[string]string{
+			"error":             "access_denied",
+			"error_description": err.Error(),
+		})
 	}
 
-	appURI, err := ensureURI(*params.AppURI, app.AppUris)
+	if len(app.AppUris) == 0 || len(app.AppUris[aud.Name]) == 0 {
+		return api.Redirect(u, map[string]string{
+			"error":             "access_denied",
+			"error_description": err.Error(),
+		})
+	}
+
+	if params.AppURI == nil && len(app.AppUris[aud.Name]) > 0 {
+		params.AppURI = &app.AppUris[aud.Name][0]
+	}
+
+	appURI, err := ensureURI(*params.AppURI, app.AppUris[aud.Name])
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",

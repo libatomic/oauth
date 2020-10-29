@@ -45,11 +45,11 @@ func logout(ctx context.Context, params *auth.LogoutParams) api.Responder {
 		Audience:    aud,
 	})
 
-	if (params.RedirectURI == nil || *params.RedirectURI == "") && len(app.RedirectUris) > 0 {
-		params.RedirectURI = &app.RedirectUris[0]
+	if (params.RedirectURI == nil || *params.RedirectURI == "") && len(app.RedirectUris[aud.Name]) > 0 {
+		params.RedirectURI = &app.RedirectUris[aud.Name][0]
 	}
 
-	u, err := ensureURI(*params.RedirectURI, app.RedirectUris)
+	u, err := ensureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}

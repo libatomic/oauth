@@ -52,7 +52,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		TokenType: "bearer",
 	}
 
-	if !app.AllowedGrants.Contains(params.GrantType) {
+	if g, ok := app.AllowedGrants[aud.Name]; !ok || !g.Contains(params.GrantType) {
 		return api.StatusErrorf(http.StatusUnauthorized, "unauthorized grant")
 	}
 

@@ -58,6 +58,11 @@ func TestLogout(t *testing.T) {
 		"LogoutAppFailed": {
 			Operations: []litmus.Operation{
 				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
 					Name:    "ApplicationGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, errors.New("something bad")},
@@ -83,7 +88,9 @@ func TestLogout(t *testing.T) {
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{
 						&oauth.Application{
-							RedirectUris: oauth.Permissions{string([]byte{0x7f})},
+							RedirectUris: oauth.PermissionSet{
+								testAud.Name: oauth.Permissions{string([]byte{0x7f})},
+							},
 						}, nil},
 				},
 				{
@@ -128,7 +135,7 @@ func TestLogout(t *testing.T) {
 			ExpectedStatus: http.StatusBadRequest,
 			ExpectedResponse: `
 {
-	"message": "unauthorized redirect uri"
+	"message": "unauthorized uri"
 }`,
 		},
 		"LogoutSessionDestroyFail": {
