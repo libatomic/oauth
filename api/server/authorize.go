@@ -29,11 +29,26 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 	ctrl := getController(ctx)
 	log := api.Log(ctx)
 
+	// ensure the audience
+	aud, err := ctrl.AudienceGet(ctx, params.Audience)
+	if err != nil {
+		return api.Error(err).WithStatus(http.StatusBadRequest)
+	}
+
+	ctx = oauth.NewContext(ctx, oauth.Context{
+		Audience: aud,
+	})
+
 	// ensure this is a valid application
 	app, err := ctrl.ApplicationGet(ctx, params.ClientID)
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
+
+	ctx = oauth.NewContext(ctx, oauth.Context{
+		Audience:    aud,
+		Application: app,
+	})
 
 	// enusure this app supports the authorization_code flow
 	if !app.AllowedGrants.Contains("authorization_code") {
@@ -61,22 +76,6 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 			"error_description": err.Error(),
 		})
 	}
-
-	// ensure the audience
-	aud, err := ctrl.AudienceGet(ctx, params.Audience)
-	if err != nil {
-		log.Error(err.Error())
-
-		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
-			"error_description": "invalid audience",
-		})
-	}
-
-	ctx = oauth.NewContext(ctx, oauth.Context{
-		Application: app,
-		Audience:    aud,
-	})
 
 	if len(params.Scope) > 0 && len(app.Permissions) > 0 {
 		// check the scope against the app and audience

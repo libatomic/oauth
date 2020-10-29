@@ -28,6 +28,12 @@ func logout(ctx context.Context, params *auth.LogoutParams) api.Responder {
 	ctrl := getController(ctx)
 	log := api.Log(ctx)
 
+	aud, err := ctrl.AudienceGet(ctx, params.Audience)
+	if err != nil {
+		return api.StatusError(http.StatusBadRequest, err)
+	}
+	ctx = oauth.NewContext(ctx, aud)
+
 	// ensure this is a valid application
 	app, err := ctrl.ApplicationGet(ctx, params.ClientID)
 	if err != nil {

@@ -33,13 +33,20 @@ func init() {
 
 func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 	ctrl := getController(ctx)
-	log := api.Log(ctx)
+
+	// ensure the audience
+	aud, err := ctrl.AudienceGet(params.Context(), params.Audience)
+	if err != nil {
+		return api.StatusError(http.StatusBadRequest, err)
+	}
+	ctx = oauth.NewContext(ctx, aud)
 
 	// ensure this is a valid application
 	app, err := ctrl.ApplicationGet(ctx, params.ClientID)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
+	ctx = oauth.NewContext(ctx, app)
 
 	bearer := &oauth.BearerToken{
 		TokenType: "bearer",
@@ -48,21 +55,6 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 	if !app.AllowedGrants.Contains(params.GrantType) {
 		return api.StatusErrorf(http.StatusUnauthorized, "unauthorized grant")
 	}
-
-	// ensure the audience
-	aud, err := ctrl.AudienceGet(params.Context(), params.Audience)
-	if err != nil {
-		log.Error(err.Error())
-
-		return api.StatusError(http.StatusBadRequest, err)
-	}
-
-	ctx = oauth.NewContext(
-		ctx,
-		oauth.Context{
-			Application: app,
-			Audience:    aud,
-		})
 
 	// ensure the controller allows these grants
 	if !ctrl.AuthorizedGrantTypes(ctx).Contains(params.GrantType) {
