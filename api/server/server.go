@@ -111,9 +111,23 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 
 func (s *Server) addRoute(path string, method string, params api.Parameters, handler interface{}, scopes ...oauth.Permissions) {
 	if len(scopes) > 0 && scopes[0] != nil {
-		s.Server.AddRoute(path, method, params, handler, s.addContext, s.auth.Authorize(oauth.WithScope(scopes...)))
+		s.Server.AddRoute(
+			path,
+			handler,
+			api.WithMethod(method),
+			api.WithParams(params),
+			api.WithContextFunc(s.addContext),
+			api.WithAuthorizers(s.auth.Authorize(oauth.WithScope(scopes...))),
+		)
+
 	} else {
-		s.Server.AddRoute(path, method, params, handler, s.addContext)
+		s.Server.AddRoute(
+			path,
+			handler,
+			api.WithMethod(method),
+			api.WithParams(params),
+			api.WithContextFunc(s.addContext),
+		)
 	}
 }
 
