@@ -1,15 +1,25 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package oauth
 
 import (
 	"context"
+	"crypto/rsa"
 	"net/http"
 	"strings"
 
@@ -24,11 +34,16 @@ type (
 	}
 
 	authorizer struct {
-		ctrl Controller
+		ctrl        Controller
+		publicKey   *rsa.PublicKey
+		tokenSecret []byte
 	}
 
 	// AuthOption is an authorizer option
 	AuthOption func(a *authOptions)
+
+	// AuthorizerOption is an authorizer option
+	AuthorizerOption func(a *authorizer)
 
 	authOptions struct {
 		scope []Permissions
@@ -37,9 +52,28 @@ type (
 )
 
 // NewAuthorizer returns a new oauth authorizer
-func NewAuthorizer(ctrl Controller) Authorizer {
-	return &authorizer{
+func NewAuthorizer(ctrl Controller, opts ...AuthorizerOption) Authorizer {
+	auth := &authorizer{
 		ctrl: ctrl,
+	}
+
+	for _, o := range opts {
+		o(auth)
+	}
+	return auth
+}
+
+// WithPublicKey sets the public key for the authorizer
+func WithPublicKey(k *rsa.PublicKey) AuthorizerOption {
+	return func(a *authorizer) {
+		a.publicKey = k
+	}
+}
+
+// WithTokenSecret sets the public key for the authorizer
+func WithTokenSecret(s []byte) AuthorizerOption {
+	return func(a *authorizer) {
+		a.tokenSecret = s
 	}
 }
 
@@ -73,13 +107,21 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 			switch token.Method.(type) {
 			case *jwt.SigningMethodHMAC:
-
-				return []byte(aud.TokenSecret), nil
+				if a.tokenSecret != nil {
+					return a.tokenSecret, nil
+				}
+				return []byte(a.tokenSecret), nil
 
 			case *jwt.SigningMethodRSA:
-				return a.ctrl.TokenPublicKey(NewContext(ctx, Context{Audience: aud}))
+				if a.publicKey == nil {
+					return nil, ErrUnsupportedAlogrithm
+				}
+				return a.publicKey, nil
 
 			default:
+				if token.Method == jwt.SigningMethodNone {
+					return "", nil
+				}
 				return nil, ErrUnsupportedAlogrithm
 			}
 		})

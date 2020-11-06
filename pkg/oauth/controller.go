@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 // Package oauth provides the base auth interfaces
@@ -11,7 +20,6 @@ package oauth
 
 import (
 	"context"
-	"crypto/rsa"
 	"net/http"
 )
 
@@ -19,11 +27,7 @@ type (
 	// Controller is the interface implemented by consumers of the auth server
 	// This provides the backend functionality for user, application, and audience management
 	Controller interface {
-		CodeStore
-
-		SessionStore
-
-		// AudienceGet should return an audience for the specified name
+		// AudienceGet should return an audience for the specified name/id
 		AudienceGet(context.Context, string) (*Audience, error)
 
 		// ApplicationGet should return an application for the specified client id
@@ -31,9 +35,6 @@ type (
 
 		// UserGet returns a user by subject id along with the underlying principal
 		UserGet(context.Context, string) (*User, interface{}, error)
-
-		// TokenPublicKey returns the key for the specified context which is used to verify tokens
-		TokenPublicKey(ctx context.Context) (*rsa.PublicKey, error)
 
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return an oauth user and the principal
@@ -45,9 +46,6 @@ type (
 		//
 		// The library will call the controller's UserVerify method with this id and code
 		UserCreate(ctx context.Context, user User, password string, invite ...string) (*User, error)
-
-		// UserVerify should validate the code and update the user's email address as verified
-		UserVerify(ctx context.Context, id string, code string) error
 
 		// UserUpdate updates a user
 		UserUpdate(ctx context.Context, user *User) error
@@ -64,12 +62,6 @@ type (
 
 		// TokenFinalize finalizes the scope prior to signing
 		TokenFinalize(ctx context.Context, scope Permissions, claims map[string]interface{})
-
-		// TokenPrivateKey returns the key for the specified context which is used to sign tokens
-		TokenPrivateKey(ctx context.Context) (*rsa.PrivateKey, error)
-
-		// AuthorizedGrantTypes returns the list of grant types the controller with authorize
-		AuthorizedGrantTypes(ctx context.Context) Permissions
 	}
 
 	// CodeStore defines an AuthCode storage interface

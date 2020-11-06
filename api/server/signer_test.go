@@ -1,3 +1,20 @@
+/*
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package server
 
 import (
@@ -49,8 +66,6 @@ func TestSignValue(t *testing.T) {
 		})
 	}
 }
-
-// expectedResult: "eyJGb28iOiJiYXIifQ.lZTpWcU0MLFGNNUXE6xYgewczZL_3j9sew8rF2Db7kZWbb3k6TMthqga3mQNaeK6bAmoWkjvtbjJlVlUjhYx2xbMukUKDkj19BmEapjgn0Wj1ZQzsR7TjOaVYgfvV0Yixq2EGuY98pARLz05J_RAavK5ieyHxtovmO7moP7KN3vDdInr_9OwpZ2vMbq91m7KkVbe6GcbIaa3cJNqtArXjrVDEVgE7VCTU7ShH3b48jMy1jp4CGNX9p72_msg7Aoy_W0VOdjXcAo3gxGBAQwEdd0XLp6J-AlHnd4-meLRM4C8W438rlqcyygKAm6Y_NIa5Iz2FGdUjkAhXeISDvbfPA",
 
 func TestVerifyValue(t *testing.T) {
 	badKey := testKey.PublicKey

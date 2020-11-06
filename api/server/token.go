@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package server
@@ -19,30 +28,67 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/libatomic/api/pkg/api"
-	"github.com/libatomic/oauth/api/server/auth"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/mitchellh/mapstructure"
 )
 
+type (
+
+	// TokenParams contains all the bound params for the token operation
+	TokenParams struct {
+		Audience        string   `json:"audience"`
+		ClientID        string   `json:"client_id"`
+		ClientSecret    *string  `json:"client_secret,omitempty"`
+		Code            *string  `json:"code,omitempty"`
+		CodeVerifier    *string  `json:"code_verifier"`
+		GrantType       string   `json:"grant_type"`
+		Password        *string  `json:"password,omitempty"`
+		RefreshNonce    *string  `json:"refresh_nonce,omitempty"`
+		RefreshToken    *string  `json:"refresh_token,omitempty"`
+		RefreshVerifier *string  `json:"refresh_verifier,omitempty"`
+		Scope           []string `json:"scope,omitempty"`
+		Username        *string  `json:"username,omitempty"`
+	}
+)
+
 func init() {
 	registerRoutes([]route{
-		{"/token", http.MethodPost, &auth.TokenParams{}, token, nil},
+		{"/token", http.MethodPost, &TokenParams{}, token, nil},
 	})
 }
 
-func token(ctx context.Context, params *auth.TokenParams) api.Responder {
-	ctrl := getController(ctx)
+// Validate validate TokenParams
+func (p TokenParams) Validate() error {
+	return validation.Errors{
+		"audience":         validation.Validate(p.Audience, validation.Required),
+		"client_id":        validation.Validate(p.ClientID, validation.Required),
+		"client_secret":    validation.Validate(p.ClientSecret, validation.NilOrNotEmpty),
+		"code":             validation.Validate(p.Code, validation.NilOrNotEmpty),
+		"code_verifier":    validation.Validate(p.CodeVerifier, validation.NilOrNotEmpty),
+		"grant_Type":       validation.Validate(p.GrantType, validation.Required),
+		"password":         validation.Validate(p.Password, validation.NilOrNotEmpty),
+		"refresh_nonce":    validation.Validate(p.RefreshNonce, validation.NilOrNotEmpty),
+		"refresh_token":    validation.Validate(p.RefreshToken, validation.NilOrNotEmpty),
+		"refresh_verifier": validation.Validate(p.RefreshVerifier, validation.NilOrNotEmpty),
+		"scope":            validation.Validate(p.Scope, validation.NilOrNotEmpty),
+		"username":         validation.Validate(p.Username, validation.NilOrNotEmpty),
+	}.Filter()
+}
+
+func token(ctx context.Context, params *TokenParams) api.Responder {
+	s := serverContext(ctx)
 
 	// ensure the audience
-	aud, err := ctrl.AudienceGet(params.Context(), params.Audience)
+	aud, err := s.ctrl.AudienceGet(ctx, params.Audience)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
 	ctx = oauth.NewContext(ctx, aud)
 
 	// ensure this is a valid application
-	app, err := ctrl.ApplicationGet(ctx, params.ClientID)
+	app, err := s.ctrl.ApplicationGet(ctx, params.ClientID)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
@@ -57,7 +103,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 	}
 
 	// ensure the controller allows these grants
-	if !ctrl.AuthorizedGrantTypes(ctx).Contains(params.GrantType) {
+	if !s.allowedGrants.Contains(params.GrantType) {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid grant type")
 	}
 
@@ -66,7 +112,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		return api.StatusErrorf(http.StatusUnauthorized, "bad scope")
 	}
 
-	_, r := params.UnbindRequest()
+	r, _ := api.Request(ctx)
 
 	signToken := func(ctx context.Context, claims jwt.MapClaims) (string, error) {
 		var token *jwt.Token
@@ -76,13 +122,8 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 
 		switch aud.TokenAlgorithm {
 		case "RS256":
-			signingKey, err := ctrl.TokenPrivateKey(ctx)
-			if err != nil {
-				return "", err
-			}
-
 			token = jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-			key = signingKey
+			key = s.privKey
 
 		case "HS256":
 			token = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(claims))
@@ -108,7 +149,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusBadRequest, "bad credentials")
 		}
 
-		user, _, err = ctrl.UserAuthenticate(
+		user, _, err = s.ctrl.UserAuthenticate(
 			ctx,
 			*params.Username,
 			*params.Password,
@@ -147,7 +188,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 		claims["iat"] = time.Now().Unix()
 		claims["scope"] = strings.Join(params.Scope, " ")
 
-		ctrl.TokenFinalize(
+		s.ctrl.TokenFinalize(
 			ctx,
 			params.Scope,
 			claims,
@@ -166,7 +207,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusBadRequest, "missing refresh token or verifier")
 		}
 
-		code, err = ctrl.AuthCodeGet(ctx, *params.RefreshToken)
+		code, err = codeStore(ctx).AuthCodeGet(ctx, *params.RefreshToken)
 		if err != nil {
 			return api.StatusErrorf(http.StatusUnauthorized, "invalid refresh token")
 		}
@@ -191,7 +232,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 				return api.StatusErrorf(http.StatusBadRequest, "missing code or verifier")
 			}
 
-			code, err = ctrl.AuthCodeGet(ctx, *params.Code)
+			code, err = codeStore(ctx).AuthCodeGet(ctx, *params.Code)
 			if err != nil {
 				return api.StatusErrorf(http.StatusUnauthorized, "invalid code")
 			}
@@ -211,9 +252,9 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			}
 		}
 
-		ctrl.AuthCodeDestroy(ctx, code.Code)
+		codeStore(ctx).AuthCodeDestroy(ctx, code.Code)
 
-		user, prin, err := ctrl.UserGet(ctx, code.Subject)
+		user, prin, err := s.ctrl.UserGet(ctx, code.Subject)
 		if err != nil {
 			return api.StatusErrorf(http.StatusUnauthorized, err.Error())
 		}
@@ -258,7 +299,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			"azp":   app.ClientID,
 		}
 
-		ctrl.TokenFinalize(
+		s.ctrl.TokenFinalize(
 			ctx,
 			params.Scope,
 			claims,
@@ -284,7 +325,7 @@ func token(ctx context.Context, params *auth.TokenParams) api.Responder {
 			}
 			code.RefreshNonce = *params.RefreshNonce
 
-			if err := ctrl.AuthCodeCreate(ctx, code); err != nil {
+			if err := codeStore(ctx).AuthCodeCreate(ctx, code); err != nil {
 				return api.StatusError(http.StatusInternalServerError, err)
 			}
 

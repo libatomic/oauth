@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package server
@@ -14,19 +23,62 @@ import (
 	"net/http"
 	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/libatomic/api/pkg/api"
-	"github.com/libatomic/oauth/api/server/auth"
 	"github.com/libatomic/oauth/pkg/oauth"
+)
+
+type (
+	// AuthorizeParams contains all the bound params for the authorize operation
+	AuthorizeParams struct {
+		AppURI              *string  `json:"app_uri"`
+		Audience            string   `json:"audience"`
+		ClientID            string   `json:"client_id"`
+		CodeChallenge       string   `json:"code_challenge"`
+		CodeChallengeMethod *string  `json:"code_challenge_method"`
+		RedirectURI         *string  `json:"redirect_uri"`
+		ResponseType        string   `json:"response_type"`
+		Scope               []string `json:"scope"`
+		State               *string  `json:"state"`
+	}
+)
+
+var (
+	// DefaultCodeChallengeMethod is the only challenge method
+	DefaultCodeChallengeMethod = "S256"
 )
 
 func init() {
 	registerRoutes([]route{
-		{"/authorize", http.MethodGet, &auth.AuthorizeParams{}, authorize, nil},
+		{"/authorize", http.MethodGet, &AuthorizeParams{}, authorize, nil},
 	})
 }
 
-func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder {
-	ctrl := getController(ctx)
+// Validate validates the params
+func (p *AuthorizeParams) Validate() error {
+	if err := (validation.Errors{
+		"app_uri":               validation.Validate(p.AppURI, validation.NilOrNotEmpty, is.RequestURI),
+		"audience":              validation.Validate(p.Audience, validation.Required),
+		"client_id":             validation.Validate(p.ClientID, validation.Required),
+		"code_challenge":        validation.Validate(p.CodeChallenge, validation.Required),
+		"code_challenge_method": validation.Validate(p.CodeChallengeMethod, validation.NilOrNotEmpty),
+		"redirect_uri":          validation.Validate(p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
+		"response_type":         validation.Validate(p.ResponseType, validation.Required),
+		"scope":                 validation.Validate(p.Scope, validation.NilOrNotEmpty),
+	}).Filter(); err != nil {
+		return err
+	}
+
+	if p.CodeChallengeMethod == nil {
+		p.CodeChallengeMethod = &DefaultCodeChallengeMethod
+	}
+
+	return nil
+}
+
+func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
+	ctrl := oauthController(ctx)
 	log := api.Log(ctx)
 
 	// ensure the audience
@@ -116,16 +168,15 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 		RedirectURI:         *params.RedirectURI,
 		Scope:               params.Scope,
 		Audience:            params.Audience,
-		UserPool:            params.UserPool,
 		State:               params.State,
 		CodeChallenge:       params.CodeChallenge,
 		CodeChallengeMethod: *params.CodeChallengeMethod,
 		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
 	}
 
-	w, r := params.UnbindRequest()
+	r, w := api.Request(ctx)
 
-	session, err := ctrl.SessionRead(ctx, r)
+	session, err := sessionStore(ctx).SessionRead(ctx, r)
 	if err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
@@ -147,7 +198,7 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 			Subject:     session.Subject(),
 			SessionID:   session.ID(),
 		}
-		if err := ctrl.AuthCodeCreate(oauth.NewContext(
+		if err := codeStore(ctx).AuthCodeCreate(oauth.NewContext(
 			ctx,
 			oauth.Context{
 				Application: app,
@@ -175,21 +226,7 @@ func authorize(ctx context.Context, params *auth.AuthorizeParams) api.Responder 
 		return api.Redirect(u)
 	}
 
-	privKey, err := ctrl.TokenPrivateKey(oauth.NewContext(
-		ctx,
-		oauth.Context{
-			Application: app,
-			Audience:    aud,
-		},
-	))
-	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
-	}
-
-	token, err := signValue(ctx, privKey, AuthRequestParam, req)
+	token, err := signValue(ctx, serverContext(ctx).privKey, AuthRequestParam, req)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",

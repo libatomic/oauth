@@ -166,9 +166,6 @@ definitions:
 
       - `code`: A signed authorization code that can be passed to the `/token` path.
 
-      ## User Pools
-      User pools are groups of users that the application can access. The implementaiton
-      of such is outside the scope of this API.
     type: "object"
     properties:
       name:
@@ -803,11 +800,6 @@ paths:
           in: "query"
           type: "string"
           required: true
-        - name: "user_pool"
-          in: query
-          description: "The user pool to authorize against"
-          type: "string"
-          required: false
         - name: "app_uri"
           in: query
           description: "The URL to which the authentication server redirects the browser for action"

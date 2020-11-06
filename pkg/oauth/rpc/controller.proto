@@ -1,0 +1,142 @@
+/*
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+syntax = "proto3";
+
+option go_package = "github.com/libatomic/oauth/pkg/oauth/rpc";
+
+package oauth;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+service Controller {
+    rpc AudienceGet(AudienceGetInput) returns (Audience) {}
+    rpc ApplicationGet(ApplicationGetInput) returns (Application) {}
+    rpc UserGet(UserGetInput) returns (User) {}
+    rpc UserAuthenticate(UserAuthenticateInput) returns (User) {}
+    rpc UserCreate(UserCreateInput) returns (User) {}
+    rpc UserUpdate(UserUpdateInput) returns (User) {}
+    rpc TokenFinalize(TokenFinalizeInput) returns (TokenFinalizeOutput) {}
+}
+
+message AudienceGetInput {
+    string Name = 1;
+}
+
+message Audience {
+    string Name = 1;
+    string Description = 2;
+    string TokenAlgorithm = 3;
+    string TokenSecret = 4;
+    int64 TokenLifetime = 5;
+    repeated string Permissions = 6;
+}
+
+message ApplicationGetInput {
+    string ID = 1;
+}
+
+message Application {
+    string Name = 1;
+    string Description = 2;
+    string ClientID = 3;
+    string ClientSecret = 4;
+    string Type = 5;
+    int64 TokenLifetime = 6;
+    repeated PermissionSet AllowedGrants = 7;
+    repeated PermissionSet AppUris = 8;
+    repeated PermissionSet RedirectUris = 9;
+    repeated PermissionSet Permissions = 10;
+}
+
+message UserGetInput {
+    oneof userGet {
+        string ID = 1;
+        string Login = 2;
+    }
+}
+
+message User {
+    string Login = 1;
+    google.protobuf.Timestamp PasswordExpiresAt = 2;
+    repeated PermissionSet Permissions = 3;
+    repeated PermissionSet Roles = 4;
+    Profile Profile = 5;
+    google.protobuf.Any Principal = 6;
+}
+
+message UserAuthenticateInput {
+    string Login = 1;
+    string Password = 2;
+}
+
+message UserCreateInput {
+    User User = 1;
+    string Password = 2;
+    string InviteCode = 3;
+}
+
+message UserUpdateInput {
+    User User = 1;
+}
+
+message TokenFinalizeInput {
+    repeated string Scope = 1;
+    google.protobuf.Any Claims = 2;
+}
+
+message TokenFinalizeOutput {
+    google.protobuf.Any Claims = 2;
+}
+
+message Profile {
+    string Subject = 1;
+    Address Address = 2;
+    string Birthdate = 3;
+    string Email = 4;
+    bool EmailVerified = 5;
+    string FamilyName = 6;
+    string Gender = 7;
+    string GivenName = 8;
+    string Locale = 9;
+    string MiddleName = 10;
+    string Name = 11;
+    string Nickname = 12;
+    string PhoneNumber = 13;
+    bool PhoneNumberVerified = 14;
+    string Picture = 15;
+    string PreferredUsername = 16;
+    string Profile = 17;
+    google.protobuf.Timestamp UpdatedAt = 18;
+    string Website = 19;
+    string ZoneInfo = 20;
+}
+
+message Address {
+    string StreetAddress = 1;
+    string Locality = 2;
+    string Region = 3;
+    string Country = 4;
+    string PostalCode = 5;
+    string Formatted = 6;
+}
+
+message PermissionSet {
+    string Audience = 1;
+    repeated string Permissions = 2;
+}

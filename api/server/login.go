@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package server
@@ -14,27 +23,40 @@ import (
 	"net/url"
 	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/libatomic/api/pkg/api"
-	"github.com/libatomic/oauth/api/server/auth"
 	"github.com/libatomic/oauth/pkg/oauth"
+)
+
+type (
+	// LoginParams contains all the bound params for the login operation
+	LoginParams struct {
+		Login        string `json:"login"`
+		Password     string `json:"password"`
+		RequestToken string `json:"request_token"`
+	}
 )
 
 func init() {
 	registerRoutes([]route{
-		{"/login", http.MethodPost, &auth.LoginParams{}, login, nil},
+		{"/login", http.MethodPost, &LoginParams{}, login, nil},
 	})
 }
 
-func login(ctx context.Context, params *auth.LoginParams) api.Responder {
-	ctrl := getController(ctx)
+// Validate validates LoginParams
+func (p LoginParams) Validate() error {
+	return validation.Errors{
+		"login":         validation.Validate(p.Login, validation.Required),
+		"password":      validation.Validate(p.Password, validation.Required),
+		"request_token": validation.Validate(p.RequestToken, validation.Required),
+	}.Filter()
+}
 
-	pubKey, err := ctrl.TokenPublicKey(ctx)
-	if err != nil {
-		return api.Error(err)
-	}
+func login(ctx context.Context, params *LoginParams) api.Responder {
+	s := serverContext(ctx)
 
 	req := &oauth.AuthRequest{}
-	if err := verifyValue(ctx, pubKey, AuthRequestParam, params.RequestToken, req); err != nil {
+	if err := verifyValue(ctx, &s.privKey.PublicKey, AuthRequestParam, params.RequestToken, req); err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 
@@ -44,7 +66,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 
 	u, _ := url.Parse(req.AppURI)
 
-	ctx, err = oauth.ContextFromRequest(ctx, ctrl, req)
+	ctx, err := oauth.ContextFromRequest(ctx, s.ctrl, req)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "bad_request",
@@ -52,7 +74,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		})
 	}
 
-	user, _, err := ctrl.UserAuthenticate(ctx, params.Login, params.Password)
+	user, _, err := s.ctrl.UserAuthenticate(ctx, params.Login, params.Password)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
@@ -82,9 +104,9 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		})
 	}
 
-	w, r := params.UnbindRequest()
+	r, w := api.Request(ctx)
 
-	session, err := ctrl.SessionCreate(ctx, r)
+	session, err := sessionStore(ctx).SessionCreate(ctx, r)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
@@ -105,7 +127,7 @@ func login(ctx context.Context, params *auth.LoginParams) api.Responder {
 		SessionID:         session.ID(),
 		UserAuthenticated: true,
 	}
-	if err := ctrl.AuthCodeCreate(ctx, authCode); err != nil {
+	if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),
