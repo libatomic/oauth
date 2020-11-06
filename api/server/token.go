@@ -23,11 +23,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
@@ -112,26 +110,6 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		return api.StatusErrorf(http.StatusUnauthorized, "bad scope")
 	}
 
-	r, _ := api.Request(ctx)
-
-	signToken := func(ctx context.Context, claims jwt.MapClaims) (string, error) {
-		var token *jwt.Token
-		var key interface{}
-
-		claims["iss"] = fmt.Sprintf("https://%s%s", r.Host, path.Clean(path.Join(path.Dir(r.URL.Path), "/.well-known/jwks.json")))
-
-		switch aud.TokenAlgorithm {
-		case "RS256":
-			token = jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-			key = s.privKey
-
-		case "HS256":
-			token = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(claims))
-			key = []byte(aud.TokenSecret)
-		}
-		return token.SignedString(key)
-	}
-
 	var code *oauth.AuthCode
 	var user *oauth.User
 
@@ -174,7 +152,9 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, "bad scope")
 		}
 
-		claims := make(jwt.MapClaims)
+		claims := oauth.Claims{
+			"use": "access",
+		}
 
 		exp := time.Now().Add(time.Second * time.Duration(aud.TokenLifetime)).Unix()
 
@@ -188,13 +168,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		claims["iat"] = time.Now().Unix()
 		claims["scope"] = strings.Join(params.Scope, " ")
 
-		s.ctrl.TokenFinalize(
-			ctx,
-			params.Scope,
-			claims,
-		)
-
-		token, err := signToken(ctx, claims)
+		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
 			return api.StatusError(http.StatusInternalServerError, err)
 
@@ -290,7 +264,8 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		exp := time.Now().Add(time.Second * time.Duration(aud.TokenLifetime)).Unix()
 
-		claims := jwt.MapClaims{
+		claims := oauth.Claims{
+			"use":   "access",
 			"iat":   time.Now().Unix(),
 			"aud":   aud.Name,
 			"sub":   code.Subject,
@@ -299,13 +274,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			"azp":   app.ClientID,
 		}
 
-		s.ctrl.TokenFinalize(
-			ctx,
-			params.Scope,
-			claims,
-		)
-
-		token, err := signToken(ctx, claims)
+		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
 			return api.StatusError(http.StatusInternalServerError, err)
 		}
@@ -334,7 +303,8 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		// check for id token request
 		if scope.Contains(oauth.ScopeOpenID) {
-			claims := jwt.MapClaims{
+			claims := oauth.Claims{
+				"use":       "identity",
 				"iat":       time.Now().Unix(),
 				"auth_time": code.IssuedAt,
 				"aud":       aud.Name,
@@ -355,7 +325,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				}
 			}
 
-			token, err := signToken(ctx, claims)
+			token, err := s.ctrl.TokenFinalize(ctx, claims)
 			if err != nil {
 				return api.StatusError(http.StatusInternalServerError, err)
 			}

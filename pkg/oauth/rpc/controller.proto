@@ -22,7 +22,8 @@ option go_package = "github.com/libatomic/oauth/pkg/oauth/rpc";
 package oauth;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/empty.proto";
 
 service Controller {
     rpc AudienceGet(AudienceGetInput) returns (Audience) {}
@@ -30,8 +31,9 @@ service Controller {
     rpc UserGet(UserGetInput) returns (User) {}
     rpc UserAuthenticate(UserAuthenticateInput) returns (User) {}
     rpc UserCreate(UserCreateInput) returns (User) {}
-    rpc UserUpdate(UserUpdateInput) returns (User) {}
-    rpc TokenFinalize(TokenFinalizeInput) returns (TokenFinalizeOutput) {}
+    rpc UserUpdate(UserUpdateInput) returns (google.protobuf.Empty) {}
+    rpc TokenFinalize(Token) returns (BearerToken) {}
+    rpc TokenValidate(BearerToken) returns (Token) {}
 }
 
 message AudienceGetInput {
@@ -77,7 +79,7 @@ message User {
     repeated PermissionSet Permissions = 3;
     repeated PermissionSet Roles = 4;
     Profile Profile = 5;
-    google.protobuf.Any Principal = 6;
+    bytes Principal = 6;
 }
 
 message UserAuthenticateInput {
@@ -86,22 +88,33 @@ message UserAuthenticateInput {
 }
 
 message UserCreateInput {
-    User User = 1;
+    string Login = 1;
     string Password = 2;
     string InviteCode = 3;
+    Profile Profile = 4;
 }
 
 message UserUpdateInput {
-    User User = 1;
+    string ID = 1;
+    Profile Profile = 2;
 }
 
-message TokenFinalizeInput {
-    repeated string Scope = 1;
-    google.protobuf.Any Claims = 2;
+message Token {
+    google.protobuf.Struct Claims = 1;
+}
+
+message BearerToken {
+    string Token = 1;
 }
 
 message TokenFinalizeOutput {
-    google.protobuf.Any Claims = 2;
+    google.protobuf.Struct Claims = 1;
+}
+
+message Context {
+    string AudienceID = 1;
+    string ApplicationID = 2;
+    string UserID = 3;
 }
 
 message Profile {

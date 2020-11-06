@@ -194,7 +194,9 @@ func init() {
 		UserAuthenticated: true,
 	}
 
-	testToken, err = signValue(context.TODO(), testKey, AuthRequestParam, testRequest)
+	ctrl := new(mockController)
+
+	testToken, err = signValue(context.TODO(), ctrl, testRequest)
 	if err != nil {
 		panic(err)
 	}
@@ -202,7 +204,7 @@ func init() {
 	expiredReq := *testRequest
 	expiredReq.ExpiresAt = time.Now().Add(time.Minute * -10).Unix()
 
-	expiredToken, err = signValue(context.TODO(), testKey, AuthRequestParam, expiredReq)
+	expiredToken, err = signValue(context.TODO(), ctrl, expiredReq)
 	if err != nil {
 		panic(err)
 	}
@@ -210,7 +212,7 @@ func init() {
 	badReq := *testRequest
 	badReq.CodeChallenge += "bad stuff"
 
-	badToken, err = signValue(context.TODO(), testKey, AuthRequestParam, badReq)
+	badToken, err = signValue(context.TODO(), ctrl, badReq)
 	if err != nil {
 		panic(err)
 	}
@@ -227,7 +229,7 @@ func init() {
 	misMatchReq := *testRequest
 	misMatchReq.CodeChallenge = misChal
 
-	misMatchToken, err = signValue(context.TODO(), testKey, AuthRequestParam, misMatchReq)
+	misMatchToken, err = signValue(context.TODO(), ctrl, misMatchReq)
 	if err != nil {
 		panic(err)
 	}
@@ -235,7 +237,7 @@ func init() {
 	emptyScopeReq = *testRequest
 	emptyScopeReq.Scope = oauth.Permissions{}
 
-	emptyScopeToken, err = signValue(context.TODO(), testKey, AuthRequestParam, emptyScopeReq)
+	emptyScopeToken, err = signValue(context.TODO(), ctrl, emptyScopeReq)
 	if err != nil {
 		panic(err)
 	}
@@ -279,24 +281,27 @@ func (c *mockController) UserAuthenticate(ctx context.Context, login string, pas
 	return args.Get(0).(*oauth.User), args.Get(1), args.Error(2)
 }
 
-func (c *mockController) UserCreate(ctx context.Context, user oauth.User, password string, invite ...string) (*oauth.User, error) {
-	args := c.Called(ctx, user, password)
-
-	user.Profile.Subject = "00000000-0000-0000-0000-000000000000"
+func (c *mockController) UserCreate(ctx context.Context, login string, password string, profile *oauth.Profile, invite ...string) (*oauth.User, error) {
+	args := c.Called(ctx, login, password, profile)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 
-	return args.Get(0).(*oauth.User), args.Error(1)
+	user := args.Get(0).(*oauth.User)
+
+	user.Profile = profile
+	user.Profile.Subject = "00000000-0000-0000-0000-000000000000"
+
+	return user, args.Error(1)
 }
 
 func (c *mockController) UserVerify(ctx context.Context, id string, code string) error {
 	return nil
 }
 
-func (c *mockController) UserUpdate(ctx context.Context, user *oauth.User) error {
-	args := c.Called(ctx, user)
+func (c *mockController) UserUpdate(ctx context.Context, id string, profile *oauth.Profile) error {
+	args := c.Called(ctx, id, profile)
 
 	return args.Error(0)
 }
@@ -309,26 +314,12 @@ func (c *mockController) UserSetPassword(ctx context.Context, id string, passwor
 	return nil
 }
 
-func (c *mockController) TokenFinalize(ctx context.Context, scope oauth.Permissions, claims map[string]interface{}) {
-
+func (c *mockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
+	return "", nil
 }
 
-func (c *mockController) TokenPrivateKey(ctx context.Context) (*rsa.PrivateKey, error) {
-	args := c.Called(ctx)
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*rsa.PrivateKey), args.Error(1)
-}
-
-func (c *mockController) TokenPublicKey(ctx context.Context) (*rsa.PublicKey, error) {
-	args := c.Called(ctx)
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*rsa.PublicKey), args.Error(1)
+func (c *mockController) TokenValidate(ctx context.Context, bearerToken string) (oauth.Claims, error) {
+	return oauth.Claims{}, nil
 }
 
 // AuthCodeCreate creates a new authcode from the request if code expires at is set

@@ -18,11 +18,13 @@ package rpc
 
 import (
 	context "context"
+	"encoding/json"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/ulule/deepcopier"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type (
@@ -114,6 +116,7 @@ func (c *Client) UserGet(ctx context.Context, id string) (*oauth.User, interface
 	var profile *oauth.Profile
 
 	if result.Profile != nil {
+		profile = &oauth.Profile{}
 		deepcopier.Copy(result.Profile).To(profile)
 	}
 
@@ -133,22 +136,104 @@ func (c *Client) UserGet(ctx context.Context, id string) (*oauth.User, interface
 		user.Permissions[p.Audience] = oauth.Permissions(p.Permissions)
 	}
 
-	return user, nil, nil
+	return user, json.RawMessage(result.Principal), nil
 }
 
 // UserAuthenticate implements the oauth.Contoller interface
 func (c *Client) UserAuthenticate(ctx context.Context, login string, password string) (*oauth.User, interface{}, error) {
+	result, err := c.client.UserAuthenticate(ctx, &UserAuthenticateInput{
+		Login:    login,
+		Password: password,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return nil, nil, nil
+	var profile *oauth.Profile
+
+	if result.Profile != nil {
+		profile = &oauth.Profile{}
+		deepcopier.Copy(result.Profile).To(profile)
+	}
+
+	user := &oauth.User{
+		Login:             result.Login,
+		PasswordExpiresAt: strfmt.DateTime(result.PasswordExpiresAt.AsTime()),
+		Roles:             make(oauth.PermissionSet),
+		Permissions:       make(oauth.PermissionSet),
+		Profile:           profile,
+	}
+
+	for _, p := range result.Roles {
+		user.Roles[p.Audience] = oauth.Permissions(p.Permissions)
+	}
+
+	for _, p := range result.Roles {
+		user.Permissions[p.Audience] = oauth.Permissions(p.Permissions)
+	}
+
+	return user, json.RawMessage(result.Principal), nil
 }
 
 // UserCreate implements the oauth.Contoller interface
-func (c *Client) UserCreate(ctx context.Context, user oauth.User, password string, invite ...string) (*oauth.User, error) {
-	return nil, nil
+func (c *Client) UserCreate(ctx context.Context, login string, password string, profile *oauth.Profile, invite ...string) (*oauth.User, error) {
+	var prof *Profile
+
+	if profile != nil {
+		prof = &Profile{}
+		deepcopier.Copy(profile).To(prof)
+	}
+
+	var code string
+	if len(invite) > 0 {
+		code = invite[0]
+	}
+
+	result, err := c.client.UserCreate(ctx, &UserCreateInput{
+		Login:      login,
+		Password:   password,
+		InviteCode: code,
+		Profile:    prof,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	user := &oauth.User{
+		Login:             result.Login,
+		PasswordExpiresAt: strfmt.DateTime(result.PasswordExpiresAt.AsTime()),
+		Roles:             make(oauth.PermissionSet),
+		Permissions:       make(oauth.PermissionSet),
+		Profile:           profile,
+	}
+
+	for _, p := range result.Roles {
+		user.Roles[p.Audience] = oauth.Permissions(p.Permissions)
+	}
+
+	for _, p := range result.Roles {
+		user.Permissions[p.Audience] = oauth.Permissions(p.Permissions)
+	}
+
+	return user, nil
 }
 
 // UserUpdate implements the oauth.Contoller interface
-func (c *Client) UserUpdate(ctx context.Context, user *oauth.User) error {
+func (c *Client) UserUpdate(ctx context.Context, id string, profile *oauth.Profile) error {
+	var prof *Profile
+
+	if profile != nil {
+		prof = &Profile{}
+		deepcopier.Copy(profile).To(prof)
+	}
+
+	if _, err := c.client.UserUpdate(ctx, &UserUpdateInput{
+		ID:      id,
+		Profile: prof,
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -163,6 +248,30 @@ func (c *Client) UserSetPassword(ctx context.Context, id string, password string
 }
 
 // TokenFinalize implements the oauth.Contoller interface
-func (c *Client) TokenFinalize(ctx context.Context, scope oauth.Permissions, claims map[string]interface{}) {
+func (c *Client) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
+	sclaims, err := structpb.NewStruct(map[string]interface{}(claims))
+	if err != nil {
+		return "", err
+	}
 
+	result, err := c.client.TokenFinalize(ctx, &Token{
+		Claims: sclaims,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return result.GetToken(), nil
+}
+
+// TokenValidate implements the oauth.Contoller interface
+func (c *Client) TokenValidate(ctx context.Context, bearerToken string) (oauth.Claims, error) {
+	result, err := c.client.TokenValidate(ctx, &BearerToken{
+		Token: bearerToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return oauth.Claims(result.Claims.AsMap()), nil
 }

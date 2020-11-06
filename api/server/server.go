@@ -20,18 +20,12 @@ package server
 
 import (
 	"context"
-	"crypto"
-	"crypto/rsa"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
-	"net/http"
 	"net/url"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/codestore/memstore"
 	"github.com/libatomic/oauth/pkg/oauth"
@@ -53,9 +47,9 @@ type (
 
 		allowedGrants oauth.Permissions
 
-		sessionKey [64]byte
+		allowUnsignedTokens bool
 
-		privKey *rsa.PrivateKey
+		sessionKey [64]byte
 
 		jwks []byte
 	}
@@ -72,10 +66,6 @@ type (
 	}
 
 	contextKey string
-
-	publicKeyGetParams struct {
-		Audience *string `json:"audience"`
-	}
 )
 
 const (
@@ -137,13 +127,6 @@ func New(ctrl oauth.Controller, opts ...interface{}) *Server {
 		s.addRoute(r.Path, r.Method, r.Params, r.Handler, r.Auth)
 	}
 
-	s.addRoute(
-		"/.well-known/jwks.json",
-		http.MethodGet,
-		&publicKeyGetParams{},
-		s.publicKey,
-		oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
-
 	return s
 }
 
@@ -158,13 +141,6 @@ func WithCodeStore(c oauth.CodeStore) Option {
 func WithSessionStore(c oauth.SessionStore) Option {
 	return func(s *Server) {
 		s.sessions = c
-	}
-}
-
-// WithPrivateKey sets the private key for token signing
-func WithPrivateKey(k *rsa.PrivateKey) Option {
-	return func(s *Server) {
-		s.privKey = k
 	}
 }
 
@@ -244,36 +220,6 @@ func ensureURI(uri string, search []string) (*url.URL, error) {
 	}
 
 	return nil, errors.New("unauthorized uri")
-}
-
-func (s *Server) publicKey(ctx context.Context, params *publicKeyGetParams) api.Responder {
-	var err error
-
-	// create the jwks output
-	key, err := jwk.New(s.privKey.PublicKey)
-	if err != nil {
-		return api.StatusError(http.StatusInternalServerError, err)
-
-	}
-
-	thumb, err := key.Thumbprint(crypto.SHA1)
-	if err != nil {
-		return api.StatusError(http.StatusInternalServerError, err)
-
-	}
-
-	// usw the thumbprint as kid and x5t
-	key.Set("kid", hex.EncodeToString(thumb))
-	key.Set("x5t", base64.RawURLEncoding.EncodeToString(thumb))
-
-	key.Set("alg", "RS256")
-	key.Set("use", "sig")
-
-	keys := map[string]interface{}{
-		"keys": []interface{}{key},
-	}
-
-	return api.NewResponse(keys)
 }
 
 func registerRoutes(r []route) {

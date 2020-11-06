@@ -1,21 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/pem"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/apex/log"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/api/server"
 	"github.com/libatomic/oauth/pkg/oauth/rpc"
@@ -91,11 +83,6 @@ func serverMain(c *cli.Context) error {
 
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	key, err := getPrivateKey(c)
-	if err != nil {
-		return err
-	}
-
 	conn, err := grpc.Dial(c.String("controller-addr"))
 	if err != nil {
 		return err
@@ -104,7 +91,6 @@ func serverMain(c *cli.Context) error {
 	// initialize the api server
 	server := server.New(
 		rpc.NewClient(conn),
-		server.WithPrivateKey(key),
 		api.WithLog(log.Log),
 		api.WithAddr(c.String("listen-addr")),
 	)
@@ -128,60 +114,4 @@ func serverMain(c *cli.Context) error {
 	log.Infof("oauth server shutdown")
 
 	return nil
-}
-
-func getPrivateKey(c *cli.Context) (*rsa.PrivateKey, error) {
-	// use the key from env
-	if keyString := c.String("rsa-private-key"); keyString != "" {
-		key, err := base64.StdEncoding.DecodeString(keyString)
-		if err != nil {
-			return nil, err
-		}
-		return jwt.ParseRSAPrivateKeyFromPEM(key)
-	}
-
-	fname := c.String("rsa-pem-file")
-
-	fd, err := os.Open(fname)
-
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-
-		fd, err = os.Create(fname)
-		if err != nil {
-			return nil, err
-		}
-
-		reader := rand.Reader
-		key, err := rsa.GenerateKey(reader, 2048)
-		if err != nil {
-			return nil, err
-		}
-
-		// output the private key
-		privOut := new(bytes.Buffer)
-		privKey := &pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: x509.MarshalPKCS1PrivateKey(key),
-		}
-
-		if err := pem.Encode(privOut, privKey); err != nil {
-			return nil, err
-		}
-
-		if _, err := fd.Write(privOut.Bytes()); err != nil {
-			return nil, err
-		}
-
-		return key, nil
-	}
-
-	data, err := ioutil.ReadAll(fd)
-	if err != nil {
-		return nil, err
-	}
-
-	return jwt.ParseRSAPrivateKeyFromPEM(data)
 }

@@ -19,8 +19,6 @@ package oauth
 
 import (
 	"context"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 type (
@@ -30,7 +28,7 @@ type (
 		Audience    *Audience
 		User        *User
 		Principal   interface{}
-		Token       *jwt.Token
+		Token       Claims
 		Request     *AuthRequest
 	}
 
@@ -65,9 +63,7 @@ func NewContext(ctx context.Context, args ...interface{}) context.Context {
 			octx.User = t
 		case interface{}:
 			octx.Principal = t
-		case jwt.Token:
-			octx.Token = &t
-		case *jwt.Token:
+		case Claims:
 			octx.Token = t
 		}
 	}

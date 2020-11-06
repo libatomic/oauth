@@ -83,7 +83,6 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 	for _, opt := range opts {
 		opt(o)
 	}
-
 	return func(r *http.Request) (context.Context, error) {
 		var claims jwt.MapClaims
 		var err error
@@ -93,47 +92,17 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
-		token, err := jwt.Parse(bearer, func(token *jwt.Token) (interface{}, error) {
-			claims = token.Claims.(jwt.MapClaims)
+		token, err := a.ctrl.TokenValidate(ctx, bearer)
+		if err != nil {
+			return nil, ErrAccessDenied
+		}
 
-			id, ok := claims["aud"].(string)
-			if !ok {
-				return nil, ErrAccessDenied
-			}
-			aud, err = a.ctrl.AudienceGet(r.Context(), id)
-			if err != nil {
-				return nil, err
-			}
-
-			switch token.Method.(type) {
-			case *jwt.SigningMethodHMAC:
-				if a.tokenSecret != nil {
-					return a.tokenSecret, nil
-				}
-				return []byte(a.tokenSecret), nil
-
-			case *jwt.SigningMethodRSA:
-				if a.publicKey == nil {
-					return nil, ErrUnsupportedAlogrithm
-				}
-				return a.publicKey, nil
-
-			default:
-				if token.Method == jwt.SigningMethodNone {
-					return "", nil
-				}
-				return nil, ErrUnsupportedAlogrithm
-			}
-		})
+		aud, err = a.ctrl.AudienceGet(r.Context(), token.Audience())
 		if err != nil {
 			return nil, err
 		}
 
-		if !token.Valid {
-			return nil, ErrInvalidToken
-		}
-
-		scopes := Permissions(strings.Fields(claims["scope"].(string)))
+		scopes := token.Scope()
 
 		allowed := true
 
@@ -158,16 +127,16 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 			Token:    token,
 		}
 
-		if azp, ok := claims["azp"].(string); ok {
-			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), azp)
+		if token.ClientID() != "" {
+			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), token.ClientID())
 			if err != nil {
 				return nil, ErrAccessDenied
 			}
 			c.Application = app
 		}
 
-		if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
-			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), sub)
+		if !strings.HasSuffix(token.Subject(), "@applications") {
+			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), token.Subject())
 			if err != nil {
 				return nil, ErrAccessDenied
 			}

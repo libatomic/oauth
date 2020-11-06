@@ -28,13 +28,13 @@ type (
 	// This provides the backend functionality for user, application, and audience management
 	Controller interface {
 		// AudienceGet should return an audience for the specified name/id
-		AudienceGet(context.Context, string) (*Audience, error)
+		AudienceGet(ctx context.Context, name string) (*Audience, error)
 
 		// ApplicationGet should return an application for the specified client id
-		ApplicationGet(context.Context, string) (*Application, error)
+		ApplicationGet(ctx context.Context, clientID string) (*Application, error)
 
 		// UserGet returns a user by subject id along with the underlying principal
-		UserGet(context.Context, string) (*User, interface{}, error)
+		UserGet(ctx context.Context, id string) (*User, interface{}, error)
 
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return an oauth user and the principal
@@ -45,10 +45,10 @@ type (
 		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
 		//
 		// The library will call the controller's UserVerify method with this id and code
-		UserCreate(ctx context.Context, user User, password string, invite ...string) (*User, error)
+		UserCreate(ctx context.Context, login string, password string, profile *Profile, invite ...string) (*User, error)
 
-		// UserUpdate updates a user
-		UserUpdate(ctx context.Context, user *User) error
+		// UserUpdate updates a user profile
+		UserUpdate(ctx context.Context, id string, profile *Profile) error
 
 		// UserResetPassword should notify the user with a reset password link to the
 		// which includes the user's password reset code i.e.:
@@ -60,8 +60,11 @@ type (
 		// UserSetPassword will set a user's password
 		UserSetPassword(ctx context.Context, id string, password string) error
 
-		// TokenFinalize finalizes the scope prior to signing
-		TokenFinalize(ctx context.Context, scope Permissions, claims map[string]interface{})
+		// TokenFinalize finalizes the token, signs it and returns the bearer
+		TokenFinalize(ctx context.Context, claims Claims) (string, error)
+
+		// TokenValidate validate the token signature and parse it into the Claims
+		TokenValidate(ctx context.Context, bearerToken string) (Claims, error)
 	}
 
 	// CodeStore defines an AuthCode storage interface

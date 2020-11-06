@@ -226,7 +226,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		return api.Redirect(u)
 	}
 
-	token, err := signValue(ctx, serverContext(ctx).privKey, AuthRequestParam, req)
+	token, err := signValue(ctx, ctrl, req)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",

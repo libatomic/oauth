@@ -63,7 +63,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	s := serverContext(ctx)
 
 	req := &oauth.AuthRequest{}
-	if err := verifyValue(ctx, &s.privKey.PublicKey, AuthRequestParam, params.RequestToken, req); err != nil {
+	if err := verifyValue(ctx, s.ctrl, params.RequestToken, req); err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
@@ -75,13 +75,10 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		return api.StatusError(http.StatusInternalServerError, err)
 	}
 
-	if _, err := s.ctrl.UserCreate(octx, oauth.User{
-		Login: params.Login,
-		Profile: &oauth.Profile{
-			Name:  safestr(params.Name),
-			Email: strfmt.Email(params.Email),
-		},
-	}, params.Password, safestr(params.InviteCode)); err != nil {
+	if _, err := s.ctrl.UserCreate(octx, params.Login, params.Password, &oauth.Profile{
+		Name:  safestr(params.Name),
+		Email: strfmt.Email(params.Email),
+	}, safestr(params.InviteCode)); err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
 

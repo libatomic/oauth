@@ -4,6 +4,7 @@ package rpc
 
 import (
 	context "context"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -22,8 +23,9 @@ type ControllerClient interface {
 	UserGet(ctx context.Context, in *UserGetInput, opts ...grpc.CallOption) (*User, error)
 	UserAuthenticate(ctx context.Context, in *UserAuthenticateInput, opts ...grpc.CallOption) (*User, error)
 	UserCreate(ctx context.Context, in *UserCreateInput, opts ...grpc.CallOption) (*User, error)
-	UserUpdate(ctx context.Context, in *UserUpdateInput, opts ...grpc.CallOption) (*User, error)
-	TokenFinalize(ctx context.Context, in *TokenFinalizeInput, opts ...grpc.CallOption) (*TokenFinalizeOutput, error)
+	UserUpdate(ctx context.Context, in *UserUpdateInput, opts ...grpc.CallOption) (*empty.Empty, error)
+	TokenFinalize(ctx context.Context, in *Token, opts ...grpc.CallOption) (*BearerToken, error)
+	TokenValidate(ctx context.Context, in *BearerToken, opts ...grpc.CallOption) (*Token, error)
 }
 
 type controllerClient struct {
@@ -79,8 +81,8 @@ func (c *controllerClient) UserCreate(ctx context.Context, in *UserCreateInput, 
 	return out, nil
 }
 
-func (c *controllerClient) UserUpdate(ctx context.Context, in *UserUpdateInput, opts ...grpc.CallOption) (*User, error) {
-	out := new(User)
+func (c *controllerClient) UserUpdate(ctx context.Context, in *UserUpdateInput, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/oauth.Controller/UserUpdate", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -88,9 +90,18 @@ func (c *controllerClient) UserUpdate(ctx context.Context, in *UserUpdateInput, 
 	return out, nil
 }
 
-func (c *controllerClient) TokenFinalize(ctx context.Context, in *TokenFinalizeInput, opts ...grpc.CallOption) (*TokenFinalizeOutput, error) {
-	out := new(TokenFinalizeOutput)
+func (c *controllerClient) TokenFinalize(ctx context.Context, in *Token, opts ...grpc.CallOption) (*BearerToken, error) {
+	out := new(BearerToken)
 	err := c.cc.Invoke(ctx, "/oauth.Controller/TokenFinalize", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *controllerClient) TokenValidate(ctx context.Context, in *BearerToken, opts ...grpc.CallOption) (*Token, error) {
+	out := new(Token)
+	err := c.cc.Invoke(ctx, "/oauth.Controller/TokenValidate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +117,9 @@ type ControllerServer interface {
 	UserGet(context.Context, *UserGetInput) (*User, error)
 	UserAuthenticate(context.Context, *UserAuthenticateInput) (*User, error)
 	UserCreate(context.Context, *UserCreateInput) (*User, error)
-	UserUpdate(context.Context, *UserUpdateInput) (*User, error)
-	TokenFinalize(context.Context, *TokenFinalizeInput) (*TokenFinalizeOutput, error)
+	UserUpdate(context.Context, *UserUpdateInput) (*empty.Empty, error)
+	TokenFinalize(context.Context, *Token) (*BearerToken, error)
+	TokenValidate(context.Context, *BearerToken) (*Token, error)
 	mustEmbedUnimplementedControllerServer()
 }
 
@@ -130,11 +142,14 @@ func (UnimplementedControllerServer) UserAuthenticate(context.Context, *UserAuth
 func (UnimplementedControllerServer) UserCreate(context.Context, *UserCreateInput) (*User, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserCreate not implemented")
 }
-func (UnimplementedControllerServer) UserUpdate(context.Context, *UserUpdateInput) (*User, error) {
+func (UnimplementedControllerServer) UserUpdate(context.Context, *UserUpdateInput) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserUpdate not implemented")
 }
-func (UnimplementedControllerServer) TokenFinalize(context.Context, *TokenFinalizeInput) (*TokenFinalizeOutput, error) {
+func (UnimplementedControllerServer) TokenFinalize(context.Context, *Token) (*BearerToken, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TokenFinalize not implemented")
+}
+func (UnimplementedControllerServer) TokenValidate(context.Context, *BearerToken) (*Token, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TokenValidate not implemented")
 }
 func (UnimplementedControllerServer) mustEmbedUnimplementedControllerServer() {}
 
@@ -258,7 +273,7 @@ func _Controller_UserUpdate_Handler(srv interface{}, ctx context.Context, dec fu
 }
 
 func _Controller_TokenFinalize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TokenFinalizeInput)
+	in := new(Token)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -270,7 +285,25 @@ func _Controller_TokenFinalize_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: "/oauth.Controller/TokenFinalize",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControllerServer).TokenFinalize(ctx, req.(*TokenFinalizeInput))
+		return srv.(ControllerServer).TokenFinalize(ctx, req.(*Token))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Controller_TokenValidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BearerToken)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControllerServer).TokenValidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/oauth.Controller/TokenValidate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControllerServer).TokenValidate(ctx, req.(*BearerToken))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -306,6 +339,10 @@ var _Controller_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TokenFinalize",
 			Handler:    _Controller_TokenFinalize_Handler,
+		},
+		{
+			MethodName: "TokenValidate",
+			Handler:    _Controller_TokenValidate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
