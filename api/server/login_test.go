@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 package server
 
 import (
@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/apex/log"
+	"github.com/fatih/structs"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/litmus/pkg/litmus"
 	"github.com/libatomic/oauth/pkg/oauth"
@@ -34,9 +35,9 @@ func TestLogin(t *testing.T) {
 		"LoginOK": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -80,9 +81,9 @@ func TestLogin(t *testing.T) {
 		"LoginOKEmptyScope": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -123,30 +124,12 @@ func TestLogin(t *testing.T) {
 				"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000`,
 			},
 		},
-		"LoginBadKey": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{nil, errors.New("bad key")},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusInternalServerError,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", testToken).
-				Encode(),
-		},
 		"LoginBadToken": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims{}, errors.New("bad token")},
 				},
 			},
 			Method:             http.MethodPost,
@@ -160,15 +143,15 @@ func TestLogin(t *testing.T) {
 				Encode(),
 			ExpectedResponse: `
 {
-	"message": "illegal base64 data at input byte 8"
+	"message": "bad token"
 }`,
 		},
 		"LoginExpiredToken": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(expiredReq)), nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -189,9 +172,9 @@ func TestLogin(t *testing.T) {
 					Returns: litmus.Returns{nil, errors.New("bad stuff")},
 				},
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -207,9 +190,9 @@ func TestLogin(t *testing.T) {
 		"LoginAuthFail": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -240,9 +223,9 @@ func TestLogin(t *testing.T) {
 		"LoginUserAudMissing": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -278,9 +261,9 @@ func TestLogin(t *testing.T) {
 		"LoginReqBadUserScope": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -316,9 +299,9 @@ func TestLogin(t *testing.T) {
 		"LoginSessionCreateFail": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -354,9 +337,9 @@ func TestLogin(t *testing.T) {
 		"LoginAuthCodeCreateFail": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",

@@ -23,8 +23,10 @@ import (
 	"testing"
 
 	"github.com/apex/log"
+	"github.com/fatih/structs"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/litmus/pkg/litmus"
+	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -33,9 +35,9 @@ func TestSignup(t *testing.T) {
 		"SingupOK": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -51,8 +53,10 @@ func TestSignup(t *testing.T) {
 					Name: "UserCreate",
 					Args: litmus.Args{
 						litmus.Context,
-						mock.AnythingOfType("oauth.User"),
-						mock.AnythingOfType("string")},
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("*oauth.Profile"),
+					},
 					Returns: litmus.Returns{testUser, nil},
 				},
 				{
@@ -85,35 +89,12 @@ func TestSignup(t *testing.T) {
 				"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000`,
 			},
 		},
-		"SignupBadKey": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{nil, errors.New("invalid key")},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/signup",
-			ExpectedStatus:     http.StatusInternalServerError,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("email", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", testToken).
-				Encode(),
-			ExpectedResponse: `
-{
-	"message": "invalid key"
-}`,
-		},
 		"SignupBadToken": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), errors.New("bad token")},
 				},
 			},
 			Method:             http.MethodPost,
@@ -126,17 +107,13 @@ func TestSignup(t *testing.T) {
 				Add("password", "password").
 				Add("request_token", "bad-token").
 				Encode(),
-			ExpectedResponse: `
-{
-	"message": "illegal base64 data at input byte 8"
-}`,
 		},
 		"SignupExpiredToken": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(expiredReq)), nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -153,9 +130,9 @@ func TestSignup(t *testing.T) {
 		"SignupBadContext": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -177,9 +154,9 @@ func TestSignup(t *testing.T) {
 		"SingupUserCreateError": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -195,8 +172,10 @@ func TestSignup(t *testing.T) {
 					Name: "UserCreate",
 					Args: litmus.Args{
 						litmus.Context,
-						mock.AnythingOfType("oauth.User"),
-						mock.AnythingOfType("string")},
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("*oauth.Profile"),
+					},
 					Returns: litmus.Returns{nil, errors.New("bad user")},
 				},
 			},

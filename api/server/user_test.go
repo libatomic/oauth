@@ -38,13 +38,13 @@ func TestUserInfoUpdate(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "UserUpdate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.User")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
 					Returns: litmus.Returns{nil},
 				},
 			},
 			Method:             http.MethodPut,
 			Path:               "/oauth/userInfo",
-			ExpectedStatus:     http.StatusOK,
+			ExpectedStatus:     http.StatusNoContent,
 			RequestContentType: "application/json",
 			Request:            testUser.Profile,
 			Setup: func(r *http.Request) {
@@ -78,7 +78,7 @@ func TestUserInfoUpdate(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "UserUpdate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.User")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
 					Returns: litmus.Returns{errors.New("access denied")},
 				},
 			},
@@ -102,7 +102,7 @@ func TestUserInfoUpdate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, auth, api.WithLog(log.Log))
+			mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})
@@ -148,7 +148,7 @@ func TestUserInfo(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, auth, api.WithLog(log.Log))
+			mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})
@@ -195,7 +195,7 @@ func TestUserPrincipal(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, auth, api.WithLog(log.Log))
+			mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})

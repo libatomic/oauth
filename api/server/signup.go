@@ -63,19 +63,19 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	s := serverContext(ctx)
 
 	req := &oauth.AuthRequest{}
-	if err := verifyValue(ctx, s.ctrl, params.RequestToken, req); err != nil {
+	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
 		return api.StatusErrorf(http.StatusUnauthorized, "expired request token")
 	}
 
-	octx, err := oauth.ContextFromRequest(ctx, s.ctrl, req)
+	ctx, err := oauth.ContextFromRequest(ctx, s.ctrl, req)
 	if err != nil {
 		return api.StatusError(http.StatusInternalServerError, err)
 	}
 
-	if _, err := s.ctrl.UserCreate(octx, params.Login, params.Password, &oauth.Profile{
+	if _, err := s.ctrl.UserCreate(ctx, params.Login, params.Password, &oauth.Profile{
 		Name:  safestr(params.Name),
 		Email: strfmt.Email(params.Email),
 	}, safestr(params.InviteCode)); err != nil {

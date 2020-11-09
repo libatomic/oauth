@@ -86,3 +86,8 @@ func (c Claims) ExpiresAt() time.Time {
 
 	return time.Time{}
 }
+
+// Valid validates the claims
+func (c Claims) Valid() error {
+	return nil
+}

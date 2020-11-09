@@ -26,6 +26,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+	"github.com/fatih/structs"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/libatomic/api/pkg/api"
@@ -131,6 +133,8 @@ var (
 
 	testRequest *oauth.AuthRequest
 
+	expiredReq oauth.AuthRequest
+
 	emptyScopeReq oauth.AuthRequest
 
 	testCode *oauth.AuthCode
@@ -155,6 +159,8 @@ func init() {
 	if _, err := rand.Read(token); err != nil {
 		panic(err)
 	}
+
+	structs.DefaultTagName = "json"
 
 	verifier = base64.RawURLEncoding.EncodeToString(token)
 
@@ -194,17 +200,20 @@ func init() {
 		UserAuthenticated: true,
 	}
 
-	ctrl := new(mockController)
+	signer := func(ctx context.Context, claims oauth.Claims) (string, error) {
+		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	}
 
-	testToken, err = signValue(context.TODO(), ctrl, testRequest)
+	testToken, err = signValue(context.TODO(), signer, testRequest)
 	if err != nil {
 		panic(err)
 	}
 
-	expiredReq := *testRequest
+	expiredReq = *testRequest
 	expiredReq.ExpiresAt = time.Now().Add(time.Minute * -10).Unix()
 
-	expiredToken, err = signValue(context.TODO(), ctrl, expiredReq)
+	expiredToken, err = signValue(context.TODO(), signer, expiredReq)
 	if err != nil {
 		panic(err)
 	}
@@ -212,7 +221,7 @@ func init() {
 	badReq := *testRequest
 	badReq.CodeChallenge += "bad stuff"
 
-	badToken, err = signValue(context.TODO(), ctrl, badReq)
+	badToken, err = signValue(context.TODO(), signer, badReq)
 	if err != nil {
 		panic(err)
 	}
@@ -229,7 +238,7 @@ func init() {
 	misMatchReq := *testRequest
 	misMatchReq.CodeChallenge = misChal
 
-	misMatchToken, err = signValue(context.TODO(), ctrl, misMatchReq)
+	misMatchToken, err = signValue(context.TODO(), signer, misMatchReq)
 	if err != nil {
 		panic(err)
 	}
@@ -237,7 +246,7 @@ func init() {
 	emptyScopeReq = *testRequest
 	emptyScopeReq.Scope = oauth.Permissions{}
 
-	emptyScopeToken, err = signValue(context.TODO(), ctrl, emptyScopeReq)
+	emptyScopeToken, err = signValue(context.TODO(), signer, emptyScopeReq)
 	if err != nil {
 		panic(err)
 	}
@@ -315,11 +324,18 @@ func (c *mockController) UserSetPassword(ctx context.Context, id string, passwor
 }
 
 func (c *mockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
-	return "", nil
+	args := c.Called(ctx, claims)
+	if args.String(0) == "" {
+		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	}
+	return args.String(0), args.Error(1)
 }
 
 func (c *mockController) TokenValidate(ctx context.Context, bearerToken string) (oauth.Claims, error) {
-	return oauth.Claims{}, nil
+	args := c.Called(ctx, bearerToken)
+
+	return args.Get(0).(oauth.Claims), args.Error(1)
 }
 
 // AuthCodeCreate creates a new authcode from the request if code expires at is set

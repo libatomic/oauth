@@ -56,7 +56,7 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 	s := serverContext(ctx)
 
 	req := &oauth.AuthRequest{}
-	if err := verifyValue(ctx, s.ctrl, params.RequestToken, req); err != nil {
+	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 

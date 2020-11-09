@@ -9,6 +9,7 @@ replace github.com/libatomic/api => ../api
 require (
 	github.com/apex/log v1.8.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fatih/structs v1.1.0
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/runtime v0.19.23
 	github.com/go-openapi/strfmt v0.19.5
@@ -24,6 +25,7 @@ require (
 	github.com/libatomic/litmus v0.5.3
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/mr-tron/base58 v1.2.0
+	github.com/soheilhy/cmux v0.1.4
 	github.com/stretchr/testify v1.6.1
 	github.com/ulule/deepcopier v0.0.0-20200430083143-45decc6639b6
 	github.com/urfave/cli/v2 v2.3.0

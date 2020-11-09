@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/libatomic/api/pkg/api"
 )
 
@@ -84,7 +83,6 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		opt(o)
 	}
 	return func(r *http.Request) (context.Context, error) {
-		var claims jwt.MapClaims
 		var err error
 		var aud *Audience
 

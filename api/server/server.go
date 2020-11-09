@@ -120,7 +120,6 @@ func New(ctrl oauth.Controller, opts ...interface{}) *Server {
 	if s.sessions == nil {
 		s.Log().Warn("using insecure cookie store")
 		s.sessions = cookiestore.New()
-
 	}
 
 	for _, r := range routes {
@@ -151,8 +150,18 @@ func WithAllowedGrants(g oauth.Permissions) Option {
 	}
 }
 
+// WithAuthorizer sets the oauth.Authorizer for the necessary calls
+func WithAuthorizer(a oauth.Authorizer) Option {
+	return func(s *Server) {
+		s.auth = a
+	}
+}
+
 func (s *Server) addRoute(path string, method string, params interface{}, handler interface{}, scopes ...oauth.Permissions) {
 	if len(scopes) > 0 && scopes[0] != nil {
+		if s.auth == nil {
+			return
+		}
 		s.Server.AddRoute(
 			path,
 			handler,

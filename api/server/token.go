@@ -115,7 +115,6 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 	switch params.GrantType {
 	case oauth.GrantTypePassword:
-
 		if params.ClientID != app.ClientID {
 			return api.StatusErrorf(http.StatusBadRequest, "bad client id")
 		}

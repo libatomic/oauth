@@ -24,12 +24,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func signValue(ctx context.Context, ctrl oauth.Controller, val interface{}) (string, error) {
+func signValue(ctx context.Context, finalize func(context.Context, oauth.Claims) (string, error), val interface{}) (string, error) {
 	claims := make(map[string]interface{})
 
 	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		TagName: "json",
-		Result:  claims,
+		Result:  &claims,
 	})
 	if err != nil {
 		return "", err
@@ -38,7 +38,7 @@ func signValue(ctx context.Context, ctrl oauth.Controller, val interface{}) (str
 		return "", err
 	}
 
-	token, err := ctrl.TokenFinalize(ctx, oauth.Claims(claims))
+	token, err := finalize(ctx, oauth.Claims(claims))
 	if err != nil {
 		return "", err
 	}
@@ -46,8 +46,8 @@ func signValue(ctx context.Context, ctrl oauth.Controller, val interface{}) (str
 	return token, nil
 }
 
-func verifyValue(ctx context.Context, ctrl oauth.Controller, val string, out interface{}) error {
-	claims, err := ctrl.TokenValidate(ctx, val)
+func verifyValue(ctx context.Context, verify func(context.Context, string) (oauth.Claims, error), val string, out interface{}) error {
+	claims, err := verify(ctx, val)
 	if err != nil {
 		return err
 	}

@@ -46,11 +46,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -70,6 +66,11 @@ func TestTokenAuthcode(t *testing.T) {
 					Name:    "UserGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
+				},
+				{
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -98,11 +99,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -183,11 +180,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -231,11 +224,6 @@ func TestTokenAuthcode(t *testing.T) {
 					Returns: litmus.Returns{testAud, nil},
 				},
 				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
-				{
 					Name: "AuthCodeGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&oauth.AuthCode{
@@ -253,14 +241,19 @@ func TestTokenAuthcode(t *testing.T) {
 					Returns: litmus.Returns{nil},
 				},
 				{
+					Name:    "UserGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testUser, testPrin, nil},
+				},
+				{
 					Name:    "AuthCodeCreate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
 				},
 				{
-					Name:    "UserGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testUser, testPrin, nil},
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -293,15 +286,11 @@ func TestTokenAuthcode(t *testing.T) {
 						TokenLifetime:  60,
 					}, nil},
 				},
+
 				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
-				{
-					Name:    "TokenPrivateKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testKey, nil},
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
 				},
 				{
 					Name:    "AuthCodeGet",
@@ -350,11 +339,7 @@ func TestTokenAuthcode(t *testing.T) {
 						TokenLifetime:  60,
 					}, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -366,9 +351,9 @@ func TestTokenAuthcode(t *testing.T) {
 					Returns: litmus.Returns{nil},
 				},
 				{
-					Name:    "TokenPrivateKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{nil, errors.New("bad key")},
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"error", errors.New("bad key")},
 				},
 				{
 					Name:    "UserGet",
@@ -484,11 +469,6 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
@@ -515,11 +495,6 @@ func TestTokenAuthcode(t *testing.T) {
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
 				},
 			},
 			Method:             http.MethodPost,
@@ -548,11 +523,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -585,11 +556,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -622,11 +589,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name: "AuthCodeGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -674,11 +637,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -715,7 +674,7 @@ func TestTokenAuthcode(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
+			mockServer := New(ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})
@@ -737,14 +696,14 @@ func TestTokenPassword(t *testing.T) {
 					Returns: litmus.Returns{testAud, nil},
 				},
 				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
-				{
 					Name:    "UserAuthenticate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
+				},
+				{
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -760,42 +719,6 @@ func TestTokenPassword(t *testing.T) {
 				Add("password", verifier).
 				Encode(),
 		},
-		"TokenAuthPasswordBadGrant": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{oauth.Permissions{}},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("grant_type", oauth.GrantTypePassword).
-				Add("client_id", testApp.ClientID).
-				Add("client_secret", testApp.ClientSecret).
-				Add("audience", "snowcrash").
-				Add("scope", "metaverse:read metaverse:write openid profile").
-				Add("username", testCode.Code).
-				Add("password", verifier).
-				Encode(),
-			ExpectedResponse: `
-				{
-					"message": "invalid grant type"
-				}`,
-		},
 		"TokenAuthPasswordBadClient": {
 			Operations: []litmus.Operation{
 				{
@@ -807,11 +730,6 @@ func TestTokenPassword(t *testing.T) {
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
 				},
 			},
 			Method:             http.MethodPost,
@@ -844,11 +762,6 @@ func TestTokenPassword(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
@@ -879,11 +792,6 @@ func TestTokenPassword(t *testing.T) {
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
 				},
 			},
 			Method:             http.MethodPost,
@@ -916,11 +824,6 @@ func TestTokenPassword(t *testing.T) {
 					Returns: litmus.Returns{testAud, nil},
 				},
 				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
-				{
 					Name:    "UserAuthenticate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, nil, errors.New("auth failed")},
@@ -946,7 +849,12 @@ func TestTokenPassword(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
+			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl), WithAllowedGrants(oauth.Permissions{
+				oauth.GrantTypeAuthCode,
+				oauth.GrantTypeClientCredentials,
+				oauth.GrantTypeRefreshToken,
+				oauth.GrantTypePassword,
+			}))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})
@@ -968,9 +876,9 @@ func TestTokenClientCredentials(t *testing.T) {
 					Returns: litmus.Returns{testAud, nil},
 				},
 				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -997,11 +905,6 @@ func TestTokenClientCredentials(t *testing.T) {
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
 				},
 			},
 			Method:             http.MethodPost,
@@ -1050,11 +953,6 @@ func TestTokenClientCredentials(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
@@ -1086,14 +984,9 @@ func TestTokenClientCredentials(t *testing.T) {
 					}, nil},
 				},
 				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
-				{
-					Name:    "TokenPrivateKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{nil, errors.New("bad key")},
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"error", errors.New("bad token")},
 				},
 			},
 			Method:             http.MethodPost,
@@ -1135,11 +1028,7 @@ func TestTokenRefreshToken(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeDestroy",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -1168,6 +1057,11 @@ func TestTokenRefreshToken(t *testing.T) {
 						RefreshNonce:      challenge,
 					}, nil},
 				},
+				{
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
+				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
@@ -1194,11 +1088,6 @@ func TestTokenRefreshToken(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
@@ -1223,11 +1112,7 @@ func TestTokenRefreshToken(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -1259,11 +1144,7 @@ func TestTokenRefreshToken(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name: "AuthCodeGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -1303,11 +1184,7 @@ func TestTokenRefreshToken(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-				{
-					Name:    "AuthorizedGrantTypes",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{testGrantTypes},
-				},
+
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
