@@ -19,7 +19,6 @@ package oauth
 
 import (
 	"context"
-	"crypto/rsa"
 	"net/http"
 	"strings"
 
@@ -33,9 +32,7 @@ type (
 	}
 
 	authorizer struct {
-		ctrl        Controller
-		publicKey   *rsa.PublicKey
-		tokenSecret []byte
+		ctrl Controller
 	}
 
 	// AuthOption is an authorizer option
@@ -60,20 +57,6 @@ func NewAuthorizer(ctrl Controller, opts ...AuthorizerOption) Authorizer {
 		o(auth)
 	}
 	return auth
-}
-
-// WithPublicKey sets the public key for the authorizer
-func WithPublicKey(k *rsa.PublicKey) AuthorizerOption {
-	return func(a *authorizer) {
-		a.publicKey = k
-	}
-}
-
-// WithTokenSecret sets the public key for the authorizer
-func WithTokenSecret(s []byte) AuthorizerOption {
-	return func(a *authorizer) {
-		a.tokenSecret = s
-	}
 }
 
 func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {

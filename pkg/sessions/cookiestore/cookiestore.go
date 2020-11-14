@@ -112,7 +112,7 @@ func WithSessionKey(key [64]byte) Option {
 
 // SessionCreate creates a session
 func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth.Session, error) {
-	octx := oauth.GetContext(ctx)
+	octx := oauth.AuthContext(ctx)
 
 	name := c.sessionCookie
 
@@ -144,7 +144,7 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 
 // SessionRead returns the session
 func (c *cookieStore) SessionRead(ctx context.Context, r *http.Request) (oauth.Session, error) {
-	octx := oauth.GetContext(ctx)
+	octx := oauth.AuthContext(ctx)
 
 	name := c.sessionCookie
 

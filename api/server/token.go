@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -110,6 +111,10 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		return api.StatusErrorf(http.StatusUnauthorized, "bad scope")
 	}
 
+	r, _ := api.Request(ctx)
+
+	issuer := fmt.Sprintf("https://%s%s", r.Host, path.Clean(path.Join(path.Dir(r.URL.Path), "/.well-known/jwks.json")))
+
 	var code *oauth.AuthCode
 	var user *oauth.User
 
@@ -166,6 +171,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		claims["exp"] = exp
 		claims["iat"] = time.Now().Unix()
 		claims["scope"] = strings.Join(params.Scope, " ")
+		claims["iss"] = issuer
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
@@ -210,7 +216,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				return api.StatusErrorf(http.StatusUnauthorized, "invalid code")
 			}
 
-			oauth.GetContext(ctx).Request = &code.AuthRequest
+			oauth.AuthContext(ctx).Request = &code.AuthRequest
 
 			verifier, err := base64.RawURLEncoding.DecodeString(*params.CodeVerifier)
 			if err != nil {
@@ -232,8 +238,8 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, err.Error())
 		}
 
-		oauth.GetContext(ctx).User = user
-		oauth.GetContext(ctx).Principal = prin
+		oauth.AuthContext(ctx).User = user
+		oauth.AuthContext(ctx).Principal = prin
 
 		perms, ok := user.Permissions[code.Audience]
 		if len(params.Scope) == 0 {
@@ -264,6 +270,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		exp := time.Now().Add(time.Second * time.Duration(aud.TokenLifetime)).Unix()
 
 		claims := oauth.Claims{
+			"iss":   issuer,
 			"use":   "access",
 			"iat":   time.Now().Unix(),
 			"aud":   aud.Name,
@@ -303,6 +310,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		// check for id token request
 		if scope.Contains(oauth.ScopeOpenID) {
 			claims := oauth.Claims{
+				"iss": issuer,
 				"use":       "identity",
 				"iat":       time.Now().Unix(),
 				"auth_time": code.IssuedAt,

@@ -42,7 +42,7 @@ func init() {
 
 func userInfoUpdate(ctx context.Context, params *UserInfoUpdateParams) api.Responder {
 	ctrl := oauthController(ctx)
-	auth := oauth.GetContext(ctx)
+	auth := oauth.AuthContext(ctx)
 
 	if auth.User == nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
@@ -56,7 +56,7 @@ func userInfoUpdate(ctx context.Context, params *UserInfoUpdateParams) api.Respo
 }
 
 func userInfo(ctx context.Context) api.Responder {
-	auth := oauth.GetContext(ctx)
+	auth := oauth.AuthContext(ctx)
 
 	if auth.User == nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
@@ -66,7 +66,7 @@ func userInfo(ctx context.Context) api.Responder {
 }
 
 func userPrincipal(ctx context.Context) api.Responder {
-	auth := oauth.GetContext(ctx)
+	auth := oauth.AuthContext(ctx)
 
 	if auth.Principal == nil {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")

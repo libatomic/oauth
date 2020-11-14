@@ -2,7 +2,7 @@ module github.com/libatomic/oauth
 
 go 1.14
 
-replace github.com/libatomic/api => ../api
+// replace github.com/libatomic/api => ../api
 
 // replace github.com/libatomic/litmus => ../litmus
 

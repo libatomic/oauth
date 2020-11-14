@@ -41,7 +41,7 @@ var (
 
 // NewContext returns a new context from the paramters
 func NewContext(ctx context.Context, args ...interface{}) context.Context {
-	octx := GetContext(ctx)
+	octx := AuthContext(ctx)
 
 	for _, a := range args {
 		switch t := a.(type) {
@@ -71,8 +71,8 @@ func NewContext(ctx context.Context, args ...interface{}) context.Context {
 	return context.WithValue(ctx, contextKeyContext, octx)
 }
 
-// GetContext returns the context
-func GetContext(ctx context.Context) *Context {
+// AuthContext returns the context
+func AuthContext(ctx context.Context) *Context {
 	auth, ok := ctx.Value(contextKeyContext).(*Context)
 	if !ok {
 		return &Context{}

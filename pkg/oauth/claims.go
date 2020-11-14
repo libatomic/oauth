@@ -19,8 +19,11 @@
 package oauth
 
 import (
+	"context"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type (
@@ -89,5 +92,36 @@ func (c Claims) ExpiresAt() time.Time {
 
 // Valid validates the claims
 func (c Claims) Valid() error {
-	return nil
+	return jwt.MapClaims(c).Valid()
+}
+
+// Sign returns the signed jwt bearer token
+func (c Claims) Sign(ctx context.Context, alg string, key interface{}) (string, error) {
+	var token *jwt.Token
+
+	switch alg {
+	case "RS256":
+		token = jwt.NewWithClaims(jwt.SigningMethodRS256, c)
+
+	case "HS256":
+		token = jwt.NewWithClaims(jwt.SigningMethodHS256, c)
+
+	}
+	return token.SignedString(key)
+}
+
+// ParseClaims parses the jwt token into claims
+func ParseClaims(ctx context.Context, bearer string, key interface{}) (Claims, error) {
+	token, err := jwt.Parse(bearer, func(token *jwt.Token) (interface{}, error) {
+		return key, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	return Claims(token.Claims.(jwt.MapClaims)), nil
 }

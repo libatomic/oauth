@@ -73,7 +73,7 @@ func (u User) CurrentRoles(ctx context.Context) Permissions {
 		return Permissions{}
 	}
 
-	octx := GetContext(ctx)
+	octx := AuthContext(ctx)
 
 	if octx.Audience == nil {
 		return Permissions{}

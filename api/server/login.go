@@ -83,7 +83,7 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 		})
 	}
 
-	oauth.GetContext(ctx).User = user
+	oauth.AuthContext(ctx).User = user
 
 	perms, ok := user.Permissions[req.Audience]
 	if !ok {
