@@ -1,17 +1,24 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package oauth
 
 import (
 	"context"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 type (
@@ -21,7 +28,7 @@ type (
 		Audience    *Audience
 		User        *User
 		Principal   interface{}
-		Token       *jwt.Token
+		Token       Claims
 		Request     *AuthRequest
 	}
 
@@ -34,7 +41,7 @@ var (
 
 // NewContext returns a new context from the paramters
 func NewContext(ctx context.Context, args ...interface{}) context.Context {
-	octx := GetContext(ctx)
+	octx := AuthContext(ctx)
 
 	for _, a := range args {
 		switch t := a.(type) {
@@ -56,9 +63,7 @@ func NewContext(ctx context.Context, args ...interface{}) context.Context {
 			octx.User = t
 		case interface{}:
 			octx.Principal = t
-		case jwt.Token:
-			octx.Token = &t
-		case *jwt.Token:
+		case Claims:
 			octx.Token = t
 		}
 	}
@@ -66,8 +71,8 @@ func NewContext(ctx context.Context, args ...interface{}) context.Context {
 	return context.WithValue(ctx, contextKeyContext, octx)
 }
 
-// GetContext returns the context
-func GetContext(ctx context.Context) *Context {
+// AuthContext returns the context
+func AuthContext(ctx context.Context) *Context {
 	auth, ok := ctx.Value(contextKeyContext).(*Context)
 	if !ok {
 		return &Context{}

@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 // Package server provides an http oauth REST API
@@ -11,19 +20,16 @@ package server
 
 import (
 	"context"
-	"crypto"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
-	"net/http"
 	"net/url"
 	"path/filepath"
 	"sync"
+	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/libatomic/api/pkg/api"
-	"github.com/libatomic/oauth/api/server/auth"
+	"github.com/libatomic/oauth/pkg/codestore/memstore"
 	"github.com/libatomic/oauth/pkg/oauth"
+	"github.com/libatomic/oauth/pkg/sessions/cookiestore"
 )
 
 type (
@@ -31,10 +37,19 @@ type (
 	Server struct {
 		*api.Server
 
-		// ctrl is the auth.Controller interface the server uses to complete requests
 		ctrl oauth.Controller
 
+		codes oauth.CodeStore
+
+		sessions oauth.SessionStore
+
 		auth oauth.Authorizer
+
+		allowedGrants oauth.Permissions
+
+		allowUnsignedTokens bool
+
+		sessionKey [64]byte
 
 		jwks []byte
 	}
@@ -45,7 +60,7 @@ type (
 	route struct {
 		Path    string
 		Method  string
-		Params  api.Parameters
+		Params  interface{}
 		Handler interface{}
 		Auth    oauth.Permissions
 	}
@@ -67,7 +82,7 @@ var (
 )
 
 // New returns a new Server instance
-func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Server {
+func New(ctrl oauth.Controller, opts ...interface{}) *Server {
 	apiOpts := make([]api.Option, 0)
 	srvOpts := make([]Option, 0)
 
@@ -79,15 +94,18 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 		case Option:
 			srvOpts = append(srvOpts, opt)
 		}
-
 	}
 
-	apiOpts = append(apiOpts, api.WithBasepath(SpecDoc.Spec().BasePath))
+	apiOpts = append(apiOpts, api.WithBasepath("/oauth"))
 
 	s := &Server{
 		Server: api.NewServer(apiOpts...),
-		auth:   athr,
 		ctrl:   ctrl,
+		allowedGrants: oauth.Permissions{
+			oauth.GrantTypeAuthCode,
+			oauth.GrantTypeClientCredentials,
+			oauth.GrantTypeRefreshToken,
+		},
 	}
 
 	// apply the server options
@@ -95,22 +113,55 @@ func New(ctrl oauth.Controller, athr oauth.Authorizer, opts ...interface{}) *Ser
 		o(s)
 	}
 
+	if s.codes == nil {
+		s.codes = memstore.New(time.Minute*5, time.Minute*10)
+	}
+
+	if s.sessions == nil {
+		s.Log().Warn("using insecure cookie store")
+		s.sessions = cookiestore.New()
+	}
+
 	for _, r := range routes {
 		s.addRoute(r.Path, r.Method, r.Params, r.Handler, r.Auth)
 	}
 
-	s.addRoute(
-		"/.well-known/jwks.json",
-		http.MethodGet,
-		&auth.PublicKeyGetParams{},
-		s.publicKey,
-		oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile))
-
 	return s
 }
 
-func (s *Server) addRoute(path string, method string, params api.Parameters, handler interface{}, scopes ...oauth.Permissions) {
+// WithCodeStore changes the default code store for the server
+func WithCodeStore(c oauth.CodeStore) Option {
+	return func(s *Server) {
+		s.codes = c
+	}
+}
+
+// WithSessionStore changes the default session store for the server
+func WithSessionStore(c oauth.SessionStore) Option {
+	return func(s *Server) {
+		s.sessions = c
+	}
+}
+
+// WithAllowedGrants sets allowed grants
+func WithAllowedGrants(g oauth.Permissions) Option {
+	return func(s *Server) {
+		s.allowedGrants = g
+	}
+}
+
+// WithAuthorizer sets the oauth.Authorizer for the necessary calls
+func WithAuthorizer(a oauth.Authorizer) Option {
+	return func(s *Server) {
+		s.auth = a
+	}
+}
+
+func (s *Server) addRoute(path string, method string, params interface{}, handler interface{}, scopes ...oauth.Permissions) {
 	if len(scopes) > 0 && scopes[0] != nil {
+		if s.auth == nil {
+			return
+		}
 		s.Server.AddRoute(
 			path,
 			handler,
@@ -132,11 +183,26 @@ func (s *Server) addRoute(path string, method string, params api.Parameters, han
 }
 
 func (s *Server) addContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ctrlKey, s.ctrl)
+	return context.WithValue(ctx, ctrlKey, s)
 }
 
-func getController(ctx context.Context) oauth.Controller {
-	return ctx.Value(ctrlKey).(oauth.Controller)
+func oauthController(ctx context.Context) oauth.Controller {
+	s := ctx.Value(ctrlKey).(*Server)
+	return s.ctrl
+}
+
+func codeStore(ctx context.Context) oauth.CodeStore {
+	s := ctx.Value(ctrlKey).(*Server)
+	return s.codes
+}
+
+func sessionStore(ctx context.Context) oauth.SessionStore {
+	s := ctx.Value(ctrlKey).(*Server)
+	return s.sessions
+}
+
+func serverContext(ctx context.Context) *Server {
+	return ctx.Value(ctrlKey).(*Server)
 }
 
 func ensureURI(uri string, search []string) (*url.URL, error) {
@@ -163,49 +229,6 @@ func ensureURI(uri string, search []string) (*url.URL, error) {
 	}
 
 	return nil, errors.New("unauthorized uri")
-}
-
-func (s *Server) publicKey(ctx context.Context, params *auth.PublicKeyGetParams) api.Responder {
-	var aud *oauth.Audience
-	var err error
-
-	if params.Audience != nil {
-		aud, err = s.ctrl.AudienceGet(ctx, *params.Audience)
-		if err != nil {
-			return api.StatusError(http.StatusBadRequest, err)
-		}
-	}
-
-	pubKey, err := s.ctrl.TokenPublicKey(oauth.NewContext(ctx, oauth.Context{Audience: aud}))
-	if err != nil {
-		return api.StatusError(http.StatusInternalServerError, err)
-	}
-
-	// create the jwks output
-	key, err := jwk.New(pubKey)
-	if err != nil {
-		return api.StatusError(http.StatusInternalServerError, err)
-
-	}
-
-	thumb, err := key.Thumbprint(crypto.SHA1)
-	if err != nil {
-		return api.StatusError(http.StatusInternalServerError, err)
-
-	}
-
-	// usw the thumbprint as kid and x5t
-	key.Set("kid", hex.EncodeToString(thumb))
-	key.Set("x5t", base64.RawURLEncoding.EncodeToString(thumb))
-
-	key.Set("alg", "RS256")
-	key.Set("use", "sig")
-
-	keys := map[string]interface{}{
-		"keys": []interface{}{key},
-	}
-
-	return api.NewResponse(keys)
 }
 
 func registerRoutes(r []route) {

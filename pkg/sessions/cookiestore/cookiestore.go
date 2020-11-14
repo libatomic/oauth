@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 // Package cookiestore provides a cookie based session storage
@@ -103,7 +112,7 @@ func WithSessionKey(key [64]byte) Option {
 
 // SessionCreate creates a session
 func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth.Session, error) {
-	octx := oauth.GetContext(ctx)
+	octx := oauth.AuthContext(ctx)
 
 	name := c.sessionCookie
 
@@ -135,7 +144,7 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 
 // SessionRead returns the session
 func (c *cookieStore) SessionRead(ctx context.Context, r *http.Request) (oauth.Session, error) {
-	octx := oauth.GetContext(ctx)
+	octx := oauth.AuthContext(ctx)
 
 	name := c.sessionCookie
 

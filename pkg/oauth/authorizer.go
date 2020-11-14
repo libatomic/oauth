@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package oauth
@@ -13,7 +22,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/libatomic/api/pkg/api"
 )
 
@@ -30,6 +38,9 @@ type (
 	// AuthOption is an authorizer option
 	AuthOption func(a *authOptions)
 
+	// AuthorizerOption is an authorizer option
+	AuthorizerOption func(a *authorizer)
+
 	authOptions struct {
 		scope []Permissions
 		roles []Permissions
@@ -37,10 +48,15 @@ type (
 )
 
 // NewAuthorizer returns a new oauth authorizer
-func NewAuthorizer(ctrl Controller) Authorizer {
-	return &authorizer{
+func NewAuthorizer(ctrl Controller, opts ...AuthorizerOption) Authorizer {
+	auth := &authorizer{
 		ctrl: ctrl,
 	}
+
+	for _, o := range opts {
+		o(auth)
+	}
+	return auth
 }
 
 func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
@@ -49,9 +65,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 	for _, opt := range opts {
 		opt(o)
 	}
-
 	return func(r *http.Request) (context.Context, error) {
-		var claims jwt.MapClaims
 		var err error
 		var aud *Audience
 
@@ -59,39 +73,17 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
-		token, err := jwt.Parse(bearer, func(token *jwt.Token) (interface{}, error) {
-			claims = token.Claims.(jwt.MapClaims)
+		token, err := a.ctrl.TokenValidate(ctx, bearer)
+		if err != nil {
+			return nil, ErrAccessDenied
+		}
 
-			id, ok := claims["aud"].(string)
-			if !ok {
-				return nil, ErrAccessDenied
-			}
-			aud, err = a.ctrl.AudienceGet(r.Context(), id)
-			if err != nil {
-				return nil, err
-			}
-
-			switch token.Method.(type) {
-			case *jwt.SigningMethodHMAC:
-
-				return []byte(aud.TokenSecret), nil
-
-			case *jwt.SigningMethodRSA:
-				return a.ctrl.TokenPublicKey(NewContext(ctx, Context{Audience: aud}))
-
-			default:
-				return nil, ErrUnsupportedAlogrithm
-			}
-		})
+		aud, err = a.ctrl.AudienceGet(r.Context(), token.Audience())
 		if err != nil {
 			return nil, err
 		}
 
-		if !token.Valid {
-			return nil, ErrInvalidToken
-		}
-
-		scopes := Permissions(strings.Fields(claims["scope"].(string)))
+		scopes := token.Scope()
 
 		allowed := true
 
@@ -116,16 +108,16 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 			Token:    token,
 		}
 
-		if azp, ok := claims["azp"].(string); ok {
-			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), azp)
+		if token.ClientID() != "" {
+			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), token.ClientID())
 			if err != nil {
 				return nil, ErrAccessDenied
 			}
 			c.Application = app
 		}
 
-		if sub, ok := claims["sub"].(string); ok && !strings.HasSuffix(sub, "@applications") {
-			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), sub)
+		if !strings.HasSuffix(token.Subject(), "@applications") {
+			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), token.Subject())
 			if err != nil {
 				return nil, ErrAccessDenied
 			}

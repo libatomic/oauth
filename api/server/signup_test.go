@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package server
@@ -14,8 +23,10 @@ import (
 	"testing"
 
 	"github.com/apex/log"
+	"github.com/fatih/structs"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/litmus/pkg/litmus"
+	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -24,9 +35,9 @@ func TestSignup(t *testing.T) {
 		"SingupOK": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -42,8 +53,10 @@ func TestSignup(t *testing.T) {
 					Name: "UserCreate",
 					Args: litmus.Args{
 						litmus.Context,
-						mock.AnythingOfType("oauth.User"),
-						mock.AnythingOfType("string")},
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("*oauth.Profile"),
+					},
 					Returns: litmus.Returns{testUser, nil},
 				},
 				{
@@ -76,35 +89,12 @@ func TestSignup(t *testing.T) {
 				"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000`,
 			},
 		},
-		"SignupBadKey": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{nil, errors.New("invalid key")},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/signup",
-			ExpectedStatus:     http.StatusInternalServerError,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("email", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", testToken).
-				Encode(),
-			ExpectedResponse: `
-{
-	"message": "invalid key"
-}`,
-		},
 		"SignupBadToken": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), errors.New("bad token")},
 				},
 			},
 			Method:             http.MethodPost,
@@ -117,17 +107,13 @@ func TestSignup(t *testing.T) {
 				Add("password", "password").
 				Add("request_token", "bad-token").
 				Encode(),
-			ExpectedResponse: `
-{
-	"message": "illegal base64 data at input byte 8"
-}`,
 		},
 		"SignupExpiredToken": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
+					Name:    "TokenValidate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(expiredReq)), nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -144,9 +130,9 @@ func TestSignup(t *testing.T) {
 		"SignupBadContext": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -168,9 +154,9 @@ func TestSignup(t *testing.T) {
 		"SingupUserCreateError": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "TokenPublicKey",
-					Args:    litmus.Args{litmus.Context},
-					Returns: litmus.Returns{&testKey.PublicKey, nil},
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
 				},
 				{
 					Name:    "AudienceGet",
@@ -186,8 +172,10 @@ func TestSignup(t *testing.T) {
 					Name: "UserCreate",
 					Args: litmus.Args{
 						litmus.Context,
-						mock.AnythingOfType("oauth.User"),
-						mock.AnythingOfType("string")},
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("string"),
+						mock.AnythingOfType("*oauth.Profile"),
+					},
 					Returns: litmus.Returns{nil, errors.New("bad user")},
 				},
 			},
@@ -208,7 +196,7 @@ func TestSignup(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, ctrl, api.WithLog(log.Log))
+			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})

@@ -1,3 +1,20 @@
+/*
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package server
 
 import (
@@ -9,6 +26,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+	"github.com/fatih/structs"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/libatomic/api/pkg/api"
@@ -114,6 +133,8 @@ var (
 
 	testRequest *oauth.AuthRequest
 
+	expiredReq oauth.AuthRequest
+
 	emptyScopeReq oauth.AuthRequest
 
 	testCode *oauth.AuthCode
@@ -138,6 +159,8 @@ func init() {
 	if _, err := rand.Read(token); err != nil {
 		panic(err)
 	}
+
+	structs.DefaultTagName = "json"
 
 	verifier = base64.RawURLEncoding.EncodeToString(token)
 
@@ -177,15 +200,20 @@ func init() {
 		UserAuthenticated: true,
 	}
 
-	testToken, err = signValue(context.TODO(), testKey, AuthRequestParam, testRequest)
+	signer := func(ctx context.Context, claims oauth.Claims) (string, error) {
+		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	}
+
+	testToken, err = signValue(context.TODO(), signer, testRequest)
 	if err != nil {
 		panic(err)
 	}
 
-	expiredReq := *testRequest
+	expiredReq = *testRequest
 	expiredReq.ExpiresAt = time.Now().Add(time.Minute * -10).Unix()
 
-	expiredToken, err = signValue(context.TODO(), testKey, AuthRequestParam, expiredReq)
+	expiredToken, err = signValue(context.TODO(), signer, expiredReq)
 	if err != nil {
 		panic(err)
 	}
@@ -193,7 +221,7 @@ func init() {
 	badReq := *testRequest
 	badReq.CodeChallenge += "bad stuff"
 
-	badToken, err = signValue(context.TODO(), testKey, AuthRequestParam, badReq)
+	badToken, err = signValue(context.TODO(), signer, badReq)
 	if err != nil {
 		panic(err)
 	}
@@ -210,7 +238,7 @@ func init() {
 	misMatchReq := *testRequest
 	misMatchReq.CodeChallenge = misChal
 
-	misMatchToken, err = signValue(context.TODO(), testKey, AuthRequestParam, misMatchReq)
+	misMatchToken, err = signValue(context.TODO(), signer, misMatchReq)
 	if err != nil {
 		panic(err)
 	}
@@ -218,7 +246,7 @@ func init() {
 	emptyScopeReq = *testRequest
 	emptyScopeReq.Scope = oauth.Permissions{}
 
-	emptyScopeToken, err = signValue(context.TODO(), testKey, AuthRequestParam, emptyScopeReq)
+	emptyScopeToken, err = signValue(context.TODO(), signer, emptyScopeReq)
 	if err != nil {
 		panic(err)
 	}
@@ -262,24 +290,27 @@ func (c *mockController) UserAuthenticate(ctx context.Context, login string, pas
 	return args.Get(0).(*oauth.User), args.Get(1), args.Error(2)
 }
 
-func (c *mockController) UserCreate(ctx context.Context, user oauth.User, password string, invite ...string) (*oauth.User, error) {
-	args := c.Called(ctx, user, password)
-
-	user.Profile.Subject = "00000000-0000-0000-0000-000000000000"
+func (c *mockController) UserCreate(ctx context.Context, login string, password string, profile *oauth.Profile, invite ...string) (*oauth.User, error) {
+	args := c.Called(ctx, login, password, profile)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 
-	return args.Get(0).(*oauth.User), args.Error(1)
+	user := args.Get(0).(*oauth.User)
+
+	user.Profile = profile
+	user.Profile.Subject = "00000000-0000-0000-0000-000000000000"
+
+	return user, args.Error(1)
 }
 
 func (c *mockController) UserVerify(ctx context.Context, id string, code string) error {
 	return nil
 }
 
-func (c *mockController) UserUpdate(ctx context.Context, user *oauth.User) error {
-	args := c.Called(ctx, user)
+func (c *mockController) UserUpdate(ctx context.Context, id string, profile *oauth.Profile) error {
+	args := c.Called(ctx, id, profile)
 
 	return args.Error(0)
 }
@@ -292,26 +323,19 @@ func (c *mockController) UserSetPassword(ctx context.Context, id string, passwor
 	return nil
 }
 
-func (c *mockController) TokenFinalize(ctx context.Context, scope oauth.Permissions, claims map[string]interface{}) {
-
+func (c *mockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
+	args := c.Called(ctx, claims)
+	if args.String(0) == "" {
+		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	}
+	return args.String(0), args.Error(1)
 }
 
-func (c *mockController) TokenPrivateKey(ctx context.Context) (*rsa.PrivateKey, error) {
-	args := c.Called(ctx)
+func (c *mockController) TokenValidate(ctx context.Context, bearerToken string) (oauth.Claims, error) {
+	args := c.Called(ctx, bearerToken)
 
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*rsa.PrivateKey), args.Error(1)
-}
-
-func (c *mockController) TokenPublicKey(ctx context.Context) (*rsa.PublicKey, error) {
-	args := c.Called(ctx)
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*rsa.PublicKey), args.Error(1)
+	return args.Get(0).(oauth.Claims), args.Error(1)
 }
 
 // AuthCodeCreate creates a new authcode from the request if code expires at is set
@@ -368,13 +392,6 @@ func (c *mockController) SessionDestroy(ctx context.Context, w http.ResponseWrit
 	args := c.Called(ctx, w, r)
 
 	return args.Error(0)
-}
-
-func (c *mockController) AuthorizedGrantTypes(ctx context.Context) oauth.Permissions {
-	args := c.Called(ctx)
-
-	return args.Get(0).(oauth.Permissions)
-
 }
 
 func (c *mockController) Authorize(opts ...oauth.AuthOption) api.Authorizer {

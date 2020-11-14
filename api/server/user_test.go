@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package server
@@ -29,13 +38,13 @@ func TestUserInfoUpdate(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "UserUpdate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.User")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
 					Returns: litmus.Returns{nil},
 				},
 			},
 			Method:             http.MethodPut,
 			Path:               "/oauth/userInfo",
-			ExpectedStatus:     http.StatusOK,
+			ExpectedStatus:     http.StatusNoContent,
 			RequestContentType: "application/json",
 			Request:            testUser.Profile,
 			Setup: func(r *http.Request) {
@@ -69,7 +78,7 @@ func TestUserInfoUpdate(t *testing.T) {
 			Operations: []litmus.Operation{
 				{
 					Name:    "UserUpdate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.User")},
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
 					Returns: litmus.Returns{errors.New("access denied")},
 				},
 			},
@@ -93,7 +102,7 @@ func TestUserInfoUpdate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, auth, api.WithLog(log.Log))
+			mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})
@@ -139,7 +148,7 @@ func TestUserInfo(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, auth, api.WithLog(log.Log))
+			mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})
@@ -186,7 +195,7 @@ func TestUserPrincipal(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(mockController)
 
-			mockServer := New(ctrl, auth, api.WithLog(log.Log))
+			mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
 
 			test.Do(&ctrl.Mock, mockServer, t)
 		})

@@ -1,57 +1,65 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package server
 
 import (
 	"context"
-	"crypto"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
-	"strings"
+
+	"github.com/libatomic/oauth/pkg/oauth"
+	"github.com/mitchellh/mapstructure"
 )
 
-func signValue(ctx context.Context, privKey *rsa.PrivateKey, key string, val interface{}) (string, error) {
-	data, err := json.Marshal(val)
+func signValue(ctx context.Context, finalize func(context.Context, oauth.Claims) (string, error), val interface{}) (string, error) {
+	claims := make(map[string]interface{})
+
+	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName: "json",
+		Result:  &claims,
+	})
+	if err != nil {
+		return "", err
+	}
+	if err := dec.Decode(val); err != nil {
+		return "", err
+	}
+
+	token, err := finalize(ctx, oauth.Claims(claims))
 	if err != nil {
 		return "", err
 	}
 
-	hashed := sha256.Sum256(data)
-
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privKey, crypto.SHA256, hashed[:])
-	if err != nil {
-		return "", err
-	}
-
-	return base64.RawURLEncoding.EncodeToString(data) + "." + base64.RawURLEncoding.EncodeToString(signature), nil
+	return token, nil
 }
 
-func verifyValue(ctx context.Context, pubKey *rsa.PublicKey, key string, val string, out interface{}) error {
-	parts := strings.Split(val, ".")
-	msg, err := base64.RawURLEncoding.DecodeString(parts[0])
+func verifyValue(ctx context.Context, verify func(context.Context, string) (oauth.Claims, error), val string, out interface{}) error {
+	claims, err := verify(ctx, val)
 	if err != nil {
 		return err
 	}
-
-	hashed := sha256.Sum256(msg)
-
-	sig, err := base64.RawURLEncoding.DecodeString(parts[1])
+	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName: "json",
+		Result:  out,
+	})
 	if err != nil {
 		return err
 	}
-
-	if err := rsa.VerifyPKCS1v15(pubKey, crypto.SHA256, hashed[:], sig); err != nil {
+	if err := dec.Decode(map[string]interface{}(claims)); err != nil {
 		return err
 	}
-
-	return json.Unmarshal(msg, out)
+	return nil
 }

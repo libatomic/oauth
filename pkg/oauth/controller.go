@@ -1,9 +1,18 @@
 /*
- * Copyright (C) 2020 Atomic Media Foundation
+ * This file is part of the Atomic Stack (https://github.com/libatomic/atomic).
+ * Copyright (c) 2020 Atomic Publishing.
  *
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file in the root of this
- * workspace for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 // Package oauth provides the base auth interfaces
@@ -11,7 +20,6 @@ package oauth
 
 import (
 	"context"
-	"crypto/rsa"
 	"net/http"
 )
 
@@ -19,21 +27,14 @@ type (
 	// Controller is the interface implemented by consumers of the auth server
 	// This provides the backend functionality for user, application, and audience management
 	Controller interface {
-		CodeStore
-
-		SessionStore
-
-		// AudienceGet should return an audience for the specified name
-		AudienceGet(context.Context, string) (*Audience, error)
+		// AudienceGet should return an audience for the specified name/id
+		AudienceGet(ctx context.Context, name string) (*Audience, error)
 
 		// ApplicationGet should return an application for the specified client id
-		ApplicationGet(context.Context, string) (*Application, error)
+		ApplicationGet(ctx context.Context, clientID string) (*Application, error)
 
 		// UserGet returns a user by subject id along with the underlying principal
-		UserGet(context.Context, string) (*User, interface{}, error)
-
-		// TokenPublicKey returns the key for the specified context which is used to verify tokens
-		TokenPublicKey(ctx context.Context) (*rsa.PublicKey, error)
+		UserGet(ctx context.Context, id string) (*User, interface{}, error)
 
 		// UserAuthenticate authenticates a user using the login and password
 		// This function should return an oauth user and the principal
@@ -44,13 +45,10 @@ type (
 		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
 		//
 		// The library will call the controller's UserVerify method with this id and code
-		UserCreate(ctx context.Context, user User, password string, invite ...string) (*User, error)
+		UserCreate(ctx context.Context, login string, password string, profile *Profile, invite ...string) (*User, error)
 
-		// UserVerify should validate the code and update the user's email address as verified
-		UserVerify(ctx context.Context, id string, code string) error
-
-		// UserUpdate updates a user
-		UserUpdate(ctx context.Context, user *User) error
+		// UserUpdate updates a user profile
+		UserUpdate(ctx context.Context, id string, profile *Profile) error
 
 		// UserResetPassword should notify the user with a reset password link to the
 		// which includes the user's password reset code i.e.:
@@ -62,14 +60,11 @@ type (
 		// UserSetPassword will set a user's password
 		UserSetPassword(ctx context.Context, id string, password string) error
 
-		// TokenFinalize finalizes the scope prior to signing
-		TokenFinalize(ctx context.Context, scope Permissions, claims map[string]interface{})
+		// TokenFinalize finalizes the token, signs it and returns the bearer
+		TokenFinalize(ctx context.Context, claims Claims) (string, error)
 
-		// TokenPrivateKey returns the key for the specified context which is used to sign tokens
-		TokenPrivateKey(ctx context.Context) (*rsa.PrivateKey, error)
-
-		// AuthorizedGrantTypes returns the list of grant types the controller with authorize
-		AuthorizedGrantTypes(ctx context.Context) Permissions
+		// TokenValidate validate the token signature and parse it into the Claims
+		TokenValidate(ctx context.Context, bearerToken string) (Claims, error)
 	}
 
 	// CodeStore defines an AuthCode storage interface
