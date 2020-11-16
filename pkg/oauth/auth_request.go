@@ -38,7 +38,7 @@ type AuthRequest struct {
 
 	// The request audience
 	// Required: true
-	Audience string `json:"audience"`
+	Audience string `json:"aud"`
 
 	// The request client id
 	// Required: true
@@ -110,7 +110,7 @@ func (m *AuthRequest) Validate(formats strfmt.Registry) error {
 
 func (m *AuthRequest) validateAudience(formats strfmt.Registry) error {
 
-	if err := validate.RequiredString("audience", "body", string(m.Audience)); err != nil {
+	if err := validate.RequiredString("aud", "body", string(m.Audience)); err != nil {
 		return err
 	}
 
