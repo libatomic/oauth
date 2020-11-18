@@ -72,6 +72,15 @@ func (c Claims) ClientID() string {
 	return ""
 }
 
+// Use returns the token use
+func (c Claims) Use() string {
+	if s, ok := c["use"].(string); ok {
+		return s
+	}
+
+	return ""
+}
+
 // IssuedAt returns the issue time for the token
 func (c Claims) IssuedAt() time.Time {
 	if s, ok := c["iat"].(int64); ok {
