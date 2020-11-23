@@ -32,7 +32,8 @@ type (
 	}
 
 	authorizer struct {
-		ctrl Controller
+		ctrl             Controller
+		permitQueryToken bool
 	}
 
 	// AuthOption is an authorizer option
@@ -72,6 +73,9 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		ctx := r.Context()
 
 		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if bearer == "" && a.permitQueryToken {
+			bearer = r.URL.Query().Get("access_token")
+		}
 
 		token, err := a.ctrl.TokenValidate(ctx, bearer)
 		if err != nil {
@@ -162,5 +166,12 @@ func WithScope(scope ...Permissions) AuthOption {
 func WithRoles(roles ...Permissions) AuthOption {
 	return func(o *authOptions) {
 		o.roles = roles
+	}
+}
+
+// WithPermitQueryToken enforces the user roles
+func WithPermitQueryToken(permit bool) AuthorizerOption {
+	return func(a *authorizer) {
+		a.permitQueryToken = permit
 	}
 }

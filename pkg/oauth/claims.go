@@ -20,8 +20,12 @@ package oauth
 
 import (
 	"context"
+	"database/sql/driver"
+	"encoding/json"
 	"strings"
 	"time"
+
+	"errors"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -34,6 +38,15 @@ type (
 // Set sets a value in the claims
 func (c Claims) Set(key string, value interface{}) {
 	c[key] = value
+}
+
+// ID returns the token id
+func (c Claims) ID() string {
+	if s, ok := c["jti"].(string); ok {
+		return s
+	}
+
+	return ""
 }
 
 // Subject returns the subject for the token
@@ -117,6 +130,25 @@ func (c Claims) Sign(ctx context.Context, alg string, key interface{}) (string, 
 
 	}
 	return token.SignedString(key)
+}
+
+// Value returns Map as a value that can be stored as json in the database
+func (c Claims) Value() (driver.Value, error) {
+	return json.Marshal(c)
+}
+
+// Scan reads a json value from the database into a Map
+func (c Claims) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+
+	if err := json.Unmarshal(b, &c); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ParseClaims parses the jwt token into claims
