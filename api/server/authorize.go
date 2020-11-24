@@ -111,7 +111,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	}
 
 	// ensure the redirect uri path is allowed
-	u, err := ensureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
+	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
 	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
@@ -135,7 +135,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		params.AppURI = &app.AppUris[aud.Name][0]
 	}
 
-	appURI, err := ensureURI(*params.AppURI, app.AppUris[aud.Name])
+	appURI, err := EnsureURI(*params.AppURI, app.AppUris[aud.Name])
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",

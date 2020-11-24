@@ -210,7 +210,8 @@ func serverContext(ctx context.Context) *Server {
 	return ctx.Value(ctrlKey).(*Server)
 }
 
-func ensureURI(uri string, search []string) (*url.URL, error) {
+// EnsureURI checks that a uri matches within a list
+func EnsureURI(uri string, search []string) (*url.URL, error) {
 	if search == nil || len(search) == 0 {
 		return nil, errors.New("unauthorized uri")
 	}

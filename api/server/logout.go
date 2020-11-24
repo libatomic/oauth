@@ -78,7 +78,7 @@ func logout(ctx context.Context, params *LogoutParams) api.Responder {
 		params.RedirectURI = &app.RedirectUris[aud.Name][0]
 	}
 
-	u, err := ensureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
+	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
