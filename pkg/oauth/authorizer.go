@@ -79,7 +79,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 		token, err := a.ctrl.TokenValidate(ctx, bearer)
 		if err != nil {
-			return nil, ErrAccessDenied
+			return nil, err
 		}
 
 		aud, err = a.ctrl.AudienceGet(r.Context(), token.Audience())
