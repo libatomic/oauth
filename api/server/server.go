@@ -157,6 +157,11 @@ func WithAuthorizer(a oauth.Authorizer) Option {
 	}
 }
 
+// Sessions returns the sessions
+func (s *Server) Sessions() oauth.SessionStore {
+	return s.sessions
+}
+
 func (s *Server) addRoute(path string, method string, params interface{}, handler interface{}, scopes ...oauth.Permissions) {
 	if len(scopes) > 0 && scopes[0] != nil {
 		if s.auth == nil {
