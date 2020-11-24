@@ -164,9 +164,14 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		if user != nil {
 			claims["sub"] = user.Profile.Subject
+
+			if roles, ok := user.Roles[aud.Name]; ok {
+				claims["roles"] = roles
+			}
 		} else {
 			claims["sub"] = fmt.Sprintf("%s@applications", app.ClientID)
 		}
+
 		claims["aud"] = aud.Name
 		claims["exp"] = exp
 		claims["iat"] = time.Now().Unix()
@@ -280,6 +285,10 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			"azp":   app.ClientID,
 		}
 
+		if roles, ok := user.Roles[aud.Name]; ok {
+			claims["roles"] = roles
+		}
+
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
 			return api.StatusError(http.StatusInternalServerError, err)
@@ -310,7 +319,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		// check for id token request
 		if scope.Contains(oauth.ScopeOpenID) {
 			claims := oauth.Claims{
-				"iss": issuer,
+				"iss":       issuer,
 				"use":       "identity",
 				"iat":       time.Now().Unix(),
 				"auth_time": code.IssuedAt,
