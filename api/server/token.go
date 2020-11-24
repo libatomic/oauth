@@ -166,7 +166,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			claims["sub"] = user.Profile.Subject
 
 			if roles, ok := user.Roles[aud.Name]; ok {
-				claims["roles"] = roles
+				claims["roles"] = strings.Join(roles, " ")
 			}
 		} else {
 			claims["sub"] = fmt.Sprintf("%s@applications", app.ClientID)
@@ -286,7 +286,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		}
 
 		if roles, ok := user.Roles[aud.Name]; ok {
-			claims["roles"] = roles
+			claims["roles"] = strings.Join(roles, " ")
 		}
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
