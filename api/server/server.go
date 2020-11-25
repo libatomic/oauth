@@ -174,6 +174,7 @@ func (s *Server) addRoute(path string, method string, params interface{}, handle
 			api.WithParams(params),
 			api.WithContextFunc(s.addContext),
 			api.WithAuthorizers(s.auth.Authorize(oauth.WithScope(scopes...))),
+			api.WithValidation(true),
 		)
 
 	} else {
@@ -183,6 +184,7 @@ func (s *Server) addRoute(path string, method string, params interface{}, handle
 			api.WithMethod(method),
 			api.WithParams(params),
 			api.WithContextFunc(s.addContext),
+			api.WithValidation(true),
 		)
 	}
 }
