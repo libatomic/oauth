@@ -19,6 +19,7 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -43,8 +44,9 @@ type (
 	AuthorizerOption func(a *authorizer)
 
 	authOptions struct {
-		scope []Permissions
-		roles []Permissions
+		scope    []Permissions
+		roles    []Permissions
+		optional bool
 	}
 )
 
@@ -66,6 +68,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 	for _, opt := range opts {
 		opt(o)
 	}
+
 	return func(r *http.Request) (context.Context, error) {
 		var err error
 		var aud *Audience
@@ -75,6 +78,14 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if bearer == "" && a.permitQueryToken {
 			bearer = r.URL.Query().Get("access_token")
+		}
+
+		if bearer == "" {
+			if o.optional {
+				return ctx, nil
+			}
+
+			return nil, fmt.Errorf("%w: token not present", ErrAccessDenied)
 		}
 
 		token, err := a.ctrl.TokenValidate(ctx, bearer)
@@ -166,6 +177,13 @@ func WithScope(scope ...Permissions) AuthOption {
 func WithRoles(roles ...Permissions) AuthOption {
 	return func(o *authOptions) {
 		o.roles = roles
+	}
+}
+
+// WithOptional ignores missing auth tokens, but enforces present tokens
+func WithOptional() AuthOption {
+	return func(o *authOptions) {
+		o.optional = true
 	}
 }
 
