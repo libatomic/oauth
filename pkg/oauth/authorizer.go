@@ -158,6 +158,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 				}
 			}
 
+			c.Bearer = bearer
 			c.User = user
 			c.Principal = prin
 		}

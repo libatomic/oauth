@@ -29,6 +29,7 @@ type (
 		User        *User
 		Principal   interface{}
 		Token       Claims
+		Bearer      string
 		Request     *AuthRequest
 	}
 
