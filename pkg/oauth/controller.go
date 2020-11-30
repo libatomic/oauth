@@ -41,10 +41,6 @@ type (
 		UserAuthenticate(ctx context.Context, login string, password string) (*User, interface{}, error)
 
 		// UserCreate will create the user, optionally validating the invite code
-		// This method should send the user an email verification link with the format:
-		// - https://domain.tld/oauth/verify?sub={user_id}&code={verify_code}&redirect_uri=/
-		//
-		// The library will call the controller's UserVerify method with this id and code
 		UserCreate(ctx context.Context, login string, password string, profile *Profile, invite ...string) (*User, error)
 
 		// UserUpdate updates a user profile

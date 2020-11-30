@@ -617,49 +617,6 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
 
-  /verify:
-    get:
-      description: |
-        Verify is used to verify user email addresses.
-      operationId: "Verify"
-      tags: ["Auth"]
-      parameters:
-        - name: "sub"
-          type: "string"
-          description: "The user's subject identifier"
-          in: "query"
-          required: true
-        - name: "code"
-          type: "string"
-          description: "The verification code"
-          in: "query"
-          required: true
-        - name: "redirect_uri"
-          type: "string"
-          description: "The redirect uri"
-          in: "query"
-          required: true
-      responses:
-        302:
-          description: "found"
-          headers:
-            Location:
-              description: "The redirect URI for the auth request"
-              type: "string"
-              format: "uri"
-        400:
-          description: "bad parameter"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
-        401:
-          description: "unauthorized"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
-        500:
-          description: "internal server error"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
-
   /passwordSet:
     post:
       description: "Set a user's password"
