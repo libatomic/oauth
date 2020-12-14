@@ -83,6 +83,7 @@ securityDefinitions:
       openid: Access a user's identity
       profile: Access a user's profile
       offline_access: Used by clients to request permission to use refresh tokens
+      email:verify: Used by controllers to verify a user's email address
 
 definitions:
   BearerToken:
@@ -616,6 +617,35 @@ paths:
           description: "internal server error"
           schema:
             $ref: "#/definitions/ErrorResponse"
+
+  /verify:
+    get:
+      description: |
+        Verify is used to verify user email addresses.
+      operationId: "Verify"
+      tags: ["Auth"]
+      responses:
+        302:
+          description: "found"
+          headers:
+            Location:
+              description: "The redirect URI for the auth request"
+              type: "string"
+              format: "uri"
+        400:
+          description: "bad parameter"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        401:
+          description: "unauthorized"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        500:
+          description: "internal server error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      security:
+        - OAuth: ["email:verify"]
 
   /passwordSet:
     post:

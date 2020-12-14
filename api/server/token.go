@@ -223,12 +223,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 			oauth.AuthContext(ctx).Request = &code.AuthRequest
 
-			verifier, err := base64.RawURLEncoding.DecodeString(*params.CodeVerifier)
-			if err != nil {
-				return api.StatusError(http.StatusBadRequest, err)
-			}
-
-			sum := sha256.Sum256(verifier)
+			sum := sha256.Sum256([]byte(*params.CodeVerifier))
 			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 			if code.CodeChallenge != check {

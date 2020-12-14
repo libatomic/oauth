@@ -201,3 +201,119 @@ func TestUserPrincipal(t *testing.T) {
 		})
 	}
 }
+
+func TestUserEmailVerify(t *testing.T) {
+	auth := new(mockAuthorizer)
+
+	tests := map[string]litmus.Test{
+		"UserEmailVerifyOK": {
+			Operations: []litmus.Operation{
+				{
+					Name:    "UserUpdate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
+					Returns: litmus.Returns{nil},
+				},
+			},
+			Method: http.MethodGet,
+			Path:   "/oauth/verify",
+			Query: litmus.BeginQuery().
+				Add("redirect_uri", mockURI).
+				EndQuery(),
+			ExpectedStatus:     http.StatusFound,
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        testUser,
+							Principal:   testPrin,
+						}), nil
+				})
+			},
+		},
+		"UserEmailVerifyBadUser": {
+			Operations: []litmus.Operation{},
+			Method:     http.MethodGet,
+			Path:       "/oauth/verify",
+			Query: litmus.BeginQuery().
+				Add("redirect_uri", mockURI).
+				EndQuery(),
+			ExpectedStatus:     http.StatusUnauthorized,
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        nil,
+							Principal:   nil,
+						}), nil
+				})
+			},
+		},
+		"UserEmailVerifyBadURI": {
+			Operations: []litmus.Operation{},
+			Method:     http.MethodGet,
+			Path:       "/oauth/verify",
+			Query: litmus.BeginQuery().
+				Add("redirect_uri", "http://www.google.com").
+				EndQuery(),
+			ExpectedStatus:     http.StatusUnauthorized,
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        testUser,
+							Principal:   testPrin,
+						}), nil
+				})
+			},
+		},
+		"UserEmailVerifyError": {
+			Operations: []litmus.Operation{
+				{
+					Name:    "UserUpdate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
+					Returns: litmus.Returns{errors.New("access denied")},
+				},
+			},
+			Method: http.MethodGet,
+			Path:   "/oauth/verify",
+			Query: litmus.BeginQuery().
+				Add("redirect_uri", mockURI).
+				EndQuery(),
+			ExpectedStatus:     http.StatusInternalServerError,
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        testUser,
+							Principal:   testPrin,
+						}), nil
+				})
+			},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctrl := new(mockController)
+
+			mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
+
+			test.Do(&ctrl.Mock, mockServer, t)
+		})
+	}
+}

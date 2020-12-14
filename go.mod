@@ -19,7 +19,7 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/sessions v1.2.0
-	github.com/libatomic/api v1.0.27
+	github.com/libatomic/api v1.0.30
 	github.com/libatomic/litmus v0.5.3
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/mr-tron/base58 v1.2.0

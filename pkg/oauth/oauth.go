@@ -31,6 +31,9 @@ const (
 	// ScopeOffline is the scope that allows a client to request refresh tokens
 	ScopeOffline = "offline_access"
 
+	// ScopeEmailVerify is required to verify a users email address
+	ScopeEmailVerify = "email:verify"
+
 	// GrantTypeAuthCode is the auth code grant type
 	GrantTypeAuthCode = "authorization_code"
 
