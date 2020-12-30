@@ -177,6 +177,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		claims["iat"] = time.Now().Unix()
 		claims["scope"] = strings.Join(params.Scope, " ")
 		claims["iss"] = issuer
+		claims["azp"] = app.ClientID
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
