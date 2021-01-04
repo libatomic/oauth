@@ -106,8 +106,9 @@ func emailVerify(ctx context.Context, params *UserEmailVerifyParams) api.Respond
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
 
+	verifed := true
 	if err := ctrl.UserUpdate(ctx, auth.User.Profile.Subject, &oauth.Profile{
-		EmailVerified: true,
+		EmailVerified: &verifed,
 	}); err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
