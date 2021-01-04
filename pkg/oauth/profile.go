@@ -98,7 +98,7 @@ type Profile struct {
 	Nickname string `json:"nickname,omitempty"`
 
 	// The user's phone number in E.164 format
-	PhoneNumber *string `json:"phone_number,omitempty"`
+	PhoneNumber string `json:"phone_number,omitempty"`
 
 	// True if the End-User's phone number has been verified; otherwise false. When this Claim Value is true, this means that the OP
 	// took affirmative steps to ensure that this phone number was controlled by the End-User at the time the verification was performed.
@@ -106,7 +106,7 @@ type Profile struct {
 	// within which the parties are operating. When true, the phone_number Claim MUST be in E.164 format and any extensions MUST be
 	// represented in RFC 3966 format."
 	//
-	PhoneNumberVerified bool `json:"phone_number_verified,omitempty"`
+	PhoneNumberVerified *bool `json:"phone_number_verified,omitempty"`
 
 	// URL of the End-User's profile picture. This URL MUST refer to an image file (for example, a PNG, JPEG, or GIF image file),
 	// rather than to a Web page containing an image. Note that this URL SHOULD specifically reference a profile photo of the
