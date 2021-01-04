@@ -58,7 +58,7 @@ type Profile struct {
 	// The means by which an e-mail address is verified is context-specific, and dependent upon the trust framework or contractual agreements
 	// within which the parties are operating.
 	//
-	EmailVerified bool `json:"email_verified,omitempty"`
+	EmailVerified *bool `json:"email_verified,omitempty"`
 
 	// Surname(s) or last name(s) of the End-User. Note that in some cultures, people can have multiple family names or no family name;
 	// all can be present, with the names being separated by space characters.
@@ -98,7 +98,7 @@ type Profile struct {
 	Nickname string `json:"nickname,omitempty"`
 
 	// The user's phone number in E.164 format
-	PhoneNumber string `json:"phone_number,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
 
 	// True if the End-User's phone number has been verified; otherwise false. When this Claim Value is true, this means that the OP
 	// took affirmative steps to ensure that this phone number was controlled by the End-User at the time the verification was performed.
