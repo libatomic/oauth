@@ -279,11 +279,11 @@ func TestTokenAuthcode(t *testing.T) {
 				{
 					Name: "AudienceGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&oauth.Audience{
-						Name:           "snowcrash",
-						Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
-						TokenAlgorithm: "RS256",
-						TokenLifetime:  60,
+					Returns: litmus.Returns{&mockAudience{
+						name:           "snowcrash",
+						permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+						tokenAlgorithm: "RS256",
+						tokenLifetime:  60,
 					}, nil},
 				},
 
@@ -332,11 +332,11 @@ func TestTokenAuthcode(t *testing.T) {
 				{
 					Name: "AudienceGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&oauth.Audience{
-						Name:           "snowcrash",
-						Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
-						TokenAlgorithm: "RS256",
-						TokenLifetime:  60,
+					Returns: litmus.Returns{&mockAudience{
+						name:           "snowcrash",
+						permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+						tokenAlgorithm: "RS256",
+						tokenLifetime:  60,
 					}, nil},
 				},
 
@@ -976,11 +976,11 @@ func TestTokenClientCredentials(t *testing.T) {
 				{
 					Name: "AudienceGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&oauth.Audience{
-						Name:           "snowcrash",
-						Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
-						TokenAlgorithm: "RS256",
-						TokenLifetime:  60,
+					Returns: litmus.Returns{&mockAudience{
+						name:           "snowcrash",
+						permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+						tokenAlgorithm: "RS256",
+						tokenLifetime:  60,
 					}, nil},
 				},
 				{

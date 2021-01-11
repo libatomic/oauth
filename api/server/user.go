@@ -101,7 +101,7 @@ func emailVerify(ctx context.Context, params *UserEmailVerifyParams) api.Respond
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	u, err := EnsureURI(params.RedirectURI, auth.Application.RedirectUris[auth.Audience.Name])
+	u, err := EnsureURI(params.RedirectURI, auth.Application.RedirectUris[auth.Audience.Name()])
 	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}

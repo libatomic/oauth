@@ -71,7 +71,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 	return func(r *http.Request) (context.Context, error) {
 		var err error
-		var aud *Audience
+		var aud Audience
 
 		ctx := r.Context()
 
@@ -141,7 +141,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 			// check roles
 			if len(o.roles) > 0 {
-				roles, ok := user.Roles[aud.Name]
+				roles, ok := user.Roles[aud.Name()]
 				if !ok {
 					return nil, ErrAccessDenied
 				}

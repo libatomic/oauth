@@ -28,7 +28,7 @@ type (
 	// This provides the backend functionality for user, application, and audience management
 	Controller interface {
 		// AudienceGet should return an audience for the specified name/id
-		AudienceGet(ctx context.Context, name string) (*Audience, error)
+		AudienceGet(ctx context.Context, name string) (Audience, error)
 
 		// ApplicationGet should return an application for the specified client id
 		ApplicationGet(ctx context.Context, clientID string) (*Application, error)

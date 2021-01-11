@@ -38,6 +38,7 @@ type (
 		sessionTimeout  time.Duration
 		hash            []byte
 		block           []byte
+		multiAudience   bool
 	}
 
 	// Option is an option for cookie store options
@@ -110,6 +111,13 @@ func WithSessionKey(key [64]byte) Option {
 	}
 }
 
+// WithMultiAudience will not restrict the session cookies to a single audience
+func WithMultiAudience(m bool) Option {
+	return func(c *cookieStore) {
+		c.multiAudience = m
+	}
+}
+
 // SessionCreate creates a session
 func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth.Session, error) {
 	octx := oauth.AuthContext(ctx)
@@ -148,7 +156,7 @@ func (c *cookieStore) SessionRead(ctx context.Context, r *http.Request) (oauth.S
 
 	name := c.sessionCookie
 
-	if octx.Audience != nil {
+	if octx.Audience != nil && !c.multiAudience {
 		name = fmt.Sprintf("%s#%s", c.sessionCookie, octx.Audience.Name)
 	}
 

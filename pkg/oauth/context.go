@@ -25,7 +25,7 @@ type (
 	// Context is the oauth context
 	Context struct {
 		Application *Application
-		Audience    *Audience
+		Audience    Audience
 		User        *User
 		Principal   interface{}
 		Token       Claims
@@ -55,8 +55,6 @@ func NewContext(ctx context.Context, args ...interface{}) context.Context {
 		case *Application:
 			octx.Application = t
 		case Audience:
-			octx.Audience = &t
-		case *Audience:
 			octx.Audience = t
 		case User:
 			octx.User = &t

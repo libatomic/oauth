@@ -79,7 +79,7 @@ func (u User) CurrentRoles(ctx context.Context) Permissions {
 		return Permissions{}
 	}
 
-	if p, ok := u.Roles[octx.Audience.Name]; ok {
+	if p, ok := u.Roles[octx.Audience.Name()]; ok {
 		return p
 	}
 

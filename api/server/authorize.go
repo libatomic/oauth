@@ -33,7 +33,7 @@ type (
 	// AuthorizeParams contains all the bound params for the authorize operation
 	AuthorizeParams struct {
 		AppURI              *string  `json:"app_uri"`
-		Audience            string   `json:"audience"`
+		Audience            *string  `json:"audience,omitempty"`
 		ClientID            string   `json:"client_id"`
 		CodeChallenge       string   `json:"code_challenge"`
 		CodeChallengeMethod *string  `json:"code_challenge_method"`
@@ -59,7 +59,7 @@ func init() {
 func (p *AuthorizeParams) Validate() error {
 	if err := (validation.Errors{
 		"app_uri":               validation.Validate(p.AppURI, validation.NilOrNotEmpty, is.RequestURI),
-		"audience":              validation.Validate(p.Audience, validation.Required),
+		"audience":              validation.Validate(p.Audience, validation.NilOrNotEmpty),
 		"client_id":             validation.Validate(p.ClientID, validation.Required),
 		"code_challenge":        validation.Validate(p.CodeChallenge, validation.Required),
 		"code_challenge_method": validation.Validate(p.CodeChallengeMethod, validation.NilOrNotEmpty),
@@ -81,8 +81,15 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	ctrl := oauthController(ctx)
 	log := api.Log(ctx)
 
+	r, w := api.Request(ctx)
+
+	if params.Audience == nil {
+		aud := r.URL.Hostname()
+		params.Audience = &aud
+	}
+
 	// ensure the audience
-	aud, err := ctrl.AudienceGet(ctx, params.Audience)
+	aud, err := ctrl.AudienceGet(ctx, *params.Audience)
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
@@ -102,40 +109,40 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		Application: app,
 	})
 
-	if len(app.RedirectUris) == 0 || len(app.RedirectUris[aud.Name]) == 0 {
+	if len(app.RedirectUris) == 0 || len(app.RedirectUris[aud.Name()]) == 0 {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
 
-	if params.RedirectURI == nil && len(app.RedirectUris[aud.Name]) > 0 {
-		params.RedirectURI = &app.RedirectUris[aud.Name][0]
+	if params.RedirectURI == nil && len(app.RedirectUris[aud.Name()]) > 0 {
+		params.RedirectURI = &app.RedirectUris[aud.Name()][0]
 	}
 
 	// ensure the redirect uri path is allowed
-	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
+	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()])
 	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
 
 	// enusure this app supports the authorization_code flow
-	if g, ok := app.AllowedGrants[aud.Name]; !ok || !g.Contains("authorization_code") {
+	if g, ok := app.AllowedGrants[aud.Name()]; !ok || !g.Contains("authorization_code") {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
 			"error_description": err.Error(),
 		})
 	}
 
-	if len(app.AppUris) == 0 || len(app.AppUris[aud.Name]) == 0 {
+	if len(app.AppUris) == 0 || len(app.AppUris[aud.Name()]) == 0 {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
 			"error_description": err.Error(),
 		})
 	}
 
-	if params.AppURI == nil && len(app.AppUris[aud.Name]) > 0 {
-		params.AppURI = &app.AppUris[aud.Name][0]
+	if params.AppURI == nil && len(app.AppUris[aud.Name()]) > 0 {
+		params.AppURI = &app.AppUris[aud.Name()][0]
 	}
 
-	appURI, err := EnsureURI(*params.AppURI, app.AppUris[aud.Name])
+	appURI, err := EnsureURI(*params.AppURI, app.AppUris[aud.Name()])
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
@@ -145,7 +152,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 
 	if len(params.Scope) > 0 && len(app.Permissions) > 0 {
 		// check the scope against the app and audience
-		perms, ok := app.Permissions[params.Audience]
+		perms, ok := app.Permissions[*params.Audience]
 		if !ok || !perms.Every(params.Scope...) {
 			return api.Redirect(u, map[string]string{
 				"error":             "access_denied",
@@ -154,7 +161,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		}
 
 		// sanity check to ensure the audience actually has the permissions requested
-		if !aud.Permissions.Every(params.Scope...) {
+		if !aud.Permissions().Every(params.Scope...) {
 			return api.Redirect(u, map[string]string{
 				"error":             "access_denied",
 				"error_description": "insufficient permissions",
@@ -167,14 +174,12 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		AppURI:              *params.AppURI,
 		RedirectURI:         *params.RedirectURI,
 		Scope:               params.Scope,
-		Audience:            params.Audience,
+		Audience:            *params.Audience,
 		State:               params.State,
 		CodeChallenge:       params.CodeChallenge,
 		CodeChallengeMethod: *params.CodeChallengeMethod,
 		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
 	}
-
-	r, w := api.Request(ctx)
 
 	session, err := sessionStore(ctx).SessionRead(ctx, r)
 	if err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {

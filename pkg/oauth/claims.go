@@ -152,9 +152,9 @@ func (c Claims) Scan(value interface{}) error {
 }
 
 // ParseClaims parses the jwt token into claims
-func ParseClaims(ctx context.Context, bearer string, key interface{}) (Claims, error) {
-	token, err := jwt.Parse(bearer, func(token *jwt.Token) (interface{}, error) {
-		return key, nil
+func ParseClaims(ctx context.Context, bearer string, keyfn func(claims Claims) (interface{}, error)) (Claims, error) {
+	token, err := jwt.ParseWithClaims(bearer, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return keyfn(*token.Claims.(*Claims))
 	})
 	if err != nil {
 		return nil, err
@@ -164,5 +164,5 @@ func ParseClaims(ctx context.Context, bearer string, key interface{}) (Claims, e
 		return nil, ErrInvalidToken
 	}
 
-	return Claims(token.Claims.(jwt.MapClaims)), nil
+	return *token.Claims.(*Claims), nil
 }

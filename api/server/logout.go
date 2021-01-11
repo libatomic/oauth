@@ -31,7 +31,7 @@ import (
 type (
 	// LogoutParams contains all the bound params for the logout operation
 	LogoutParams struct {
-		Audience    string  `json:"audience"`
+		Audience    *string `json:"audience,omitempty"`
 		ClientID    string  `json:"client_id"`
 		RedirectURI *string `json:"redirect_uri"`
 		State       *string `json:"state"`
@@ -47,7 +47,7 @@ func init() {
 // Validate validates LogoutParams
 func (p LogoutParams) Validate() error {
 	return validation.Errors{
-		"audience":     validation.Validate(p.Audience, validation.Required),
+		"audience":     validation.Validate(p.Audience, validation.NilOrNotEmpty),
 		"client_id":    validation.Validate(p.ClientID, validation.Required),
 		"redirect_uri": validation.Validate(p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
 	}.Filter()
@@ -57,7 +57,14 @@ func logout(ctx context.Context, params *LogoutParams) api.Responder {
 	ctrl := oauthController(ctx)
 	log := api.Log(ctx)
 
-	aud, err := ctrl.AudienceGet(ctx, params.Audience)
+	r, w := api.Request(ctx)
+
+	if params.Audience == nil {
+		aud := r.URL.Hostname()
+		params.Audience = &aud
+	}
+
+	aud, err := ctrl.AudienceGet(ctx, *params.Audience)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
@@ -74,16 +81,15 @@ func logout(ctx context.Context, params *LogoutParams) api.Responder {
 		Audience:    aud,
 	})
 
-	if (params.RedirectURI == nil || *params.RedirectURI == "") && len(app.RedirectUris[aud.Name]) > 0 {
-		params.RedirectURI = &app.RedirectUris[aud.Name][0]
+	if (params.RedirectURI == nil || *params.RedirectURI == "") && len(app.RedirectUris[aud.Name()]) > 0 {
+		params.RedirectURI = &app.RedirectUris[aud.Name()][0]
 	}
 
-	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name])
+	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()])
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 
-	r, w := api.Request(ctx)
 	if err := sessionStore(ctx).SessionDestroy(ctx, w, r); err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {
 		log.Error(err.Error())
 

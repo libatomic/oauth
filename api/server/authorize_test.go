@@ -194,10 +194,10 @@ func TestAuthorize(t *testing.T) {
 					Returns: litmus.Returns{
 						&oauth.Application{
 							AllowedGrants: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{oauth.GrantTypeAuthCode},
+								testAud.name: oauth.Permissions{oauth.GrantTypeAuthCode},
 							},
 							RedirectUris: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{"http://foo"},
+								testAud.name: oauth.Permissions{"http://foo"},
 							},
 						}, nil},
 				},
@@ -227,13 +227,13 @@ func TestAuthorize(t *testing.T) {
 					Returns: litmus.Returns{
 						&oauth.Application{
 							AllowedGrants: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{oauth.GrantTypeAuthCode},
+								testAud.name: oauth.Permissions{oauth.GrantTypeAuthCode},
 							},
 							AppUris: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{"http://foo"},
+								testAud.name: oauth.Permissions{"http://foo"},
 							},
 							RedirectUris: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{mockURI},
+								testAud.name: oauth.Permissions{mockURI},
 							},
 						}, nil},
 				},
@@ -271,13 +271,13 @@ func TestAuthorize(t *testing.T) {
 									"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 							},
 							AllowedGrants: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{oauth.GrantTypeAuthCode},
+								testAud.name: oauth.Permissions{oauth.GrantTypeAuthCode},
 							},
 							AppUris: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{mockURI},
+								testAud.name: oauth.Permissions{mockURI},
 							},
 							RedirectUris: oauth.PermissionSet{
-								testAud.Name: oauth.Permissions{mockURI},
+								testAud.name: oauth.Permissions{mockURI},
 							},
 						}, nil},
 				},
@@ -303,12 +303,12 @@ func TestAuthorize(t *testing.T) {
 				{
 					Name: "AudienceGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&oauth.Audience{
-						Name:           "snowcrash",
-						Permissions:    oauth.Permissions{"metaverse:destroy"},
-						TokenAlgorithm: "HS256",
-						TokenSecret:    "super-duper-secret",
-						TokenLifetime:  60,
+					Returns: litmus.Returns{&mockAudience{
+						name:           "snowcrash",
+						permissions:    oauth.Permissions{"metaverse:destroy"},
+						tokenAlgorithm: "HS256",
+						tokenSecret:    "super-duper-secret",
+						tokenLifetime:  60,
 					}, nil},
 				},
 				{

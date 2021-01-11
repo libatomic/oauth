@@ -52,6 +52,15 @@ type (
 		createdAt int64
 		expiresAt int64
 	}
+
+	mockAudience struct {
+		name           string
+		description    *string
+		permissions    oauth.Permissions
+		tokenAlgorithm string
+		tokenLifetime  int64
+		tokenSecret    string
+	}
 )
 
 const (
@@ -62,12 +71,12 @@ var (
 	verifier  string
 	challenge string
 
-	testAud = &oauth.Audience{
-		Name:           "snowcrash",
-		Permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
-		TokenAlgorithm: "HS256",
-		TokenSecret:    "super-duper-secret",
-		TokenLifetime:  60,
+	testAud = &mockAudience{
+		name:           "snowcrash",
+		permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+		tokenAlgorithm: "HS256",
+		tokenSecret:    "super-duper-secret",
+		tokenLifetime:  60,
 	}
 
 	testApp = &oauth.Application{
@@ -96,7 +105,7 @@ var (
 
 	testSession = &mockSession{
 		clientID:  "00000000-0000-0000-0000-000000000000",
-		aud:       testAud.Name,
+		aud:       testAud.name,
 		createdAt: time.Now().Unix(),
 		expiresAt: time.Now().Add(time.Hour).Unix(),
 		id:        "00000000-0000-0000-0000-000000000000",
@@ -261,13 +270,13 @@ func (c *mockController) ApplicationGet(ctx context.Context, id string) (*oauth.
 	return args.Get(0).(*oauth.Application), args.Error(1)
 }
 
-func (c *mockController) AudienceGet(ctx context.Context, name string) (*oauth.Audience, error) {
+func (c *mockController) AudienceGet(ctx context.Context, name string) (oauth.Audience, error) {
 	args := c.Called(ctx, name)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*oauth.Audience), args.Error(1)
+	return args.Get(0).(oauth.Audience), args.Error(1)
 }
 
 func (c *mockController) UserGet(ctx context.Context, login string) (*oauth.User, interface{}, error) {
@@ -458,4 +467,35 @@ func (s *mockSession) Write(http.ResponseWriter) error {
 // Destroy clears the session from the response
 func (s *mockSession) Destroy(http.ResponseWriter) error {
 	return nil
+}
+
+func (a mockAudience) Name() string {
+	return a.name
+}
+
+func (a mockAudience) Description() string {
+	if a.description == nil {
+		return ""
+	}
+	return *a.description
+}
+
+func (a mockAudience) Permissions() oauth.Permissions {
+	return a.permissions
+}
+
+func (a mockAudience) TokenAlgorithm() string {
+	return a.tokenAlgorithm
+}
+
+func (a mockAudience) TokenLifetime() int64 {
+	return a.tokenLifetime
+}
+
+func (a mockAudience) TokenSecret() string {
+	return a.tokenSecret
+}
+
+func (a mockAudience) Principal() interface{} {
+	return &a
 }
