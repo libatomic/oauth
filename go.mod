@@ -8,7 +8,7 @@ go 1.14
 
 require (
 	github.com/apex/log v1.9.0
-	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
+	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/dgrijalva/jwt-go v3.2.1-0.20200107013213-dc14462fd587+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/go-openapi/errors v0.19.6

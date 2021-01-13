@@ -143,11 +143,25 @@ type (
 	}
 )
 
+// Validate handles validation for the EmailClaim struct
+func (e EmailClaim) Validate() error {
+	return validation.ValidateStruct(&e,
+		validation.Field(&e.Email, validation.NilOrNotEmpty, is.EmailFormat),
+	)
+}
+
+// Validate handles validation for the PhoneClaim struct
+func (p PhoneClaim) Validate() error {
+	return validation.ValidateStruct(&p,
+		validation.Field(&p.PhoneNumber, validation.NilOrNotEmpty),
+	)
+}
+
 // Validate handles validation for the Profile struct
 func (p Profile) Validate() error {
 	return validation.ValidateStruct(&p,
-		validation.Field(&p.Email, validation.NilOrNotEmpty, is.EmailFormat),
-		validation.Field(&p.PhoneNumber, validation.NilOrNotEmpty),
+		validation.Field(&p.EmailClaim, validation.NilOrNotEmpty),
+		validation.Field(&p.PhoneClaim, validation.NilOrNotEmpty),
 		validation.Field(&p.Address),
 	)
 }

@@ -19,10 +19,12 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/libatomic/api/pkg/api"
@@ -32,11 +34,11 @@ import (
 type (
 	// SignupParams contains all the bound params for the signup operation
 	SignupParams struct {
-		Email        string  `json:"email"`
+		Email        *string `json:"email,omitempty"`
 		InviteCode   *string `json:"invite_code"`
 		Login        string  `json:"login"`
 		Name         *string `json:"name"`
-		Password     *string  `json:"password"`
+		Password     *string `json:"password"`
 		RequestToken string  `json:"request_token"`
 	}
 )
@@ -50,11 +52,11 @@ func init() {
 // Validate validates SignupParams
 func (p SignupParams) Validate() error {
 	return validation.Errors{
-		"email":         validation.Validate(p.Email, validation.Required, is.EmailFormat),
+		"email":         validation.Validate(p.Email, validation.NilOrNotEmpty, is.EmailFormat),
 		"invite_code":   validation.Validate(p.InviteCode, validation.NilOrNotEmpty),
 		"login":         validation.Validate(p.Login, validation.Required),
-		"name":          validation.Validate(p.Name, validation.NilOrNotEmpty),
-		"password":      validation.Validate(p.Password, validation.Required),
+		"name":          validation.Validate(p.Name, validation.Required),
+		"password":      validation.Validate(p.Password, validation.NilOrNotEmpty),
 		"request_token": validation.Validate(p.RequestToken, validation.Required),
 	}.Filter()
 }
@@ -85,10 +87,14 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		})
 	}
 
+	if govalidator.IsEmail(params.Login) && params.Email == nil {
+		params.Email = &params.Login
+	}
+
 	user, err := s.ctrl.UserCreate(ctx, params.Login, params.Password, &oauth.Profile{
 		Name: safestr(params.Name),
 		EmailClaim: &oauth.EmailClaim{
-			Email: &params.Email,
+			Email: params.Email,
 		},
 	}, safestr(params.InviteCode))
 	if err != nil {
@@ -98,20 +104,34 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		})
 	}
 
-	loginParams := &LoginParams{
-		Login:        params.Login,
-		Password:     params.Password,
-		RequestToken: params.RequestToken,
+	u, _ = url.Parse(req.RedirectURI)
+	q := u.Query()
+
+	if err := verifySendDirect(oauth.NewContext(ctx, user), &VerifySendParams{
+		Method: oauth.NotificationChannelEmail,
+	}); err != nil {
+		err = fmt.Errorf("failed to send email verification to user %s: %s", user.Login, err.Error())
+
+		log.Error(err.Error())
+
+		q.Set("error", "server_error")
+		q.Set("error_description", err.Error())
 	}
 
-	// send the email verification notification out-of-band
-	go func() {
-		if err := verifySendDirect(oauth.NewContext(ctx, user), &VerifySendParams{
-			Method: oauth.NotificationChannelEmail,
-		}); err != nil {
-			log.Errorf("failed to send email verification to user %s: %s", user.Login, err.Error())
+	if params.Password != nil {
+		loginParams := &LoginParams{
+			Login:        params.Login,
+			Password:     *params.Password,
+			RequestToken: params.RequestToken,
 		}
-	}()
+		return login(ctx, loginParams)
+	}
 
-	return login(ctx, loginParams)
+	if req.State != nil {
+		q.Set("state", *req.State)
+	}
+
+	u.RawQuery = q.Encode()
+
+	return api.Redirect(u)
 }

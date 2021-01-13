@@ -48,8 +48,13 @@ func userInfoUpdate(ctx context.Context, params *UserInfoUpdateParams) api.Respo
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	params.Profile.EmailVerified = nil
-	params.Profile.PhoneNumberVerified = nil
+	if params.Profile.EmailClaim != nil {
+		params.Profile.EmailClaim.EmailVerified = nil
+	}
+
+	if params.Profile.PhoneClaim != nil {
+		params.Profile.PhoneClaim.PhoneNumberVerified = nil
+	}
 
 	if err := ctrl.UserUpdate(ctx, auth.User.Profile.Subject, &params.Profile); err != nil {
 		return api.Error(err)
