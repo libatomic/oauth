@@ -23,7 +23,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/libatomic/api/pkg/api"
@@ -37,7 +36,7 @@ type (
 		InviteCode   *string `json:"invite_code"`
 		Login        string  `json:"login"`
 		Name         *string `json:"name"`
-		Password     string  `json:"password"`
+		Password     *string  `json:"password"`
 		RequestToken string  `json:"request_token"`
 	}
 )
@@ -87,8 +86,10 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	}
 
 	user, err := s.ctrl.UserCreate(ctx, params.Login, params.Password, &oauth.Profile{
-		Name:  safestr(params.Name),
-		Email: strfmt.Email(params.Email),
+		Name: safestr(params.Name),
+		EmailClaim: &oauth.EmailClaim{
+			Email: &params.Email,
+		},
 	}, safestr(params.InviteCode))
 	if err != nil {
 		return api.Redirect(u, map[string]string{

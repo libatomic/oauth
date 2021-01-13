@@ -81,7 +81,9 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 	if auth.Token.Scope().Contains(oauth.ScopeEmailVerify) {
 		verifed := true
 		if err := ctrl.UserUpdate(ctx, auth.User.Profile.Subject, &oauth.Profile{
-			EmailVerified: &verifed,
+			EmailClaim: &oauth.EmailClaim{
+				EmailVerified: &verifed,
+			},
 		}); err != nil {
 			return api.Redirect(u, map[string]string{
 				"error":             "server_error",

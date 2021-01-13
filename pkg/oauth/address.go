@@ -20,16 +20,11 @@ package oauth
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"net/http"
 
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"errors"
 )
 
 // Address OpenID address claim as defined in section 5.1.1 of the connect core 1.0 specification
-//
-// swagger:model Address
 type Address struct {
 
 	// Country name component.
@@ -56,42 +51,24 @@ type Address struct {
 	StreetAddress *string `json:"street_address,omitempty"`
 }
 
-// Validate validates this address
-func (m *Address) Validate(formats strfmt.Registry) error {
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *Address) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *Address) UnmarshalBinary(b []byte) error {
-	var res Address
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
+// Validate handles validation for the Profile struct
+func (a Address) Validate() error {
 	return nil
 }
 
 // Value returns Address as a value that can be stored as json in the database
-func (m Address) Value() (driver.Value, error) {
-	return json.Marshal(m)
+func (a Address) Value() (driver.Value, error) {
+	return json.Marshal(a)
 }
 
 // Scan reads a json value from the database into a Address
-func (m *Address) Scan(value interface{}) error {
+func (a *Address) Scan(value interface{}) error {
 	b, ok := value.([]byte)
 	if !ok {
-		return errors.New(http.StatusInternalServerError, "type assertion to []byte failed")
+		return errors.New("type assertion to []byte failed")
 	}
 
-	if err := json.Unmarshal(b, &m); err != nil {
+	if err := json.Unmarshal(b, &a); err != nil {
 		return err
 	}
 

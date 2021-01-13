@@ -41,7 +41,7 @@ type (
 		UserAuthenticate(ctx context.Context, login string, password string) (*User, interface{}, error)
 
 		// UserCreate will create the user, optionally validating the invite code
-		UserCreate(ctx context.Context, login string, password string, profile *Profile, invite ...string) (*User, error)
+		UserCreate(ctx context.Context, login string, password *string, profile *Profile, invite ...string) (*User, error)
 
 		// UserUpdate updates a user profile
 		UserUpdate(ctx context.Context, id string, profile *Profile) error
