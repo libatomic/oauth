@@ -25,6 +25,12 @@ const (
 	// ScopeProfile is the scope that provides profile claims in the identity token
 	ScopeProfile = "profile"
 
+	// ScopePassword is required to set a user's password
+	ScopePassword = "password"
+
+	// ScopeSession is required to create a session
+	ScopeSession = "session"
+
 	// ScopePrincipal is the scope that provides principal claims in the identity token
 	ScopePrincipal = "principal"
 

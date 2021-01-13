@@ -20,6 +20,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -43,7 +44,7 @@ type (
 
 func init() {
 	registerRoutes([]route{
-		{"/signup", http.MethodPost, &SignupParams{}, signup, nil},
+		{"/signup", http.MethodPost, &SignupParams{}, signup, nil, nil},
 	})
 }
 
@@ -62,24 +63,38 @@ func (p SignupParams) Validate() error {
 func signup(ctx context.Context, params *SignupParams) api.Responder {
 	s := serverContext(ctx)
 
+	log := api.Log(ctx).WithField("operation", "signup")
+
 	req := &oauth.AuthRequest{}
 	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
+	u, _ := url.Parse(req.AppURI)
+
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
-		return api.StatusErrorf(http.StatusUnauthorized, "expired request token")
+		return api.Redirect(u, map[string]string{
+			"error":             "bad_request",
+			"error_description": "expired request token",
+		})
 	}
 
 	ctx, err := oauth.ContextFromRequest(ctx, s.ctrl, req)
 	if err != nil {
-		return api.StatusError(http.StatusInternalServerError, err)
+		return api.Redirect(u, map[string]string{
+			"error":             "bad_request",
+			"error_description": err.Error(),
+		})
 	}
 
-	if _, err := s.ctrl.UserCreate(ctx, params.Login, params.Password, &oauth.Profile{
+	user, err := s.ctrl.UserCreate(ctx, params.Login, params.Password, &oauth.Profile{
 		Name:  safestr(params.Name),
 		Email: strfmt.Email(params.Email),
-	}, safestr(params.InviteCode)); err != nil {
-		return api.StatusError(http.StatusBadRequest, err)
+	}, safestr(params.InviteCode))
+	if err != nil {
+		return api.Redirect(u, map[string]string{
+			"error":             "bad_request",
+			"error_description": err.Error(),
+		})
 	}
 
 	loginParams := &LoginParams{
@@ -87,6 +102,15 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		Password:     params.Password,
 		RequestToken: params.RequestToken,
 	}
+
+	// send the email verification notification out-of-band
+	go func() {
+		if err := verifySendDirect(oauth.NewContext(ctx, user), &VerifySendParams{
+			Method: oauth.NotificationChannelEmail,
+		}); err != nil {
+			log.Errorf("failed to send email verification to user %s: %s", user.Login, err.Error())
+		}
+	}()
 
 	return login(ctx, loginParams)
 }

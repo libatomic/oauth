@@ -84,6 +84,8 @@ securityDefinitions:
       profile: Access a user's profile
       offline_access: Used by clients to request permission to use refresh tokens
       email:verify: Used by controllers to verify a user's email address
+      password: User to reset passwords
+      session: Scope used to create a user session using a token
 
 definitions:
   BearerToken:
@@ -644,13 +646,80 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
       security:
-        - OAuth: ["email:verify"]
-
-  /passwordSet:
+        - OAuth: ["openid", "profile", "email:verify"]
     post:
-      description: "Set a user's password"
-      operationId: "PasswordSet"
+      description: |
+        Send's a verification token to the current user for the specified contact method
+      operationId: "VerifySend"
       tags: ["Auth"]
+      consumes: ["application/x-www-form-urlencoded"]
+      parameters:
+        - name: "method"
+          type: "string"
+          description: "The contact method to verify"
+          enum: ["email", "phone"]
+          in: "formData"
+          required: true
+      responses:
+        204:
+          description: "no content"
+        400:
+          $ref: "#/responses/BadRequest"
+        401:
+          $ref: "#/responses/Unauthorized"
+        403:
+          $ref: "#/responses/Forbidden"
+        500:
+          $ref: "#/responses/ServerError"
+      security:
+        - oauth: ["openid", "profile"]
+
+  /session:
+    get:
+      description: |
+        Uses the token to create a session for the user and redirects accordingly
+      operationId: "SessionCreate"
+      tags: ["Auth"]
+      parameters:
+        - name: "request_token"
+          type: "string"
+          description: |
+            "The authorization request token"
+          in: "query"
+          required: true
+        - name: "auth_code"
+          description: "If set will generate an authorization code for the session"
+          type: "boolean"
+          in: "query"
+        - name: "redirect_uri"
+          description: "The redirect uri"
+          in: "query"
+          type: "string"
+        - name: "state"
+          description: "State to pass to the redirect uri"
+          in: "query"
+          type: "string"
+      responses:
+        302:
+          $ref: "#/responses/Found"
+        400:
+          $ref: "#/responses/BadRequest"
+        401:
+          $ref: "#/responses/Unauthorized"
+        403:
+          $ref: "#/responses/Forbidden"
+        500:
+          $ref: "#/responses/ServerError"
+      security:
+        - oauth: ["session"]
+
+  /password:
+    post:
+      description: |
+        This method will create a "password" token that can be delivered to the user
+        via a notification.
+      operationId: "PasswordCreate"
+      tags: ["User"]
       consumes: ["application/x-www-form-urlencoded"]
       parameters:
         - name: "login"
@@ -658,18 +727,66 @@ paths:
           in: "formData"
           type: "string"
           required: true
+        - name: "notify"
+          description: "The notification to use, email or phone (sms)"
+          in: "formData"
+          type: "array"
+          items:
+            type: "string"
+            enum: ["email", "phone"]
+          collectionFormat: "csv"
+          required: true
+        - name: "type"
+          description: |
+            The request type to send the user.
+
+              - link: send a magic link that will create user session and login
+              - code: send a one-time password code to the user
+              - reset: send a link with `password` scope and code resetting the user's password
+          type: "string"
+          enum: ["link", "code", "reset"]
+          in: "formData"
+          required: true
+        - name: "redirect_uri"
+          in: "formData"
+          description: |
+            The URL to which the authentication server redirects the browser after authorization 
+            has been granted by the user, the default is to use the uri in the original request
+          type: "string"
+          required: false
+        - name: "request_token"
+          type: "string"
+          description: |
+            "The authorization request token"
+          in: "formData"
+          required: true
+        - name: "code_verifier"
+          description: "The PKCE code verifier"
+          in: "formData"
+          type: "string"
+          required: true
+      responses:
+        302:
+          $ref: "#/responses/Found"
+        400:
+          $ref: "#/responses/BadRequest"
+        401:
+          $ref: "#/responses/Unauthorized"
+        500:
+          $ref: "#/responses/ServerError"        
+    put:
+      description: "Set a user's password"
+      operationId: "PasswordUpdate"
+      tags: ["User"]
+      consumes: ["application/x-www-form-urlencoded"]
+      parameters:
         - name: "password"
           type: "string"
           description: "The new password"
           in: "formData"
           required: true
         - name: "reset_code"
-          type: "string"
-          description: "The reset verification code"
-          in: "formData"
-          required: true
-        - name: "code_verifier"
-          description: "The PKCE code verifier"
+          description: "The password reset code"
           in: "formData"
           type: "string"
           required: true
@@ -679,78 +796,20 @@ paths:
           in: "formData"
           format: "uri"
       responses:
+        204:
+          description: "no content"
         302:
-          description: "found"
-          headers:
-            Location:
-              description: "The redirect URI for the auth request"
-              type: "string"
-              format: "uri"
+          $ref: "#/responses/Found"
         400:
-          description: "bad parameter"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
+          $ref: "#/responses/BadRequest"
         401:
-          description: "unauthorized"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
+          $ref: "#/responses/Unauthorized"
+        403:
+          $ref: "#/responses/Forbidden"
         500:
-          description: "internal server error"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
-
-  /passwordReset:
-    post:
-      description: |
-        The password reset flow will call the `oauth.Controller.UserResetPassword` method. 
-
-        This method should send the user a reset password link with a unique reset code that can 
-        be used to call `oauth.Controller.UserSetPassword`.
-      operationId: "PasswordReset"
-      tags: ["Auth"]
-      consumes: ["application/x-www-form-urlencoded"]
-      parameters:
-        - name: "login"
-          description: "The user's login"
-          in: "formData"
-          type: "string"
-          required: true
-        - name: "code_verifier"
-          description: "The PKCE code verifier"
-          in: "formData"
-          type: "string"
-          required: true
-        - name: "request_token"
-          description: |
-            "The authorization request token"
-          in: "formData"
-          type: "string"
-          required: true
-        - name: "redirect_uri"
-          type: "string"
-          description: "The uri to redirect to after password reset request"
-          in: "formData"
-          format: "uri"
-      responses:
-        302:
-          description: "found"
-          headers:
-            Location:
-              description: "The redirect URI for the auth request"
-              type: "string"
-              format: "uri"
-        400:
-          description: "bad parameter"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
-        401:
-          description: "unauthorized"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
-        500:
-          description: "internal server error"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
+          $ref: "#/responses/ServerError"
+      security:
+        - oauth: ["password"]
 
   /authorize:
     get:

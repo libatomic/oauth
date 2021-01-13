@@ -124,8 +124,8 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 
 	name := c.sessionCookie
 
-	if octx.Audience != nil {
-		name = fmt.Sprintf("%s#%s", c.sessionCookie, octx.Audience.Name)
+	if octx.Audience != nil && !c.multiAudience {
+		name = fmt.Sprintf("%s#%s", c.sessionCookie, octx.Audience.Name())
 	}
 
 	s, err := c.store.New(r, name)
@@ -140,7 +140,7 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 
 	s.Values["client_id"] = octx.Application.ClientID
 	s.Values["subject"] = octx.User.Profile.Subject
-	s.Values["aud"] = octx.Audience.Name
+	s.Values["aud"] = octx.Audience.Name()
 
 	s.Values["created_at"] = time.Now().Unix()
 	s.Values["expires_at"] = time.Now().Add(c.sessionLifetime).Unix()
@@ -157,7 +157,7 @@ func (c *cookieStore) SessionRead(ctx context.Context, r *http.Request) (oauth.S
 	name := c.sessionCookie
 
 	if octx.Audience != nil && !c.multiAudience {
-		name = fmt.Sprintf("%s#%s", c.sessionCookie, octx.Audience.Name)
+		name = fmt.Sprintf("%s#%s", c.sessionCookie, octx.Audience.Name())
 	}
 
 	s, err := c.store.Get(r, name)

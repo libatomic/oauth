@@ -58,11 +58,12 @@ type (
 	Option func(s *Server)
 
 	route struct {
-		Path    string
-		Method  string
-		Params  interface{}
-		Handler interface{}
-		Auth    oauth.Permissions
+		Path        string
+		Method      string
+		Params      interface{}
+		Handler     interface{}
+		Auth        oauth.Permissions
+		AuthOptions []oauth.AuthOption
 	}
 
 	contextKey string
@@ -123,7 +124,7 @@ func New(ctrl oauth.Controller, opts ...interface{}) *Server {
 	}
 
 	for _, r := range routes {
-		s.addRoute(r.Path, r.Method, r.Params, r.Handler, r.Auth)
+		s.addRoute(r)
 	}
 
 	return s
@@ -162,27 +163,36 @@ func (s *Server) Sessions() oauth.SessionStore {
 	return s.sessions
 }
 
-func (s *Server) addRoute(path string, method string, params interface{}, handler interface{}, scopes ...oauth.Permissions) {
-	if len(scopes) > 0 && scopes[0] != nil {
+func (s *Server) addRoute(r route) {
+	if len(r.Auth) > 0 {
 		if s.auth == nil {
 			return
 		}
+
+		authOptions := make([]oauth.AuthOption, 0)
+
+		authOptions = append(authOptions, oauth.WithScope(r.Auth))
+
+		if r.AuthOptions != nil {
+			authOptions = append(authOptions, r.AuthOptions...)
+		}
+
 		s.Server.AddRoute(
-			path,
-			handler,
-			api.WithMethod(method),
-			api.WithParams(params),
+			r.Path,
+			r.Handler,
+			api.WithMethod(r.Method),
+			api.WithParams(r.Params),
 			api.WithContextFunc(s.addContext),
-			api.WithAuthorizers(s.auth.Authorize(oauth.WithScope(scopes...))),
+			api.WithAuthorizers(s.auth.Authorize(authOptions...)),
 			api.WithValidation(true),
 		)
 
 	} else {
 		s.Server.AddRoute(
-			path,
-			handler,
-			api.WithMethod(method),
-			api.WithParams(params),
+			r.Path,
+			r.Handler,
+			api.WithMethod(r.Method),
+			api.WithParams(r.Params),
 			api.WithContextFunc(s.addContext),
 			api.WithValidation(true),
 		)

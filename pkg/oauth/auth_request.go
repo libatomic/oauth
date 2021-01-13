@@ -68,6 +68,9 @@ type AuthRequest struct {
 
 	// The request state
 	State *string `json:"state,omitempty"`
+
+	// Subject is the request subject
+	Subject *string `json:"subject,omitempty"`
 }
 
 // Validate validates this auth request

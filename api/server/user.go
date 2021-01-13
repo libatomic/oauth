@@ -21,8 +21,6 @@ import (
 	"context"
 	"net/http"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
 )
@@ -32,27 +30,14 @@ type (
 	UserInfoUpdateParams struct {
 		Profile oauth.Profile `json:"profile,omitempty"`
 	}
-
-	// UserEmailVerifyParams contains the email verify params
-	UserEmailVerifyParams struct {
-		RedirectURI string `json:"redirect_uri"`
-	}
 )
 
 func init() {
 	registerRoutes([]route{
-		{"/userInfo", http.MethodPut, &UserInfoUpdateParams{}, userInfoUpdate, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)},
-		{"/userInfo", http.MethodGet, nil, userInfo, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)},
-		{"/userPrincipal", http.MethodGet, nil, userPrincipal, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile)},
-		{"/verify", http.MethodGet, &UserEmailVerifyParams{}, emailVerify, oauth.Scope(oauth.ScopeEmailVerify)},
+		{"/userInfo", http.MethodPut, &UserInfoUpdateParams{}, userInfoUpdate, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile), nil},
+		{"/userInfo", http.MethodGet, nil, userInfo, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile), nil},
+		{"/userPrincipal", http.MethodGet, nil, userPrincipal, oauth.Scope(oauth.ScopeOpenID, oauth.ScopeProfile), nil},
 	})
-}
-
-// Validate validates UserEmailVerifyParams
-func (p UserEmailVerifyParams) Validate() error {
-	return validation.Errors{
-		"redirect_uri": validation.Validate(p.RedirectURI, validation.Required, is.RequestURI),
-	}.Filter()
 }
 
 func userInfoUpdate(ctx context.Context, params *UserInfoUpdateParams) api.Responder {
@@ -91,30 +76,4 @@ func userPrincipal(ctx context.Context) api.Responder {
 	}
 
 	return api.NewResponse(auth.Principal)
-}
-
-func emailVerify(ctx context.Context, params *UserEmailVerifyParams) api.Responder {
-	ctrl := oauthController(ctx)
-	auth := oauth.AuthContext(ctx)
-
-	if auth.Principal == nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
-	}
-
-	u, err := EnsureURI(params.RedirectURI, auth.Application.RedirectUris[auth.Audience.Name()])
-	if err != nil {
-		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
-	}
-
-	verifed := true
-	if err := ctrl.UserUpdate(ctx, auth.User.Profile.Subject, &oauth.Profile{
-		EmailVerified: &verifed,
-	}); err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
-	}
-
-	return api.Redirect(u)
 }

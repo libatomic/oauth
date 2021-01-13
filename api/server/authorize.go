@@ -51,7 +51,7 @@ var (
 
 func init() {
 	registerRoutes([]route{
-		{"/authorize", http.MethodGet, &AuthorizeParams{}, authorize, nil},
+		{"/authorize", http.MethodGet, &AuthorizeParams{}, authorize, nil, nil},
 	})
 }
 
@@ -191,6 +191,16 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 
 	// if we already have a session, use that to create the code
 	if session != nil {
+		_, _, err := ctrl.UserGet(ctx, session.Subject())
+		if err != nil {
+			sessionStore(ctx).SessionDestroy(ctx, w, r)
+
+			return api.Redirect(u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "user not found",
+			})
+		}
+
 		if err := session.Write(w); err != nil {
 			return api.Redirect(u, map[string]string{
 				"error":             "server_error",

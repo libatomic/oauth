@@ -332,6 +332,11 @@ func (c *mockController) UserSetPassword(ctx context.Context, id string, passwor
 	return nil
 }
 
+// UserNotify should create an email or sms with the verification link or code for the user
+func (c *mockController) UserNotify(ctx context.Context, note oauth.Notification) error {
+	return nil
+}
+
 func (c *mockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
 	args := c.Called(ctx, claims)
 	if args.String(0) == "" {

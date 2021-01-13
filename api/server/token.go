@@ -54,7 +54,7 @@ type (
 
 func init() {
 	registerRoutes([]route{
-		{"/token", http.MethodPost, &TokenParams{}, token, nil},
+		{"/token", http.MethodPost, &TokenParams{}, token, nil, nil},
 	})
 }
 
@@ -273,7 +273,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			"iss":   issuer,
 			"use":   "access",
 			"iat":   time.Now().Unix(),
-			"aud":   aud.Name,
+			"aud":   aud.Name(),
 			"sub":   code.Subject,
 			"scope": strings.Join(params.Scope, " "),
 			"exp":   exp,
@@ -318,7 +318,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				"use":       "identity",
 				"iat":       time.Now().Unix(),
 				"auth_time": code.IssuedAt,
-				"aud":       aud.Name,
+				"aud":       aud.Name(),
 				"sub":       code.Subject,
 				"exp":       time.Now().Add(time.Duration(app.TokenLifetime)).Unix(),
 				"azp":       app.ClientID,

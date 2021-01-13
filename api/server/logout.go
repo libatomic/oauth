@@ -40,7 +40,7 @@ type (
 
 func init() {
 	registerRoutes([]route{
-		{"/logout", http.MethodGet, &LogoutParams{}, logout, nil},
+		{"/logout", http.MethodGet, &LogoutParams{}, logout, nil, nil},
 	})
 }
 

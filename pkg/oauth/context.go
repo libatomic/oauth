@@ -76,6 +76,25 @@ func AuthContext(ctx context.Context) *Context {
 	if !ok {
 		return &Context{}
 	}
+
+	if auth.Request == nil {
+		auth.Request = &AuthRequest{}
+
+		if auth.Audience != nil {
+			auth.Request.Audience = auth.Audience.Name()
+		}
+
+		if auth.Application != nil {
+			auth.Request.ClientID = auth.Application.ClientID
+		}
+
+		if auth.User != nil {
+			auth.Request.Subject = &auth.User.Profile.Subject
+		}
+
+		auth.Request.Scope = auth.Token.Scope()
+	}
+
 	return auth
 }
 

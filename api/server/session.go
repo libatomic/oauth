@@ -23,36 +23,27 @@ import (
 	"net/url"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
 )
 
 type (
-	// LoginParams contains all the bound params for the login operation
-	LoginParams struct {
-		Login        string `json:"login"`
-		Password     string `json:"password"`
-		RequestToken string `json:"request_token"`
+	// SessionParams is the session request parameters
+	SessionParams struct {
+		RequestToken string     `json:"request_token"`
+		AuthCode     bool       `json:"auth_code"`
+		RedirectURI  *oauth.URI `json:"redirect_ur"`
+		State        *string    `json:"state,omitempty"`
 	}
 )
 
 func init() {
 	registerRoutes([]route{
-		{"/login", http.MethodPost, &LoginParams{}, login, nil, nil},
+		{"/session", http.MethodGet, &SessionParams{}, session, oauth.Scope(oauth.ScopeSession), nil},
 	})
 }
 
-// Validate validates LoginParams
-func (p LoginParams) Validate() error {
-	return validation.Errors{
-		"login":         validation.Validate(p.Login, validation.Required),
-		"password":      validation.Validate(p.Password, validation.Required),
-		"request_token": validation.Validate(p.RequestToken, validation.Required),
-	}.Filter()
-}
-
-func login(ctx context.Context, params *LoginParams) api.Responder {
+func session(ctx context.Context, params *SessionParams) api.Responder {
 	s := serverContext(ctx)
 
 	req := &oauth.AuthRequest{}
@@ -77,7 +68,14 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 		})
 	}
 
-	user, _, err := s.ctrl.UserAuthenticate(ctx, params.Login, params.Password)
+	if req.Subject == nil {
+		return api.Redirect(u, map[string]string{
+			"error":             "bad_request",
+			"error_description": "context verification failed, missing subject",
+		})
+	}
+
+	user, _, err := s.ctrl.UserGet(ctx, *req.Subject)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
@@ -86,30 +84,9 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 		})
 	}
 
-	oauth.AuthContext(ctx).User = user
-
-	perms, ok := user.Permissions[req.Audience]
-	if !ok {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authorization failed",
-		})
-	}
-
-	if len(req.Scope) == 0 {
-		req.Scope = perms
-	}
-
-	if !perms.Every(req.Scope...) {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authorization failed",
-		})
-	}
-
 	r, w := api.Request(ctx)
 
-	session, err := sessionStore(ctx).SessionCreate(ctx, r)
+	session, err := sessionStore(ctx).SessionCreate(oauth.NewContext(ctx, user), r)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
@@ -124,30 +101,32 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 		})
 	}
 
-	authCode := &oauth.AuthCode{
-		AuthRequest:       *req,
-		Subject:           user.Profile.Subject,
-		SessionID:         session.ID(),
-		UserAuthenticated: true,
-	}
-	if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
-	}
-
 	u, _ = url.Parse(req.RedirectURI)
 
-	q := u.Query()
+	if params.AuthCode {
+		authCode := &oauth.AuthCode{
+			AuthRequest:       *req,
+			Subject:           user.Profile.Subject,
+			SessionID:         session.ID(),
+			UserAuthenticated: true,
+		}
+		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
+			return api.Redirect(u, map[string]string{
+				"error":             "server_error",
+				"error_description": err.Error(),
+			})
+		}
 
-	q.Set("code", authCode.Code)
+		q := u.Query()
 
-	if req.State != nil {
-		q.Set("state", *req.State)
+		q.Set("code", authCode.Code)
+
+		if req.State != nil {
+			q.Set("state", *req.State)
+		}
+
+		u.RawQuery = q.Encode()
 	}
-
-	u.RawQuery = q.Encode()
 
 	return api.Redirect(u)
 }
