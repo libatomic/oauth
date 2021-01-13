@@ -84,7 +84,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	r, w := api.Request(ctx)
 
 	if params.Audience == nil {
-		aud := api.RequesHost(ctx)
+		aud := api.RequestHost(ctx)
 		params.Audience = &aud
 	}
 
