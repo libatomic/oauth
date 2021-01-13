@@ -82,7 +82,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	r, _ := api.Request(ctx)
 
 	if params.Audience == nil {
-		aud := r.URL.Hostname()
+		aud := api.RequesHost(ctx)
 		params.Audience = &aud
 	}
 

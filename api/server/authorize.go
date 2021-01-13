@@ -84,7 +84,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	r, w := api.Request(ctx)
 
 	if params.Audience == nil {
-		aud := r.URL.Hostname()
+		aud := api.RequesHost(ctx)
 		params.Audience = &aud
 	}
 
