@@ -43,6 +43,7 @@ type (
 		Notify       oauth.NotificationChannels `json:"notify"`
 		Type         PasswordType               `json:"type"`
 		RequestToken *string                    `json:"request_token,omitempty"`
+		AppURI       *oauth.URI                 `json:"app_uri,omitempty"`
 		RedirectURI  *oauth.URI                 `json:"redirect_uri,omitempty"`
 		CodeVerifier *string                    `json:"code_verifier,omitempty"`
 	}
@@ -100,6 +101,7 @@ func (p PasswordCreateParams) Validate() error {
 		validation.Field(&p.Type, validation.Required),
 		validation.Field(&p.Notify, validation.Required, validation.Each(validation.In(oauth.NotificationChannelEmail, oauth.NotificationChannelPhone))),
 		validation.Field(&p.RequestToken, validation.NilOrNotEmpty),
+		validation.Field(&p.AppURI, validation.NilOrNotEmpty, is.RequestURI),
 		validation.Field(&p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
 		validation.Field(&p.CodeVerifier, validation.NilOrNotEmpty),
 	)
@@ -119,8 +121,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 
 	var req *oauth.AuthRequest
 	var user *oauth.User
-
-	u, _ := url.Parse(params.RedirectURI.String())
+	var u *url.URL
 
 	if params.RequestToken != nil {
 		var err error
@@ -129,6 +130,8 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		if err := verifyValue(ctx, s.ctrl.TokenValidate, *params.RequestToken, req); err != nil {
 			return api.Error(err).WithStatus(http.StatusBadRequest)
 		}
+
+		u, _ = url.Parse(req.AppURI)
 
 		if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
 			return api.Redirect(u, map[string]string{
@@ -170,6 +173,10 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		ctx = oauth.NewContext(ctx, user)
 
 	} else {
+		if params.AppURI == nil || params.RedirectURI == nil {
+			return api.StatusErrorf(http.StatusBadRequest, "redirect_uri: required; app_uri: required")
+		}
+
 		octx := oauth.AuthContext(ctx)
 
 		if octx.User == nil {
@@ -179,9 +186,16 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		user = octx.User
 
 		req = octx.Request
+		req.RedirectURI = string(*params.RedirectURI)
 
-		if params.RedirectURI != nil {
-			req.RedirectURI = params.RedirectURI.String()
+		_, err := url.Parse(string(*params.RedirectURI))
+		if err != nil {
+			return api.StatusErrorf(http.StatusUnauthorized, "invalid redirect_uri")
+		}
+
+		u, err = url.Parse(string(*params.AppURI))
+		if err != nil {
+			return api.StatusErrorf(http.StatusUnauthorized, "invalid app_uri")
 		}
 	}
 
