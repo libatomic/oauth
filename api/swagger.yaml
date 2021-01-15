@@ -747,11 +747,18 @@ paths:
           enum: ["link", "code", "reset"]
           in: "formData"
           required: true
+        - name: "app_uri"
+          in: "formData"
+          description: |
+            The URL to which the authentication server redirects the browser after the link is generated or
+            for errors; required for authenticated users.
+          type: "string"
+          required: false
         - name: "redirect_uri"
           in: "formData"
           description: |
-            The URL to which the authentication server redirects the browser after authorization 
-            has been granted by the user, the default is to use the uri in the original request
+            The URL to which the authentication server redirects the browser after the password link is
+            clicked by the user; required for authenticated users.
           type: "string"
           required: false
         - name: "request_token"
