@@ -43,8 +43,8 @@ type (
 		Notify       oauth.NotificationChannels `json:"notify"`
 		Type         PasswordType               `json:"type"`
 		RequestToken *string                    `json:"request_token,omitempty"`
-		RedirectURI  oauth.URI                  `json:"redirect_uri,omitempty"`
-		CodeVerifier string                     `json:"code_verifier"`
+		RedirectURI  *oauth.URI                 `json:"redirect_uri,omitempty"`
+		CodeVerifier *string                    `json:"code_verifier,omitempty"`
 	}
 
 	// PasswordUpdateParams are used by the password update route
@@ -101,7 +101,7 @@ func (p PasswordCreateParams) Validate() error {
 		validation.Field(&p.Notify, validation.Required, validation.Each(validation.In(oauth.NotificationChannelEmail, oauth.NotificationChannelPhone))),
 		validation.Field(&p.RequestToken, validation.NilOrNotEmpty),
 		validation.Field(&p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
-		validation.Field(&p.CodeVerifier, validation.Required),
+		validation.Field(&p.CodeVerifier, validation.NilOrNotEmpty),
 	)
 }
 
@@ -137,7 +137,11 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			})
 		}
 
-		sum := sha256.Sum256([]byte(params.CodeVerifier))
+		if params.CodeVerifier == nil {
+			return api.Errorf("code_verifier: cannot be blank")
+		}
+
+		sum := sha256.Sum256([]byte(*params.CodeVerifier))
 		check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 		if req.CodeChallenge != check {
@@ -175,7 +179,10 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		user = octx.User
 
 		req = octx.Request
-		req.RedirectURI = params.RedirectURI.String()
+
+		if params.RedirectURI != nil {
+			req.RedirectURI = params.RedirectURI.String()
+		}
 	}
 
 	octx := oauth.AuthContext(ctx)
