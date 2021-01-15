@@ -751,7 +751,7 @@ paths:
           in: "formData"
           description: |
             The URL to which the authentication server redirects the browser after the link is generated or
-            for errors; required for authenticated users.
+            for errors
           type: "string"
           required: false
         - name: "redirect_uri"
@@ -773,6 +773,8 @@ paths:
           type: "string"
           required: true
       responses:
+        202:
+          $ref: "#/responses/Accepted"
         302:
           $ref: "#/responses/Found"
         400:
@@ -1108,3 +1110,47 @@ paths:
             $ref: "#/definitions/ErrorResponse"
       security:
         - OAuth: ["openid", "profile"]
+
+responses:
+  Accepted:
+    description: "accepted"
+  NoContent:
+    description: "no content"
+    headers:
+      X-Query-Count:
+        type: "integer"
+        description: "Used for count method to return the count requested"
+  Found:
+    description: "found"
+    headers:
+      Location:
+        type: "string"
+        description: "The redirect location uri"
+  BadRequest:
+    description: "bad request"
+    schema:
+      $ref: "#/definitions/Error"
+  Unauthorized:
+    description: "access denied"
+    schema:
+      $ref: "#/definitions/Error"
+  Forbidden:
+    description: "forbidden"
+    schema:
+      $ref: "#/definitions/Error"
+  NotFound:
+    description: "not found"
+    schema:
+      $ref: "#/definitions/Error"
+  Conflict:
+    description: "conflict"
+    schema:
+      $ref: "#/definitions/Error"
+  ServerError:
+    description: "server error"
+    schema:
+      $ref: "#/definitions/Error"
+  Unacceptable:
+    description: "unacceptable"
+    schema:
+      $ref: "#/definitions/Error"

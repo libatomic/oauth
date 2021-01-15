@@ -173,8 +173,8 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		ctx = oauth.NewContext(ctx, user)
 
 	} else {
-		if params.AppURI == nil || params.RedirectURI == nil {
-			return api.StatusErrorf(http.StatusBadRequest, "redirect_uri: required; app_uri: required")
+		if params.RedirectURI == nil {
+			return api.StatusErrorf(http.StatusBadRequest, "redirect_uri: required")
 		}
 
 		octx := oauth.AuthContext(ctx)
@@ -193,9 +193,11 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			return api.StatusErrorf(http.StatusUnauthorized, "invalid redirect_uri")
 		}
 
-		u, err = url.Parse(string(*params.AppURI))
-		if err != nil {
-			return api.StatusErrorf(http.StatusUnauthorized, "invalid app_uri")
+		if params.AppURI != nil {
+			u, err = url.Parse(string(*params.AppURI))
+			if err != nil {
+				return api.StatusErrorf(http.StatusUnauthorized, "invalid app_uri")
+			}
 		}
 	}
 
@@ -227,6 +229,10 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	if err != nil {
 		log.Error(err.Error())
 
+		if u == nil {
+			return api.Error(err)
+		}
+
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),
@@ -245,6 +251,10 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			Subject:     user.Profile.Subject,
 		}
 		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
+			if u == nil {
+				return api.Error(err)
+			}
+
 			return api.Redirect(u, map[string]string{
 				"error":             "server_error",
 				"error_description": err.Error(),
@@ -264,6 +274,10 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	case PasswordTypeLink:
 		reqToken, err := signValue(ctx, s.ctrl.TokenFinalize, req)
 		if err != nil {
+			if u == nil {
+				return api.Error(err)
+			}
+
 			return api.Redirect(u, map[string]string{
 				"error":             "server_error",
 				"error_description": err.Error(),
@@ -283,7 +297,14 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
-			return api.StatusError(http.StatusInternalServerError, err)
+			if u == nil {
+				return api.Error(err)
+			}
+
+			return api.Redirect(u, map[string]string{
+				"error":             "server_error",
+				"error_description": err.Error(),
+			})
 		}
 
 		q.Set("access_token", token)
@@ -301,10 +322,18 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	}
 
 	if err := s.ctrl.UserNotify(ctx, note); err != nil {
+		if u == nil {
+			return api.Error(err)
+		}
+
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),
 		})
+	}
+
+	if u == nil {
+		return api.NewResponse().WithStatus(http.StatusAccepted)
 	}
 
 	return api.Redirect(u)
