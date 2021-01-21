@@ -299,7 +299,7 @@ func (c *mockController) UserAuthenticate(ctx context.Context, login string, pas
 	return args.Get(0).(*oauth.User), args.Get(1), args.Error(2)
 }
 
-func (c *mockController) UserCreate(ctx context.Context, login string, password string, profile *oauth.Profile, invite ...string) (*oauth.User, error) {
+func (c *mockController) UserCreate(ctx context.Context, login string, password *string, profile *oauth.Profile, invite ...string) (*oauth.User, error) {
 	args := c.Called(ctx, login, password, profile)
 
 	if args.Get(0) == nil {
@@ -499,6 +499,10 @@ func (a mockAudience) TokenLifetime() int64 {
 
 func (a mockAudience) TokenSecret() string {
 	return a.tokenSecret
+}
+
+func (a mockAudience) VerifyKey() interface{} {
+	return nil
 }
 
 func (a mockAudience) Principal() interface{} {

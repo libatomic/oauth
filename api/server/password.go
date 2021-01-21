@@ -220,7 +220,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 
 	r, _ := api.Request(ctx)
 
-	issuer := fmt.Sprintf("https://%s%s", r.Host, path.Clean(path.Join(path.Dir(r.URL.Path), "/.well-known/jwks.json")))
+	iss := issuer(ctx)
 
 	link, err := oauth.URI(
 		fmt.Sprintf("https://%s%s",
@@ -285,7 +285,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		}
 
 		claims := oauth.Claims{
-			"iss":   issuer,
+			"iss":   iss,
 			"use":   "access",
 			"iat":   time.Now().Unix(),
 			"aud":   octx.Audience.Name(),

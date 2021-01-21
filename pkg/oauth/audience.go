@@ -39,6 +39,9 @@ type Audience interface {
 	// The signing secret used if the algorithm is HS256
 	TokenSecret() string
 
+	// VerifyKey returns the audience RSA public key used for token verification
+	VerifyKey() interface{}
+
 	// Principal is the implementation specfic audience object
 	Principal() interface{}
 }

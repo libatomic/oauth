@@ -122,10 +122,10 @@ func verifySendDirect(ctx context.Context, params *VerifySendParams) error {
 		return err
 	}
 
-	issuer := fmt.Sprintf("https://%s%s", r.Host, path.Clean(path.Join(path.Dir(r.URL.Path), "/.well-known/jwks.json")))
+	iss := issuer(ctx)
 
 	claims := oauth.Claims{
-		"iss":   issuer,
+		"iss":   iss,
 		"use":   "access",
 		"iat":   time.Now().Unix(),
 		"aud":   auth.Audience.Name(),

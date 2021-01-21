@@ -7,6 +7,7 @@ go 1.14
 // replace github.com/libatomic/litmus => ../litmus
 
 require (
+	github.com/ModelRocket/hiro v0.1.0
 	github.com/apex/log v1.9.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/dgrijalva/jwt-go v3.2.1-0.20200107013213-dc14462fd587+incompatible
@@ -29,4 +30,5 @@ require (
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
 	golang.org/x/text v0.3.4 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/square/go-jose.v2 v2.5.1
 )
