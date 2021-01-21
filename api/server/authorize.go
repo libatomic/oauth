@@ -35,18 +35,19 @@ type (
 		AppURI              *string  `json:"app_uri"`
 		Audience            *string  `json:"audience,omitempty"`
 		ClientID            string   `json:"client_id"`
-		CodeChallenge       string   `json:"code_challenge"`
+		CodeChallenge       *string  `json:"code_challenge"`
 		CodeChallengeMethod *string  `json:"code_challenge_method"`
 		RedirectURI         *string  `json:"redirect_uri"`
 		ResponseType        string   `json:"response_type"`
 		Scope               []string `json:"scope"`
-		State               *string  `json:"state"`
+		State               *string  `json:"state,omitempty"`
+		Nonce               *string  `json:"nonce,omitempty"`
 	}
 )
 
 var (
 	// DefaultCodeChallengeMethod is the only challenge method
-	DefaultCodeChallengeMethod = "S256"
+	DefaultCodeChallengeMethod = "plain"
 )
 
 func init() {
@@ -61,8 +62,8 @@ func (p *AuthorizeParams) Validate() error {
 		"app_uri":               validation.Validate(p.AppURI, validation.NilOrNotEmpty, is.RequestURI),
 		"audience":              validation.Validate(p.Audience, validation.NilOrNotEmpty),
 		"client_id":             validation.Validate(p.ClientID, validation.Required),
-		"code_challenge":        validation.Validate(p.CodeChallenge, validation.Required),
-		"code_challenge_method": validation.Validate(p.CodeChallengeMethod, validation.NilOrNotEmpty),
+		"code_challenge":        validation.Validate(p.CodeChallenge, validation.NilOrNotEmpty),
+		"code_challenge_method": validation.Validate(p.CodeChallengeMethod, validation.NilOrNotEmpty, validation.In("plain", "S256")),
 		"redirect_uri":          validation.Validate(p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
 		"response_type":         validation.Validate(p.ResponseType, validation.Required),
 		"scope":                 validation.Validate(p.Scope, validation.NilOrNotEmpty),
@@ -176,6 +177,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		Scope:               params.Scope,
 		Audience:            *params.Audience,
 		State:               params.State,
+		Nonce:               params.Nonce,
 		CodeChallenge:       params.CodeChallenge,
 		CodeChallengeMethod: *params.CodeChallengeMethod,
 		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),

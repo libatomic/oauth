@@ -68,12 +68,15 @@ func (c Claims) Scope() Permissions {
 }
 
 // Audience returns the audience for the token
-func (c Claims) Audience() string {
-	if s, ok := c["aud"].(string); ok {
+func (c Claims) Audience() []string {
+	switch s := c["aud"].(type) {
+	case string:
+		return []string{s}
+	case []string:
 		return s
 	}
 
-	return ""
+	return []string{}
 }
 
 // ClientID returns the client (application) id for the token

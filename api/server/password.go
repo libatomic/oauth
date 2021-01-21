@@ -140,18 +140,20 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			})
 		}
 
-		if params.CodeVerifier == nil {
-			return api.Errorf("code_verifier: cannot be blank")
-		}
+		if req.CodeChallenge != nil {
+			if params.CodeVerifier == nil {
+				return api.Errorf("code_verifier: cannot be blank")
+			}
 
-		sum := sha256.Sum256([]byte(*params.CodeVerifier))
-		check := base64.RawURLEncoding.EncodeToString(sum[:])
+			sum := sha256.Sum256([]byte(*params.CodeVerifier))
+			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
-		if req.CodeChallenge != check {
-			return api.Redirect(u, map[string]string{
-				"error":             "access_denied",
-				"error_description": "invalid code",
-			})
+			if *req.CodeChallenge != check {
+				return api.Redirect(u, map[string]string{
+					"error":             "access_denied",
+					"error_description": "invalid code",
+				})
+			}
 		}
 
 		ctx, err = oauth.ContextFromRequest(ctx, s.ctrl, req)

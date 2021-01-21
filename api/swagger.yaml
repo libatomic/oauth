@@ -875,6 +875,10 @@ paths:
           in: "query"
           description: "Opaque state returned the redirect uri"
           type: "string"
+        - name: "nonce"
+          in: "query"
+          description: "OIDC nonce value"
+          type: "string"
         - name: "code_challenge_method"
           in: "query"
           description: |

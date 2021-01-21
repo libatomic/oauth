@@ -23,7 +23,6 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
@@ -144,39 +143,6 @@ func (m AuthCode) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, jsonDataAO1)
 	return swag.ConcatJSON(_parts...), nil
-}
-
-// Validate validates this auth code
-func (m *AuthCode) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	// validation for a type composition with AuthRequest
-	if err := m.AuthRequest.Validate(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *AuthCode) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *AuthCode) UnmarshalBinary(b []byte) error {
-	var res AuthCode
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
 }
 
 // Value returns AuthCode as a value that can be stored as json in the database

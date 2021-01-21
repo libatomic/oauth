@@ -81,6 +81,7 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 		RevocationEndpoint     oauth.URI `json:"revocation_endpoint"`
 		GrantTypesSupported    []string  `json:"grant_types_supported"`
 		ScopesSupported        []string  `json:"scopes_supported"`
+		CodeChallengeMethods   []string  `json:"code_challenge_methods_supported,omitempty"`
 	}{
 		Issuer:                 iss.Append("..", "oauth"),
 		JWKSURI:                iss.Append(".well-known/jwks.json"),
@@ -91,9 +92,14 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 		TokenEndpoint:          iss.Append("token"),
 		//	IntrospectionEndpoint:  iss.Append("token-introspect"),
 		// RevocationEndpoint:     issuer.Append("..", "token-revoke"),
-		UserInfoEndpoint:    iss.Append("userInfo"),
-		GrantTypesSupported: []string{oauth.GrantTypeAuthCode, oauth.GrantTypeClientCredentials, oauth.GrantTypeRefreshToken},
-		ScopesSupported:     aud.Permissions(),
+		UserInfoEndpoint: iss.Append("userInfo"),
+		GrantTypesSupported: []string{
+			oauth.GrantTypeAuthCode,
+			oauth.GrantTypeClientCredentials,
+			oauth.GrantTypeRefreshToken,
+		},
+		ScopesSupported:      aud.Permissions(),
+		CodeChallengeMethods: []string{"S256"},
 	}
 
 	return api.NewResponse(config)

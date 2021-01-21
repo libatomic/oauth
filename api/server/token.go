@@ -37,7 +37,7 @@ type (
 	// TokenParams contains all the bound params for the token operation
 	TokenParams struct {
 		Audience        *string  `json:"audience,omitempty"`
-		ClientID        string   `json:"client_id"`
+		ClientID        *string  `json:"client_id"`
 		ClientSecret    *string  `json:"client_secret,omitempty"`
 		Code            *string  `json:"code,omitempty"`
 		CodeVerifier    *string  `json:"code_verifier"`
@@ -61,7 +61,7 @@ func init() {
 func (p TokenParams) Validate() error {
 	return validation.Errors{
 		"audience":         validation.Validate(p.Audience, validation.NilOrNotEmpty),
-		"client_id":        validation.Validate(p.ClientID, validation.Required),
+		"client_id":        validation.Validate(p.ClientID, validation.NilOrNotEmpty),
 		"client_secret":    validation.Validate(p.ClientSecret, validation.NilOrNotEmpty),
 		"code":             validation.Validate(p.Code, validation.NilOrNotEmpty),
 		"code_verifier":    validation.Validate(p.CodeVerifier, validation.NilOrNotEmpty),
@@ -76,6 +76,8 @@ func (p TokenParams) Validate() error {
 }
 
 func token(ctx context.Context, params *TokenParams) api.Responder {
+	var code *oauth.AuthCode
+
 	s := serverContext(ctx)
 
 	if params.Audience == nil {
@@ -90,8 +92,23 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	}
 	ctx = oauth.NewContext(ctx, aud)
 
+	if params.Code != nil {
+		code, err = codeStore(ctx).AuthCodeGet(ctx, *params.Code)
+		if err != nil {
+			return api.StatusErrorf(http.StatusUnauthorized, "invalid code")
+		}
+
+		if params.ClientID == nil {
+			params.ClientID = &code.ClientID
+		}
+	}
+
+	if params.ClientID == nil {
+		return api.StatusErrorf(http.StatusUnauthorized, "missing client context")
+	}
+
 	// ensure this is a valid application
-	app, err := s.ctrl.ApplicationGet(ctx, params.ClientID)
+	app, err := s.ctrl.ApplicationGet(ctx, *params.ClientID)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
@@ -117,12 +134,11 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 	iss := issuer(ctx)
 
-	var code *oauth.AuthCode
 	var user *oauth.User
 
 	switch params.GrantType {
 	case oauth.GrantTypePassword:
-		if params.ClientID != app.ClientID {
+		if *params.ClientID != app.ClientID {
 			return api.StatusErrorf(http.StatusBadRequest, "bad client id")
 		}
 		if params.ClientSecret == nil || *params.ClientSecret != app.ClientSecret {
@@ -208,22 +224,17 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		fallthrough
 
 	case oauth.GrantTypeAuthCode:
-		if code == nil {
-			if params.Code == nil || params.CodeVerifier == nil {
+		oauth.AuthContext(ctx).Request = &code.AuthRequest
+
+		if code.CodeChallenge != nil {
+			if params.CodeVerifier == nil {
 				return api.StatusErrorf(http.StatusBadRequest, "missing code or verifier")
 			}
-
-			code, err = codeStore(ctx).AuthCodeGet(ctx, *params.Code)
-			if err != nil {
-				return api.StatusErrorf(http.StatusUnauthorized, "invalid code")
-			}
-
-			oauth.AuthContext(ctx).Request = &code.AuthRequest
 
 			sum := sha256.Sum256([]byte(*params.CodeVerifier))
 			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
-			if code.CodeChallenge != check {
+			if *code.CodeChallenge != check {
 				return api.Errorf("verifier mismatch").WithStatus(http.StatusUnauthorized)
 			}
 		}
@@ -277,6 +288,10 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			"azp":   app.ClientID,
 		}
 
+		if code.Nonce != nil {
+			claims["nonce"] = *code.Nonce
+		}
+
 		if roles, ok := user.Roles[aud.Name()]; ok {
 			claims["roles"] = strings.Join(roles, " ")
 		}
@@ -315,9 +330,9 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				"use":       "identity",
 				"iat":       time.Now().Unix(),
 				"auth_time": code.IssuedAt,
-				"aud":       aud.Name(),
+				"aud":       []string{aud.Name(), app.ClientID},
 				"sub":       code.Subject,
-				"exp":       time.Now().Add(time.Duration(app.TokenLifetime)).Unix(),
+				"exp":       time.Now().Add(time.Duration(app.TokenLifetime*int64(time.Second))).Unix(),
 				"azp":       app.ClientID,
 				"name":      user.Profile.Name,
 			}

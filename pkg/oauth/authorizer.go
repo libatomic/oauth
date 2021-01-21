@@ -93,7 +93,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 			return nil, err
 		}
 
-		aud, err = a.ctrl.AudienceGet(r.Context(), token.Audience())
+		aud, err = a.ctrl.AudienceGet(r.Context(), token.Audience()[0])
 		if err != nil {
 			return nil, err
 		}
