@@ -332,9 +332,13 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				"auth_time": code.IssuedAt,
 				"aud":       []string{aud.Name(), app.ClientID},
 				"sub":       code.Subject,
-				"exp":       time.Now().Add(time.Duration(app.TokenLifetime*int64(time.Second))).Unix(),
+				"exp":       time.Now().Add(time.Duration(app.TokenLifetime * int64(time.Second))).Unix(),
 				"azp":       app.ClientID,
 				"name":      user.Profile.Name,
+			}
+
+			if code != nil && code.Nonce != nil {
+				claims["nonce"] = *code.Nonce
 			}
 
 			if scope.Contains(oauth.ScopeProfile) {
