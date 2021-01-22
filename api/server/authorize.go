@@ -25,7 +25,6 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"github.com/kr/pretty"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
 )
@@ -124,9 +123,6 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}
-
-	pretty.Log(params.RedirectURI)
-	pretty.Log(u.String())
 
 	// enusure this app supports the authorization_code flow
 	if g, ok := app.AllowedGrants[aud.Name()]; !ok || !g.Contains("authorization_code") {

@@ -32,7 +32,7 @@ type (
 	SessionParams struct {
 		RequestToken string     `json:"request_token"`
 		AuthCode     bool       `json:"auth_code"`
-		RedirectURI  *oauth.URI `json:"redirect_ur"`
+		RedirectURI  *oauth.URI `json:"redirect_uri"`
 		State        *string    `json:"state,omitempty"`
 	}
 )

@@ -130,7 +130,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 			}
 			c.Application = app
 		} else {
-			return nil, ErrAccessDenied
+		//	return nil, ErrAccessDenied
 		}
 
 		if !strings.HasSuffix(token.Subject(), "@applications") {
