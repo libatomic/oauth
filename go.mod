@@ -7,7 +7,6 @@ go 1.14
 // replace github.com/libatomic/litmus => ../litmus
 
 require (
-	github.com/ModelRocket/hiro v0.1.0
 	github.com/apex/log v1.9.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/dgrijalva/jwt-go v3.2.1-0.20200107013213-dc14462fd587+incompatible
@@ -21,13 +20,13 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/sessions v1.2.0
-	github.com/kr/pretty v0.2.1
 	github.com/libatomic/api v1.0.38
 	github.com/libatomic/litmus v0.5.3
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.6.1
+	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
 	golang.org/x/text v0.3.4 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
