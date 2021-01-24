@@ -38,7 +38,11 @@ func (s *session) ID() string {
 
 // ClientID is the client that created the user session
 func (s *session) ClientID() string {
-	return s.s.Values["client_id"].(string)
+	id, ok := s.s.Values["client_id"].(string)
+	if !ok {
+		return ""
+	}
+	return id
 }
 
 func (s *session) Audience() string {

@@ -138,7 +138,10 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 		s.ID = base58.Encode(uid[:])
 	}
 
-	s.Values["client_id"] = octx.Application.ClientID
+	if octx.Application != nil {
+		s.Values["client_id"] = octx.Application.ClientID
+	}
+
 	s.Values["subject"] = octx.User.Profile.Subject
 	s.Values["aud"] = octx.Audience.Name()
 
