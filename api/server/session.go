@@ -72,7 +72,7 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 		return api.Redirect(u, map[string]string{
 			"error":             "bad_request",
 			"error_description": "context verification failed, missing subject",
-		x})
+		})
 	}
 
 	user, _, err := s.ctrl.UserGet(ctx, *req.Subject)
