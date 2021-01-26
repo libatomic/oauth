@@ -157,7 +157,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		if !ok || !perms.Every(params.Scope...) {
 			return api.Redirect(u, map[string]string{
 				"error":             "access_denied",
-				"error_description": "invalid audience",
+				"error_description": "invalid audience scope",
 			})
 		}
 
