@@ -23,52 +23,48 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // BearerToken BearerTokens are returned by the `/token` method. These token always include
 // an `access_token` which can be used to access api methods from a related service.
 // These are the only objects managed by the api itself. The integration is expected
 // to implement the `oauth.Controller` interface.
-//
-//
-// swagger:model BearerToken
-type BearerToken struct {
+type (
+	BearerToken struct {
 
-	// The token to be used for authorization
-	// Required: true
-	AccessToken string `json:"access_token"`
+		// The token to be used for authorization
+		// Required: true
+		AccessToken string `json:"access_token"`
 
-	// The time from `now` that the token expires
-	// Required: true
-	ExpiresIn int64 `json:"expires_in"`
+		// The time from `now` that the token expires
+		// Required: true
+		ExpiresIn int64 `json:"expires_in"`
 
-	// The idenity token contains claims about the users identity. This token is
-	// returned if the `openid` scope was granted.
-	// If the `profile` scope was granted, this will contain the user profile.
-	// These scopes are outside of the context of this library, it is up to the
-	// provider to maintain these scopes.
-	//
-	IDToken string `json:"id_token,omitempty"`
+		// The idenity token contains claims about the users identity. This token is
+		// returned if the `openid` scope was granted.
+		// If the `profile` scope was granted, this will contain the user profile.
+		// These scopes are outside of the context of this library, it is up to the
+		// provider to maintain these scopes.
+		//
+		IDToken string `json:"id_token,omitempty"`
 
-	// The refresh token maybe used to generate a new access token so client
-	// and user credentials do not have to traverse the wire again.
-	// The is provided if the `offline_access` scope is request.
-	// This scopes are outside of the context of this library, it is up to the
-	// provider to maintain these scopes.
-	//
-	RefreshToken string `json:"refresh_token,omitempty"`
+		// The refresh token maybe used to generate a new access token so client
+		// and user credentials do not have to traverse the wire again.
+		// The is provided if the `offline_access` scope is request.
+		// This scopes are outside of the context of this library, it is up to the
+		// provider to maintain these scopes.
+		//
+		RefreshToken string `json:"refresh_token,omitempty"`
 
-	// The token type, always Bearer
-	// Required: true
-	// Enum: [bearer]
-	TokenType string `json:"token_type"`
+		// The token type, always Bearer
+		// Required: true
+		// Enum: [bearer]
+		TokenType string `json:"token_type"`
 
-	// Additional properties added by the platform
-	BearerToken map[string]map[string]interface{} `json:"-"`
-}
+		// Additional properties added by the platform
+		BearerToken map[string]map[string]interface{} `json:"-"`
+	}
+)
 
 // UnmarshalJSON unmarshals this object with additional properties from JSON
 func (m *BearerToken) UnmarshalJSON(data []byte) error {
@@ -206,104 +202,6 @@ func (m BearerToken) MarshalJSON() ([]byte, error) {
 	// concatenate the 2 objects
 	props[len(props)-1] = ','
 	return append(props, additional[1:]...), nil
-}
-
-// Validate validates this bearer token
-func (m *BearerToken) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateAccessToken(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateExpiresIn(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateTokenType(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *BearerToken) validateAccessToken(formats strfmt.Registry) error {
-
-	if err := validate.RequiredString("access_token", "body", string(m.AccessToken)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *BearerToken) validateExpiresIn(formats strfmt.Registry) error {
-
-	if err := validate.Required("expires_in", "body", int64(m.ExpiresIn)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var bearerTokenTypeTokenTypePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["bearer"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		bearerTokenTypeTokenTypePropEnum = append(bearerTokenTypeTokenTypePropEnum, v)
-	}
-}
-
-const (
-
-	// BearerTokenTokenTypeBearer captures enum value "bearer"
-	BearerTokenTokenTypeBearer string = "bearer"
-)
-
-// prop value enum
-func (m *BearerToken) validateTokenTypeEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, bearerTokenTypeTokenTypePropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *BearerToken) validateTokenType(formats strfmt.Registry) error {
-
-	if err := validate.RequiredString("token_type", "body", string(m.TokenType)); err != nil {
-		return err
-	}
-
-	// value enum
-	if err := m.validateTokenTypeEnum("token_type", "body", m.TokenType); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *BearerToken) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *BearerToken) UnmarshalBinary(b []byte) error {
-	var res BearerToken
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
 }
 
 // Value returns BearerToken as a value that can be stored as json in the database

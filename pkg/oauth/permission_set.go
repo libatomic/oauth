@@ -11,35 +11,10 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 )
 
 // PermissionSet A set of permissions grouped by audience.
-//
-//
-// swagger:model PermissionSet
 type PermissionSet map[string]Permissions
-
-// Validate validates this permission set
-func (m PermissionSet) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	for k := range m {
-
-		if err := m[k].Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName(k)
-			}
-			return err
-		}
-
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
 
 // Value returns PermissionSet as a value that can be stored as json in the database
 func (m PermissionSet) Value() (driver.Value, error) {

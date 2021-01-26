@@ -23,19 +23,10 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 )
 
 // Permissions Permissions are used for both OAuth scopes and API ACL lists.
-//
-//
-// swagger:model Permissions
 type Permissions []string
-
-// Validate validates this permissions
-func (m Permissions) Validate(formats strfmt.Registry) error {
-	return nil
-}
 
 // Value returns Permissions as a value that can be stored as json in the database
 func (m Permissions) Value() (driver.Value, error) {

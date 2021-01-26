@@ -28,7 +28,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/structs"
-	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
@@ -114,7 +113,7 @@ var (
 
 	testUser = &oauth.User{
 		Login:             "hiro@metaverse.org",
-		PasswordExpiresAt: strfmt.DateTime(time.Now().Add(time.Hour)),
+		PasswordExpiresAt: time.Now().Add(time.Hour),
 		Permissions: oauth.PermissionSet{
 			"snowcrash": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 		},
@@ -194,7 +193,7 @@ func init() {
 		RedirectURI:         mockURI,
 		Scope:               oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 		Audience:            "snowcrash",
-		CodeChallenge:       challenge,
+		CodeChallenge:       &challenge,
 		CodeChallengeMethod: "S256",
 		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
 		State:               &state,
@@ -228,7 +227,7 @@ func init() {
 	}
 
 	badReq := *testRequest
-	badReq.CodeChallenge += "bad stuff"
+	*badReq.CodeChallenge += "bad stuff"
 
 	badToken, err = signValue(context.TODO(), signer, badReq)
 	if err != nil {
@@ -245,7 +244,7 @@ func init() {
 	misChal := base64.RawURLEncoding.EncodeToString(misSum[:])
 
 	misMatchReq := *testRequest
-	misMatchReq.CodeChallenge = misChal
+	misMatchReq.CodeChallenge = &misChal
 
 	misMatchToken, err = signValue(context.TODO(), signer, misMatchReq)
 	if err != nil {

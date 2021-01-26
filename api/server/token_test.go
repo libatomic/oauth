@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/apex/log"
-	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/litmus/pkg/litmus"
@@ -33,6 +32,8 @@ import (
 )
 
 func TestTokenAuthcode(t *testing.T) {
+	badChallenge := "not a challenge"
+
 	tests := map[string]litmus.Test{
 		"TokenAuthCodeOK": {
 			Operations: []litmus.Operation{
@@ -115,7 +116,7 @@ func TestTokenAuthcode(t *testing.T) {
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&oauth.User{
 						Login:             "hiro@metaverse.org",
-						PasswordExpiresAt: strfmt.DateTime(time.Now().Add(time.Hour)),
+						PasswordExpiresAt: time.Now().Add(time.Hour),
 						Permissions: oauth.PermissionSet{
 							"crypto": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 						},
@@ -599,7 +600,7 @@ func TestTokenAuthcode(t *testing.T) {
 							RedirectURI:         mockURI,
 							Scope:               oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 							Audience:            "snowcrash",
-							CodeChallenge:       "not a challenge",
+							CodeChallenge:       &badChallenge,
 							CodeChallengeMethod: "S256",
 							ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
 						},
