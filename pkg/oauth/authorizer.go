@@ -129,11 +129,9 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 				return nil, ErrAccessDenied
 			}
 			c.Application = app
-		} else {
-		//	return nil, ErrAccessDenied
 		}
 
-		if !strings.HasSuffix(token.Subject(), "@applications") {
+		if token.Subject() != "" && !strings.HasSuffix(token.Subject(), "@applications") {
 			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), token.Subject())
 			if err != nil {
 				return nil, ErrAccessDenied
