@@ -200,12 +200,9 @@ func (s *Server) addRoute(r route) {
 }
 
 func (s *Server) addContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ctrlKey, s)
-}
-
-func oauthController(ctx context.Context) oauth.Controller {
-	s := ctx.Value(ctrlKey).(*Server)
-	return s.ctrl
+	ctx = context.WithValue(ctx, ctrlKey, s)
+	
+	return oauth.NewContext(ctx, s.ctrl)
 }
 
 func codeStore(ctx context.Context) oauth.CodeStore {

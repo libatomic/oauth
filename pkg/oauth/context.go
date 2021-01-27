@@ -24,6 +24,7 @@ import (
 type (
 	// Context is the oauth context
 	Context struct {
+		Controller  Controller
 		Application *Application
 		Audience    Audience
 		User        *User
@@ -50,6 +51,8 @@ func NewContext(ctx context.Context, args ...interface{}) context.Context {
 			return context.WithValue(ctx, contextKeyContext, &t)
 		case *Context:
 			return context.WithValue(ctx, contextKeyContext, t)
+		case Controller:
+			octx.Controller = t
 		case Application:
 			octx.Application = &t
 		case *Application:

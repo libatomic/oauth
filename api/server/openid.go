@@ -59,7 +59,7 @@ func issuer(ctx context.Context) oauth.URI {
 }
 
 func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
-	ctrl := oauthController(ctx)
+	ctrl := oauth.AuthContext(ctx).Controller
 
 	aud, err := ctrl.AudienceGet(ctx, api.RequestHost(ctx))
 	if err != nil {
@@ -106,7 +106,7 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 }
 
 func jwks(ctx context.Context, params *JWKSInput) api.Responder {
-	ctrl := oauthController(ctx)
+	ctrl := oauth.AuthContext(ctx).Controller
 
 	keys := make([]jose.JSONWebKey, 0)
 

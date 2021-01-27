@@ -79,7 +79,7 @@ func (p *AuthorizeParams) Validate() error {
 }
 
 func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
-	ctrl := oauthController(ctx)
+	ctrl := oauth.AuthContext(ctx).Controller
 	log := api.Log(ctx)
 
 	r, w := api.Request(ctx)
@@ -95,9 +95,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 
-	ctx = oauth.NewContext(ctx, oauth.Context{
-		Audience: aud,
-	})
+	ctx = oauth.NewContext(ctx, aud)
 
 	// ensure this is a valid application
 	app, err := ctrl.ApplicationGet(ctx, params.ClientID)
@@ -105,10 +103,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
 
-	ctx = oauth.NewContext(ctx, oauth.Context{
-		Audience:    aud,
-		Application: app,
-	})
+	ctx = oauth.NewContext(ctx, app)
 
 	if len(app.RedirectUris) == 0 || len(app.RedirectUris[aud.Name()]) == 0 {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)

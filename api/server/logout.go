@@ -54,7 +54,7 @@ func (p LogoutParams) Validate() error {
 }
 
 func logout(ctx context.Context, params *LogoutParams) api.Responder {
-	ctrl := oauthController(ctx)
+	ctrl := oauth.AuthContext(ctx).Controller
 	log := api.Log(ctx)
 
 	r, w := api.Request(ctx)

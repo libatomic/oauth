@@ -40,7 +40,7 @@ type (
 	// VerifySendParams are the params for the verification send method
 	VerifySendParams struct {
 		Method oauth.NotificationChannel `json:"method"`
-		signup bool
+		Signup bool
 	}
 
 	verifyNotification struct {
@@ -66,7 +66,7 @@ func (p VerifyParams) Validate() error {
 }
 
 func verify(ctx context.Context, params *VerifyParams) api.Responder {
-	ctrl := oauthController(ctx)
+	ctrl := oauth.AuthContext(ctx).Controller
 	auth := oauth.AuthContext(ctx)
 
 	if auth.Principal == nil {
@@ -101,15 +101,16 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 }
 
 func verifySend(ctx context.Context, params *VerifySendParams) api.Responder {
-	if err := verifySendDirect(ctx, params); err != nil {
+	if err := VerifySend(ctx, params); err != nil {
 		return api.Error(err)
 	}
 
 	return api.NewResponse().WithStatus(http.StatusNoContent)
 }
 
-func verifySendDirect(ctx context.Context, params *VerifySendParams) error {
-	ctrl := oauthController(ctx)
+// VerifySend sends a verification to the user
+func VerifySend(ctx context.Context, params *VerifySendParams) error {
+	ctrl := oauth.AuthContext(ctx).Controller
 	auth := oauth.AuthContext(ctx)
 
 	r, _ := api.Request(ctx)
@@ -147,7 +148,7 @@ func verifySendDirect(ctx context.Context, params *VerifySendParams) error {
 		sub:     auth.User.Profile.Subject,
 		channel: params.Method,
 		uri:     oauth.URI(link.String()),
-		signup:  params.signup,
+		signup:  params.Signup,
 	}); err != nil {
 		return err
 	}

@@ -49,11 +49,7 @@ type (
 		// UserNotify should create an email or sms with the verification link or code for the user
 		UserNotify(ctx context.Context, note Notification) error
 
-		// UserResetPassword should notify the user with a reset password link to the
-		// which includes the user's password reset code i.e.:
-		// - https://domain.tld/setPassword?code={reset_code}
-		//
-		// These values should be the posted along with the new password to `/oauth/passwordSet`
+		// UserResetPassword resets a user's password
 		UserResetPassword(ctx context.Context, login string, resetCode string) error
 
 		// UserSetPassword will set a user's password

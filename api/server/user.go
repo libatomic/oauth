@@ -41,7 +41,7 @@ func init() {
 }
 
 func userInfoUpdate(ctx context.Context, params *UserInfoUpdateParams) api.Responder {
-	ctrl := oauthController(ctx)
+	ctrl := oauth.AuthContext(ctx).Controller
 	auth := oauth.AuthContext(ctx)
 
 	if auth.User == nil {
