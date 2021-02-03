@@ -119,5 +119,6 @@ func ContextFromRequest(ctx context.Context, ctrl Controller, req *AuthRequest) 
 			Application: app,
 			Audience:    aud,
 			Request:     req,
+			Controller:  ctrl,
 		}), nil
 }
