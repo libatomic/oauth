@@ -311,16 +311,20 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				return api.StatusErrorf(http.StatusUnauthorized, "missing refresh nonce")
 			}
 
-			if code.RefreshNonce == *params.RefreshNonce {
+			refreshCode := *code
+
+			refreshCode.CodeChallenge = nil
+
+			if refreshCode.RefreshNonce == *params.RefreshNonce {
 				return api.StatusErrorf(http.StatusUnauthorized, "nonce reused")
 			}
-			code.RefreshNonce = *params.RefreshNonce
+			refreshCode.RefreshNonce = *params.RefreshNonce
 
-			if err := codeStore(ctx).AuthCodeCreate(ctx, code); err != nil {
+			if err := codeStore(ctx).AuthCodeCreate(ctx, &refreshCode); err != nil {
 				return api.StatusError(http.StatusInternalServerError, err)
 			}
 
-			bearer.RefreshToken = code.Code
+			bearer.RefreshToken = refreshCode.Code
 		}
 
 		// check for id token request

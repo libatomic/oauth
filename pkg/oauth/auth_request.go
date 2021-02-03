@@ -43,7 +43,7 @@ type AuthRequest struct {
 
 	// The request code challenge
 	// Required: true
-	CodeChallenge *string `json:"code_challenge"`
+	CodeChallenge *string `json:"code_challenge,omitempty"`
 
 	// The request code challenge method
 	// Enum: [S256]
