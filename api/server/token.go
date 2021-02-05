@@ -313,6 +313,14 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 			refreshCode := *code
 
+			issAt := time.Unix(refreshCode.IssuedAt, 0)
+
+			if issAt.Add(time.Hour * 24 * 7).Before(time.Now()) {
+				return api.StatusErrorf(http.StatusUnauthorized, "refresh code expired")
+			}
+
+			refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
+
 			refreshCode.CodeChallenge = nil
 
 			if refreshCode.RefreshNonce == *params.RefreshNonce {

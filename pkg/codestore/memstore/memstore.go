@@ -43,7 +43,9 @@ func New(defaultExpiration, cleanupInterval time.Duration) oauth.CodeStore {
 // AuthCodeCreate creates a new authcode from the request
 func (m *memstore) AuthCodeCreate(_ context.Context, authCode *oauth.AuthCode) error {
 
-	authCode.IssuedAt = time.Now().Unix()
+	if authCode.IssuedAt == 0 {
+		authCode.IssuedAt = time.Now().Unix()
+	}
 
 	if authCode.Code == "" {
 		code, err := uuid.NewRandom()
