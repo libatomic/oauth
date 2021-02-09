@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ModelRocket/hiro/pkg/ptr"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/structs"
 	"github.com/imdario/mergo"
@@ -228,8 +227,9 @@ func init() {
 
 	expiredToken = mockToken(&expiredReq)
 
+	badChallenge := *testRequest.CodeChallenge + "bad stuff"
 	badReq := *testRequest
-	badReq.CodeChallenge = ptr.String(*testRequest.CodeChallenge + "bad stuff")
+	badReq.CodeChallenge = &badChallenge
 
 	badToken = mockToken(&badReq)
 
