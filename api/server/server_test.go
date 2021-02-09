@@ -24,19 +24,20 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/structs"
 	"github.com/imdario/mergo"
 	"github.com/libatomic/api/pkg/api"
+	"github.com/libatomic/litmus/pkg/litmus"
 	"github.com/libatomic/oauth/pkg/oauth"
-	"github.com/stretchr/testify/mock"
 )
 
 type (
 	MockController struct {
-		mock.Mock
+		litmus.Mock
 	}
 
 	MockAuthorizer struct {
@@ -221,18 +222,18 @@ func init() {
 		UserAuthenticated: true,
 	}
 
-	testToken = mockToken(testRequest)
+	testToken = mockRequestToken(testRequest)
 
 	expiredReq = *testRequest
 	expiredReq.ExpiresAt = time.Now().Add(time.Minute * -10).Unix()
 
-	expiredToken = mockToken(&expiredReq)
+	expiredToken = mockRequestToken(&expiredReq)
 
 	badChallenge := *testRequest.CodeChallenge + "bad stuff"
 	badReq := *testRequest
 	badReq.CodeChallenge = &badChallenge
 
-	badToken = mockToken(&badReq)
+	badToken = mockRequestToken(&badReq)
 
 	token = make([]byte, 32)
 	if _, err := rand.Read(token); err != nil {
@@ -246,15 +247,23 @@ func init() {
 	misMatchReq := *testRequest
 	misMatchReq.CodeChallenge = &misChal
 
-	misMatchToken = mockToken(&misMatchReq)
+	misMatchToken = mockRequestToken(&misMatchReq)
 
 	emptyScopeReq = *testRequest
 	emptyScopeReq.Scope = oauth.Permissions{}
 
-	emptyScopeToken = mockToken(&emptyScopeReq)
+	emptyScopeToken = mockRequestToken(&emptyScopeReq)
 }
 
-func mockToken(req *oauth.AuthRequest, src ...oauth.AuthRequest) string {
+func scopeRequest(req *oauth.AuthRequest, scope ...string) *oauth.AuthRequest {
+	rval := *req
+
+	rval.Scope = append(rval.Scope, scope...)
+
+	return &rval
+}
+
+func mockRequestToken(req *oauth.AuthRequest, src ...oauth.AuthRequest) string {
 	signer := func(ctx context.Context, claims oauth.Claims) (string, error) {
 		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
 		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
@@ -271,6 +280,31 @@ func mockToken(req *oauth.AuthRequest, src ...oauth.AuthRequest) string {
 	}
 
 	return token
+}
+
+func mockAccessToken(req *oauth.AuthRequest, expiresAt time.Time) (string, oauth.Claims) {
+	signer := func(ctx context.Context, claims oauth.Claims) (string, error) {
+		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	}
+
+	claims := oauth.Claims{
+		"iss":   mockURI,
+		"use":   "access",
+		"iat":   time.Now().Unix(),
+		"aud":   req.Audience,
+		"sub":   req.Subject,
+		"scope": strings.Join(req.Scope, " "),
+		"exp":   expiresAt.Unix(),
+		"azp":   req.ClientID,
+	}
+
+	token, err := signValue(context.TODO(), signer, jwt.MapClaims(claims))
+	if err != nil {
+		panic(err)
+	}
+
+	return token, claims
 }
 
 func (c *MockController) ApplicationGet(ctx context.Context, id string) (*oauth.Application, error) {

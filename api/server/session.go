@@ -19,6 +19,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -39,12 +40,14 @@ type (
 
 func init() {
 	registerRoutes([]route{
-		{"/session", http.MethodGet, &SessionParams{}, session, oauth.Scope(oauth.ScopeSession), nil},
+		{"/session", http.MethodGet, &SessionParams{}, session, oauth.Scope(oauth.ScopeSession), []oauth.AuthOption{oauth.WithErrorPassthrough()}},
 	})
 }
 
 func session(ctx context.Context, params *SessionParams) api.Responder {
 	s := serverContext(ctx)
+
+	octx := oauth.AuthContext(ctx)
 
 	req := &oauth.AuthRequest{}
 	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
@@ -53,52 +56,37 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 
 	u, _ := url.Parse(req.AppURI)
 
-	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
-		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
-			"error_description": "expired request token",
-		})
+	// check for authorization errors so we can return the to the redirect
+	if octx.Error != nil {
+		if errors.Is(octx.Error, oauth.ErrAccessDenied) {
+			return api.ErrorRedirect(u, http.StatusUnauthorized, octx.Error.Error())
+		}
+		return api.ErrorRedirect(u, http.StatusBadRequest, octx.Error.Error())
 	}
 
-	ctx, err := oauth.ContextFromRequest(ctx, s.ctrl, req)
-	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
-			"error_description": "context verification failed",
-		})
+	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
+		return ErrExpiredRequestToken(u)
 	}
 
 	if req.Subject == nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
-			"error_description": "context verification failed, missing subject",
-		})
+		return ErrInvalidContext(u)
 	}
 
-	user, _, err := s.ctrl.UserGet(ctx, *req.Subject)
-	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authentication failed",
-			"request_token":     params.RequestToken,
-		})
+	if *req.Subject != octx.User.Profile.Subject {
+		return ErrInvalidContext(u)
 	}
+
+	user := octx.User
 
 	r, w := api.Request(ctx)
 
 	session, err := sessionStore(ctx).SessionCreate(oauth.NewContext(ctx, user), r)
 	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
+		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create session", err)
 	}
 
 	if err := session.Write(w); err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
+		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to write session", err)
 	}
 
 	u, _ = url.Parse(req.RedirectURI)
@@ -111,10 +99,7 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 			UserAuthenticated: true,
 		}
 		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
-			return api.Redirect(u, map[string]string{
-				"error":             "server_error",
-				"error_description": err.Error(),
-			})
+			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create auth code", err)
 		}
 
 		q := u.Query()

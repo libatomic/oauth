@@ -79,6 +79,13 @@ func TestVerify(t *testing.T) {
 
 	tests := map[string]litmus.Test{
 		"Verify": {
+			Operations: []litmus.Operation{
+				{
+					Name:    "UserUpdate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
+					Returns: litmus.Returns{nil},
+				},
+			},
 			Method: http.MethodGet,
 			Path:   "/oauth/verify",
 			Request: &VerifyParams{

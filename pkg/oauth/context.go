@@ -32,6 +32,7 @@ type (
 		Token       Claims
 		Bearer      string
 		Request     *AuthRequest
+		Error       error
 	}
 
 	contextKey string
@@ -63,10 +64,12 @@ func NewContext(ctx context.Context, args ...interface{}) context.Context {
 			octx.User = &t
 		case *User:
 			octx.User = t
-		case interface{}:
-			octx.Principal = t
 		case Claims:
 			octx.Token = t
+		case error:
+			octx.Error = t
+		case interface{}:
+			octx.Principal = t
 		}
 	}
 

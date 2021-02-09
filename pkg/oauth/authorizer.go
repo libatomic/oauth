@@ -44,9 +44,10 @@ type (
 	AuthorizerOption func(a *authorizer)
 
 	authOptions struct {
-		scope    []Permissions
-		roles    []Permissions
-		optional bool
+		scope     []Permissions
+		roles     []Permissions
+		optional  bool
+		passError bool
 	}
 )
 
@@ -75,6 +76,14 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 		ctx := r.Context()
 
+		errDone := func(ctx context.Context, err error) (context.Context, error) {
+			if o.passError && err != nil {
+				return NewContext(ctx, err), nil
+			}
+
+			return ctx, err
+		}
+
 		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if bearer == "" && a.permitQueryToken {
 			bearer = r.URL.Query().Get("access_token")
@@ -85,17 +94,17 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 				return ctx, nil
 			}
 
-			return nil, fmt.Errorf("%w: token not present", ErrAccessDenied)
+			return errDone(ctx, fmt.Errorf("%w: token not present", ErrAccessDenied))
 		}
 
 		token, err := a.ctrl.TokenValidate(ctx, bearer)
 		if err != nil {
-			return nil, err
+			return errDone(ctx, err)
 		}
 
 		aud, err = a.ctrl.AudienceGet(r.Context(), token.Audience()[0])
 		if err != nil {
-			return nil, err
+			return errDone(ctx, err)
 		}
 
 		scopes := token.Scope()
@@ -115,7 +124,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		}
 
 		if !allowed {
-			return nil, ErrAccessDenied
+			return errDone(ctx, ErrAccessDenied)
 		}
 
 		c := Context{
@@ -126,7 +135,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		if token.ClientID() != "" {
 			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), token.ClientID())
 			if err != nil {
-				return nil, ErrAccessDenied
+				return errDone(ctx, ErrAccessDenied)
 			}
 			c.Application = app
 		}
@@ -134,14 +143,14 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		if token.Subject() != "" && !strings.HasSuffix(token.Subject(), "@applications") {
 			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), token.Subject())
 			if err != nil {
-				return nil, ErrAccessDenied
+				return errDone(ctx, ErrAccessDenied)
 			}
 
 			// check roles
 			if len(o.roles) > 0 {
 				roles, ok := user.Roles[aud.Name()]
 				if !ok {
-					return nil, ErrAccessDenied
+					return errDone(ctx, ErrAccessDenied)
 				}
 
 				allowed := false
@@ -154,7 +163,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 				}
 
 				if !allowed {
-					return nil, ErrAccessDenied
+					return errDone(ctx, ErrAccessDenied)
 				}
 			}
 
@@ -185,6 +194,13 @@ func WithRoles(roles ...Permissions) AuthOption {
 func WithOptional() AuthOption {
 	return func(o *authOptions) {
 		o.optional = true
+	}
+}
+
+// WithErrorPassthrough passes the error in the context to the method
+func WithErrorPassthrough() AuthOption {
+	return func(o *authOptions) {
+		o.passError = true
 	}
 }
 

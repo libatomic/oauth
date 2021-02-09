@@ -41,6 +41,9 @@ var (
 	// ErrInvalidToken is returned when the token is not valid
 	ErrInvalidToken = errors.New("invalid token")
 
+	// ErrExpiredToken is returned when the token is expired
+	ErrExpiredToken = errors.New("expired token")
+
 	// ErrPasswordLen is returned when a password does not meet length requirements
 	ErrPasswordLen = errors.New("invalid password length")
 

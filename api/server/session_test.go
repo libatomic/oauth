@@ -20,6 +20,7 @@ package server
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/apex/log"
 	"github.com/fatih/structs"
@@ -30,30 +31,32 @@ import (
 )
 
 func TestSession(t *testing.T) {
-	auth := new(MockAuthorizer)
+	scopedRequest := scopeRequest(testRequest, "session")
+	token, _ := mockAccessToken(scopedRequest, time.Now().Add(time.Minute*5))
+	expired, _ := mockAccessToken(scopedRequest, time.Now())
 
 	tests := map[string]litmus.Test{
 		"Session": {
 			Operations: []litmus.Operation{
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
 				{
 					Name:    "ApplicationGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testApp, nil},
 				},
 				{
-					Name:    "TokenValidate",
+					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
+					Returns: litmus.Returns{testAud, nil},
 				},
 				{
 					Name:    "UserGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testUser, testUser, nil},
+					Returns: litmus.Returns{testUser, testPrin, nil},
+				},
+				{
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(scopedRequest)), nil},
 				},
 				{
 					Name:    "SessionCreate",
@@ -68,6 +71,35 @@ func TestSession(t *testing.T) {
 			},
 			Method: http.MethodGet,
 			Path:   "/oauth/session",
+			Query: litmus.BeginQuery().
+				Add("access_token", token).
+				EndQuery(),
+			Request: SessionParams{
+				RequestToken: testToken,
+				RedirectURI:  (*oauth.URI)(&testRequest.RedirectURI),
+				AuthCode:     true,
+			},
+			ExpectedStatus: http.StatusFound,
+			ExpectedHeaders: map[string]string{
+				"Location": `https:\/\/meta\.org\/`,
+			},
+		},
+		"SessionExpiredToken": {
+			Operations: []litmus.Operation{
+				{
+					Name: "TokenValidate",
+					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					ReturnStack: litmus.ReturnStack{
+						litmus.Returns{nil, oauth.ErrExpiredToken},
+						litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
+					},
+				},
+			},
+			Method: http.MethodGet,
+			Path:   "/oauth/session",
+			Query: litmus.BeginQuery().
+				Add("access_token", expired).
+				EndQuery(),
 			Request: SessionParams{
 				RequestToken: testToken,
 				RedirectURI:  (*oauth.URI)(&testRequest.RedirectURI),
@@ -83,6 +115,8 @@ func TestSession(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := new(MockController)
+
+			auth := oauth.NewAuthorizer(ctrl, oauth.WithPermitQueryToken(true))
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl), WithAuthorizer(auth))
 

@@ -19,7 +19,7 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/imdario/mergo v0.3.11
 	github.com/libatomic/api v0.1.0
-	github.com/libatomic/litmus v0.5.3
+	github.com/libatomic/litmus v0.5.4
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/mr-tron/base58 v1.2.0

@@ -53,6 +53,8 @@ func (c Claims) ID() string {
 func (c Claims) Subject() string {
 	if s, ok := c["sub"].(string); ok {
 		return s
+	} else if s, ok := c["subject"].(*string); ok {
+		return *s
 	}
 
 	return ""
@@ -60,8 +62,13 @@ func (c Claims) Subject() string {
 
 // Scope returns the scope for the token
 func (c Claims) Scope() Permissions {
-	if s, ok := c["scope"].(string); ok {
-		return Permissions(strings.Fields(s))
+	switch t := c["scope"].(type) {
+	case string:
+		return Permissions(strings.Fields(t))
+	case []string:
+		return Permissions(t)
+	case Permissions:
+		return t
 	}
 
 	return make(Permissions, 0)
@@ -82,6 +89,8 @@ func (c Claims) Audience() []string {
 // ClientID returns the client (application) id for the token
 func (c Claims) ClientID() string {
 	if s, ok := c["azp"].(string); ok {
+		return s
+	} else if s, ok := c["client_id"].(string); ok {
 		return s
 	}
 
