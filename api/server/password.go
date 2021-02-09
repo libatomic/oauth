@@ -126,71 +126,62 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	if params.RequestToken != nil {
 		req = &oauth.AuthRequest{}
 		if err := verifyValue(ctx, s.ctrl.TokenValidate, *params.RequestToken, req); err != nil {
-			return api.Error(err).WithStatus(http.StatusBadRequest)
+			return api.StatusErrorf(http.StatusBadRequest, "%s: failed to verify request token", err)
 		}
 
 		if req.AppURI != "" {
 			u, err = url.Parse(req.AppURI)
 			if err != nil {
-				return api.Error(err).WithStatus(http.StatusBadRequest)
+				return api.StatusErrorf(http.StatusBadRequest, "%s: failed to parse request app uri", err)
 			}
 		}
 
 		if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
-			return api.ErrorRedirect(api.RedirectError{
-				URL:            u,
-				Status:         http.StatusBadRequest,
-				Err:            "bad_request",
-				ErrDescription: "expired request token",
-			})
+			return ErrExpiredRequestToken(u)
 		}
 
 		if req.CodeChallenge != nil {
 			if params.CodeVerifier == nil {
-				return api.ErrorRedirect(api.RedirectError{
-					URL:            u,
-					Status:         http.StatusBadRequest,
-					Err:            "bad_request",
-					ErrDescription: "code verifier required",
-				})
+				return ErrMissingParameter(u, "code_verifier")
 			}
 
 			sum := sha256.Sum256([]byte(*params.CodeVerifier))
 			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 			if *req.CodeChallenge != check {
-				return api.ErrorRedirect(api.RedirectError{
-					URL:            u,
-					Status:         http.StatusUnauthorized,
-					Err:            "access_denied",
-					ErrDescription: "invalid code verifier",
-				})
+				return ErrInvalidParameter(u, "code_verifier")
 			}
 		}
 
 		ctx, err = oauth.ContextFromRequest(ctx, s.ctrl, req)
 		if err != nil {
-			return api.ErrorRedirect(api.RedirectError{
-				URL:            u,
-				Status:         http.StatusBadRequest,
-				Err:            "bad_request",
-				ErrDescription: "context verification failed",
-			})
+			return ErrInvalidContext(u)
 		}
 
 		user, _, err = s.ctrl.UserGet(ctx, *params.Login)
 		if err != nil {
-			return api.ErrorRedirect(api.RedirectError{
-				URL:            u,
-				Status:         http.StatusUnauthorized,
-				Err:            "access_denied",
-				ErrDescription: "user does not exist",
-			})
+			return ErrUserNotFound(u)
 		}
 
 		ctx = oauth.NewContext(ctx, user)
 
+		if params.RedirectURI != nil {
+			octx := oauth.AuthContext(ctx)
+
+			aud := octx.Audience
+			app := octx.Application
+
+			// ensure the redirect uri path is allowed
+			u, err := EnsureURI(string(*params.RedirectURI), app.RedirectUris[aud.Name()])
+			if err != nil {
+				return ErrUnauthorizedRediretURI(u)
+			}
+
+			req.RedirectURI = u.String()
+		}
 	} else {
+		octx := oauth.AuthContext(ctx)
+
 		if params.AppURI != nil {
 			u, err = url.Parse(string(*params.AppURI))
 			if err != nil {
@@ -199,38 +190,22 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		}
 
 		if params.RedirectURI == nil {
-			return api.ErrorRedirect(api.RedirectError{
-				URL:            u,
-				Status:         http.StatusBadRequest,
-				Err:            "bad_request",
-				ErrDescription: "redirect_uri required",
-			})
+			return ErrMissingParameter(u, "redirect_uri")
 		}
 
-		octx := oauth.AuthContext(ctx)
-
 		if octx.User == nil {
-			return api.ErrorRedirect(api.RedirectError{
-				URL:            u,
-				Status:         http.StatusUnauthorized,
-				Err:            "access_denied",
-				ErrDescription: "user session invalid",
-			})
+			return ErrUserNotFound(u)
 		}
 
 		user = octx.User
 
 		req = octx.Request
+
 		req.RedirectURI = string(*params.RedirectURI)
 
 		_, err := url.Parse(string(*params.RedirectURI))
 		if err != nil {
-			return api.ErrorRedirect(api.RedirectError{
-				URL:            u,
-				Status:         http.StatusBadRequest,
-				Err:            "bad_request",
-				ErrDescription: fmt.Sprintf("invalid redirect uri: %s", err.Error()),
-			})
+			return ErrInvalidParameter(u, "redirect_uri")
 		}
 	}
 
@@ -260,12 +235,9 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			r.Host,
 			path.Clean(path.Join(path.Dir(r.URL.Path), "session")))).Parse()
 	if err != nil {
-		return api.ErrorRedirect(api.RedirectError{
-			URL:    u,
-			Status: http.StatusInternalServerError,
-			Err:    err.Error(),
-		})
+		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to parse notify link", err)
 	}
+
 	q := link.Query()
 
 	switch params.Type {
@@ -279,15 +251,9 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			Subject:     user.Profile.Subject,
 		}
 		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
-			if u == nil {
-				return api.Error(err)
-			}
-
-			return api.Redirect(u, map[string]string{
-				"error":             "server_error",
-				"error_description": err.Error(),
-			})
+			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create auth code", err)
 		}
+
 		ru, _ := url.Parse(req.RedirectURI)
 
 		q := ru.Query()
@@ -302,14 +268,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	case PasswordTypeLink:
 		reqToken, err := signValue(ctx, s.ctrl.TokenFinalize, req)
 		if err != nil {
-			if u == nil {
-				return api.Error(err)
-			}
-
-			return api.Redirect(u, map[string]string{
-				"error":             "server_error",
-				"error_description": err.Error(),
-			})
+			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to sign request token", err)
 		}
 
 		claims := oauth.Claims{
@@ -325,14 +284,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
-			if u == nil {
-				return api.Error(err)
-			}
-
-			return api.Redirect(u, map[string]string{
-				"error":             "server_error",
-				"error_description": err.Error(),
-			})
+			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to finalize claims", err)
 		}
 
 		q.Set("access_token", token)
@@ -350,14 +302,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	}
 
 	if err := s.ctrl.UserNotify(ctx, note); err != nil {
-		if u == nil {
-			return api.Error(err)
-		}
-
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
-		})
+		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to send user notification", err)
 	}
 
 	if u == nil {

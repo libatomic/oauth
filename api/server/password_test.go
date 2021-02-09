@@ -33,6 +33,8 @@ import (
 func TestPasswordCreate(t *testing.T) {
 	auth := new(MockAuthorizer)
 
+	altURI := oauth.URI(altURI)
+
 	tests := map[string]litmus.Test{
 		"PasswordCreate": {
 			Operations: []litmus.Operation{
@@ -67,6 +69,49 @@ func TestPasswordCreate(t *testing.T) {
 			Request: PasswordCreateParams{
 				Login:        &testUser.Login,
 				Type:         PasswordTypeLink,
+				RequestToken: &testToken,
+				CodeVerifier: &verifier,
+				Notify:       []oauth.NotificationChannel{"email"},
+			},
+			ExpectedStatus: http.StatusFound,
+			ExpectedHeaders: map[string]string{
+				"Location": `https:\/\/meta\.org\/`,
+			},
+		},
+		"PasswordCreateRedirectOverride": {
+			Operations: []litmus.Operation{
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
+				},
+				{
+					Name:    "ApplicationGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testApp, nil},
+				},
+				{
+					Name:    "TokenValidate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
+				},
+				{
+					Name:    "UserGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testUser, testUser, nil},
+				},
+				{
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
+				},
+			},
+			Method: http.MethodPost,
+			Path:   "/oauth/password",
+			Request: PasswordCreateParams{
+				Login:        &testUser.Login,
+				Type:         PasswordTypeLink,
+				RedirectURI:  &altURI,
 				RequestToken: &testToken,
 				CodeVerifier: &verifier,
 				Notify:       []oauth.NotificationChannel{"email"},

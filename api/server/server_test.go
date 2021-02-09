@@ -65,6 +65,7 @@ type (
 
 const (
 	mockURI = "https://meta.org/"
+	altURI  = "https://meta.ord/foo"
 )
 
 var (
@@ -94,10 +95,10 @@ var (
 			},
 		},
 		AppUris: oauth.PermissionSet{
-			"snowcrash": oauth.Permissions{mockURI},
+			"snowcrash": oauth.Permissions{mockURI, altURI},
 		},
 		RedirectUris: oauth.PermissionSet{
-			"snowcrash": oauth.Permissions{mockURI},
+			"snowcrash": oauth.Permissions{mockURI, altURI},
 		},
 		TokenLifetime: 60,
 	}
