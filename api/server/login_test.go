@@ -156,7 +156,7 @@ func TestLogin(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusFound,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("login", "hiro@metaverse.org").
@@ -381,7 +381,7 @@ func TestLogin(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 

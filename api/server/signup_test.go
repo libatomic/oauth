@@ -18,7 +18,6 @@
 package server
 
 import (
-	"errors"
 	"net/http"
 	"testing"
 
@@ -31,6 +30,8 @@ import (
 )
 
 func TestSignup(t *testing.T) {
+	password := "foo"
+
 	tests := map[string]litmus.Test{
 		"SingupOK": {
 			Operations: []litmus.Operation{
@@ -54,8 +55,9 @@ func TestSignup(t *testing.T) {
 					Args: litmus.Args{
 						litmus.Context,
 						mock.AnythingOfType("string"),
-						mock.AnythingOfType("string"),
+						mock.AnythingOfType("*string"),
 						mock.AnythingOfType("*oauth.Profile"),
+						mock.AnythingOfType("[]string"),
 					},
 					Returns: litmus.Returns{testUser, nil},
 				},
@@ -74,84 +76,27 @@ func TestSignup(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
 				},
+				{
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
+				},
 			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/signup",
-			ExpectedStatus:     http.StatusFound,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("email", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", testToken).
-				Encode(),
+			Method:         http.MethodPost,
+			Path:           "/oauth/signup",
+			ExpectedStatus: http.StatusFound,
+			Request: SignupParams{
+				Name:         &testUser.Profile.Name,
+				Login:        testUser.Login,
+				Email:        &testUser.Login,
+				Password:     &password,
+				RequestToken: testToken,
+			},
 			ExpectedHeaders: map[string]string{
 				"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000`,
 			},
 		},
-		"SignupBadToken": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenValidate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), errors.New("bad token")},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/signup",
-			ExpectedStatus:     http.StatusBadRequest,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("email", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", "bad-token").
-				Encode(),
-		},
-		"SignupExpiredToken": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenValidate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{oauth.Claims(structs.Map(expiredReq)), nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/signup",
-			ExpectedStatus:     http.StatusUnauthorized,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("email", "hiro@metaverse.org").
-				Add("request_token", expiredToken).
-				Encode(),
-		},
-		"SignupBadContext": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenValidate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{nil, errors.New("audience not found")},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/signup",
-			ExpectedStatus:     http.StatusInternalServerError,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("email", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", testToken).
-				Encode(),
-		},
-		"SingupUserCreateError": {
+		"SingupNoPass": {
 			Operations: []litmus.Operation{
 				{
 					Name:    "TokenValidate",
@@ -173,28 +118,36 @@ func TestSignup(t *testing.T) {
 					Args: litmus.Args{
 						litmus.Context,
 						mock.AnythingOfType("string"),
-						mock.AnythingOfType("string"),
+						mock.AnythingOfType("*string"),
 						mock.AnythingOfType("*oauth.Profile"),
+						mock.AnythingOfType("[]string"),
 					},
-					Returns: litmus.Returns{nil, errors.New("bad user")},
+					Returns: litmus.Returns{testUser, nil},
+				},
+				{
+					Name:    "TokenFinalize",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+					Returns: litmus.Returns{"", nil},
 				},
 			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/signup",
-			ExpectedStatus:     http.StatusBadRequest,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("email", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", testToken).
-				Encode(),
+			Method:         http.MethodPost,
+			Path:           "/oauth/signup",
+			ExpectedStatus: http.StatusFound,
+			Request: SignupParams{
+				Name:         &testUser.Profile.Name,
+				Login:        testUser.Login,
+				Email:        &testUser.Login,
+				RequestToken: testToken,
+			},
+			ExpectedHeaders: map[string]string{
+				"Location": `https:\/\/meta\.org\/\?state=foo`,
+			},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 

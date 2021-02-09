@@ -29,7 +29,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/apex/log"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/libatomic/api/pkg/api"
@@ -39,7 +38,7 @@ import (
 type (
 	// PasswordCreateParams is the input to the password get route
 	PasswordCreateParams struct {
-		Login        string                     `json:"login"`
+		Login        *string                    `json:"login,omitempty"`
 		Notify       oauth.NotificationChannels `json:"notify"`
 		Type         PasswordType               `json:"type"`
 		RequestToken *string                    `json:"request_token,omitempty"`
@@ -97,9 +96,9 @@ func (p PasswordType) Validate() error {
 // Validate validates PasswordGetInput
 func (p PasswordCreateParams) Validate() error {
 	return validation.ValidateStruct(&p,
-		validation.Field(&p.Login, validation.Required),
+		validation.Field(&p.Login, validation.When(p.RequestToken != nil, validation.Required).Else(validation.NilOrNotEmpty)),
 		validation.Field(&p.Type, validation.Required),
-		validation.Field(&p.Notify, validation.Required, validation.Each(validation.In(oauth.NotificationChannelEmail, oauth.NotificationChannelPhone))),
+		validation.Field(&p.Notify, validation.Required),
 		validation.Field(&p.RequestToken, validation.NilOrNotEmpty),
 		validation.Field(&p.AppURI, validation.NilOrNotEmpty, is.RequestURI),
 		validation.Field(&p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
@@ -119,70 +118,104 @@ func (p PasswordUpdateParams) Validate() error {
 func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Responder {
 	s := serverContext(ctx)
 
+	var err error
 	var req *oauth.AuthRequest
 	var user *oauth.User
 	var u *url.URL
 
 	if params.RequestToken != nil {
-		var err error
-
 		req = &oauth.AuthRequest{}
 		if err := verifyValue(ctx, s.ctrl.TokenValidate, *params.RequestToken, req); err != nil {
 			return api.Error(err).WithStatus(http.StatusBadRequest)
 		}
 
-		u, _ = url.Parse(req.AppURI)
+		if req.AppURI != "" {
+			u, err = url.Parse(req.AppURI)
+			if err != nil {
+				return api.Error(err).WithStatus(http.StatusBadRequest)
+			}
+		}
 
 		if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
-			return api.Redirect(u, map[string]string{
-				"error":             "bad_request",
-				"error_description": "expired request token",
+			return api.ErrorRedirect(api.RedirectError{
+				URL:            u,
+				Status:         http.StatusBadRequest,
+				Err:            "bad_request",
+				ErrDescription: "expired request token",
 			})
 		}
 
 		if req.CodeChallenge != nil {
 			if params.CodeVerifier == nil {
-				return api.Errorf("code_verifier: cannot be blank")
+				return api.ErrorRedirect(api.RedirectError{
+					URL:            u,
+					Status:         http.StatusBadRequest,
+					Err:            "bad_request",
+					ErrDescription: "code verifier required",
+				})
 			}
 
 			sum := sha256.Sum256([]byte(*params.CodeVerifier))
 			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 			if *req.CodeChallenge != check {
-				return api.Redirect(u, map[string]string{
-					"error":             "access_denied",
-					"error_description": "invalid code",
+				return api.ErrorRedirect(api.RedirectError{
+					URL:            u,
+					Status:         http.StatusUnauthorized,
+					Err:            "access_denied",
+					ErrDescription: "invalid code verifier",
 				})
 			}
 		}
 
 		ctx, err = oauth.ContextFromRequest(ctx, s.ctrl, req)
 		if err != nil {
-			return api.Redirect(u, map[string]string{
-				"error":             "bad_request",
-				"error_description": "context verification failed",
+			return api.ErrorRedirect(api.RedirectError{
+				URL:            u,
+				Status:         http.StatusBadRequest,
+				Err:            "bad_request",
+				ErrDescription: "context verification failed",
 			})
 		}
 
-		user, _, err = s.ctrl.UserGet(ctx, params.Login)
+		user, _, err = s.ctrl.UserGet(ctx, *params.Login)
 		if err != nil {
-			return api.Redirect(u, map[string]string{
-				"error":             "access_denied",
-				"error_description": "user does not exist",
+			return api.ErrorRedirect(api.RedirectError{
+				URL:            u,
+				Status:         http.StatusUnauthorized,
+				Err:            "access_denied",
+				ErrDescription: "user does not exist",
 			})
 		}
 
 		ctx = oauth.NewContext(ctx, user)
 
 	} else {
+		if params.AppURI != nil {
+			u, err = url.Parse(string(*params.AppURI))
+			if err != nil {
+				return api.StatusErrorf(http.StatusBadRequest, "invalid app_uri")
+			}
+		}
+
 		if params.RedirectURI == nil {
-			return api.StatusErrorf(http.StatusBadRequest, "redirect_uri: required")
+			return api.ErrorRedirect(api.RedirectError{
+				URL:            u,
+				Status:         http.StatusBadRequest,
+				Err:            "bad_request",
+				ErrDescription: "redirect_uri required",
+			})
 		}
 
 		octx := oauth.AuthContext(ctx)
 
 		if octx.User == nil {
-			return api.StatusErrorf(http.StatusUnauthorized, "user session invalid")
+			return api.ErrorRedirect(api.RedirectError{
+				URL:            u,
+				Status:         http.StatusUnauthorized,
+				Err:            "access_denied",
+				ErrDescription: "user session invalid",
+			})
 		}
 
 		user = octx.User
@@ -192,14 +225,12 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 
 		_, err := url.Parse(string(*params.RedirectURI))
 		if err != nil {
-			return api.StatusErrorf(http.StatusUnauthorized, "invalid redirect_uri")
-		}
-
-		if params.AppURI != nil {
-			u, err = url.Parse(string(*params.AppURI))
-			if err != nil {
-				return api.StatusErrorf(http.StatusUnauthorized, "invalid app_uri")
-			}
+			return api.ErrorRedirect(api.RedirectError{
+				URL:            u,
+				Status:         http.StatusBadRequest,
+				Err:            "bad_request",
+				ErrDescription: fmt.Sprintf("invalid redirect uri: %s", err.Error()),
+			})
 		}
 	}
 
@@ -229,15 +260,10 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			r.Host,
 			path.Clean(path.Join(path.Dir(r.URL.Path), "session")))).Parse()
 	if err != nil {
-		log.Error(err.Error())
-
-		if u == nil {
-			return api.Error(err)
-		}
-
-		return api.Redirect(u, map[string]string{
-			"error":             "server_error",
-			"error_description": err.Error(),
+		return api.ErrorRedirect(api.RedirectError{
+			URL:    u,
+			Status: http.StatusInternalServerError,
+			Err:    err.Error(),
 		})
 	}
 	q := link.Query()

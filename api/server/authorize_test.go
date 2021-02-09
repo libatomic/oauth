@@ -87,6 +87,11 @@ func TestAuthorize(t *testing.T) {
 					Returns: litmus.Returns{testSession, nil},
 				},
 				{
+					Name:    "UserGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testUser, testUser, nil},
+				},
+				{
 					Name:    "AuthCodeCreate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
@@ -365,46 +370,6 @@ func TestAuthorize(t *testing.T) {
 				"Location": `https:\/\/meta\.org\/\?error=server_error&error_description=something\+bad`,
 			},
 		},
-		"AuthorizeAuthCodeCreateError": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "SessionRead",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
-					Returns: litmus.Returns{testSession, nil},
-				},
-				{
-					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
-					Returns: litmus.Returns{errors.New("something bad")},
-				},
-			},
-			Method: http.MethodGet,
-			Path:   "/oauth/authorize",
-			Query: litmus.BeginQuery().
-				Add("response_type", "code").
-				Add("client_id", uuid.Must(uuid.NewRandom()).String()).
-				Add("audience", "snowcrash").
-				Add("app_uri", mockURI).
-				Add("redirect_uri", mockURI).
-				Add("state", "foo").
-				Add("scope", "metaverse:read metaverse:write openid profile offline_access").
-				Add("code_challenge", challenge).
-				EndQuery(),
-			ExpectedStatus: http.StatusFound,
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?error=server_error&error_description=something\+bad`,
-			},
-		},
 		"AuthorizeRequestSignError": {
 			Operations: []litmus.Operation{
 				{
@@ -446,7 +411,7 @@ func TestAuthorize(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 

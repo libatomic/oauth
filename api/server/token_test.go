@@ -47,7 +47,6 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -100,7 +99,6 @@ func TestTokenAuthcode(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
 				},
-
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -212,64 +210,6 @@ func TestTokenAuthcode(t *testing.T) {
 				Add("refresh_nonce", testCode.Code).
 				Encode(),
 		},
-		"TokenAuthCodeEmptyCodeScope": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name: "AuthCodeGet",
-					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{&oauth.AuthCode{
-						AuthRequest:       emptyScopeReq,
-						Code:              "00000000-0000-0000-0000-000000000000",
-						IssuedAt:          time.Now().Unix(),
-						SessionID:         "00000000-0000-0000-0000-000000000000",
-						Subject:           "00000000-0000-0000-0000-000000000000",
-						UserAuthenticated: true,
-					}, nil},
-				},
-				{
-					Name:    "AuthCodeDestroy",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{nil},
-				},
-				{
-					Name:    "UserGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testUser, testPrin, nil},
-				},
-				{
-					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
-					Returns: litmus.Returns{nil},
-				},
-				{
-					Name:    "TokenFinalize",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
-					Returns: litmus.Returns{"", nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusOK,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("grant_type", oauth.GrantTypeAuthCode).
-				Add("client_id", "00000000-0000-0000-0000-000000000000").
-				Add("audience", "snowcrash").
-				Add("code", testCode.Code).
-				Add("code_verifier", verifier).
-				Add("refresh_nonce", testCode.Code).
-				Encode(),
-		},
 		"TokenAuthCodeOKRS": {
 			Operations: []litmus.Operation{
 				{
@@ -340,7 +280,6 @@ func TestTokenAuthcode(t *testing.T) {
 						tokenLifetime:  60,
 					}, nil},
 				},
-
 				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
@@ -384,9 +323,14 @@ func TestTokenAuthcode(t *testing.T) {
 					Returns: litmus.Returns{testAud, nil},
 				},
 				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testCode, nil},
+				},
+				{
 					Name:    "ApplicationGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{nil, errors.New("bad app")},
+					Returns: litmus.Returns{nil, oauth.ErrApplicationNotFound},
 				},
 			},
 			Method:             http.MethodPost,
@@ -433,6 +377,11 @@ func TestTokenAuthcode(t *testing.T) {
 					Returns: litmus.Returns{testAud, nil},
 				},
 				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testCode, nil},
+				},
+				{
 					Name: "ApplicationGet",
 					Args: litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{&oauth.Application{
@@ -466,6 +415,11 @@ func TestTokenAuthcode(t *testing.T) {
 					Returns: litmus.Returns{testApp, nil},
 				},
 				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testCode, nil},
+				},
+				{
 					Name:    "AudienceGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testAud, nil},
@@ -488,47 +442,14 @@ func TestTokenAuthcode(t *testing.T) {
 		"TokenAuthCodeMissingParams": {
 			Operations: []litmus.Operation{
 				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("grant_type", oauth.GrantTypeAuthCode).
-				Add("client_id", "00000000-0000-0000-0000-000000000000").
-				Add("audience", "snowcrash").
-				Add("scope", "metaverse:read metaverse:write openid profile offline_access").
-				//Add("code", testCode.Code).
-				Add("code_verifier", verifier).
-				Add("refresh_nonce", testCode.Code).
-				Encode(),
-		},
-		"TokenAuthCodeBadCode": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-
-				{
 					Name:    "AuthCodeGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{nil, errors.New("bad code")},
+					Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
+				},
+				{
+					Name:    "AudienceGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{testAud, nil},
 				},
 			},
 			Method:             http.MethodPost,
@@ -566,7 +487,7 @@ func TestTokenAuthcode(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).
@@ -673,7 +594,7 @@ func TestTokenAuthcode(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 
@@ -848,7 +769,7 @@ func TestTokenPassword(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl), WithAllowedGrants(oauth.Permissions{
 				oauth.GrantTypeAuthCode,
@@ -1006,7 +927,7 @@ func TestTokenClientCredentials(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 
@@ -1073,6 +994,7 @@ func TestTokenRefreshToken(t *testing.T) {
 				Add("client_id", testApp.ClientID).
 				Add("audience", "snowcrash").
 				Add("refresh_token", challenge).
+				Add("code_verifier", verifier).
 				Add("refresh_verifier", verifier).
 				Add("refresh_nonce", verifier).
 				Encode(),
@@ -1162,7 +1084,7 @@ func TestTokenRefreshToken(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeRefreshToken).
@@ -1209,7 +1131,7 @@ func TestTokenRefreshToken(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 

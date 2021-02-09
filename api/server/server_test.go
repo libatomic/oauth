@@ -26,20 +26,21 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ModelRocket/hiro/pkg/ptr"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/structs"
-	"github.com/google/uuid"
+	"github.com/imdario/mergo"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/stretchr/testify/mock"
 )
 
 type (
-	mockController struct {
+	MockController struct {
 		mock.Mock
 	}
 
-	mockAuthorizer struct {
+	MockAuthorizer struct {
 		handler api.Authorizer
 	}
 
@@ -59,6 +60,7 @@ type (
 		tokenAlgorithm string
 		tokenLifetime  int64
 		tokenSecret    string
+		key            *rsa.PrivateKey
 	}
 )
 
@@ -72,9 +74,8 @@ var (
 
 	testAud = &mockAudience{
 		name:           "snowcrash",
-		permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
-		tokenAlgorithm: "HS256",
-		tokenSecret:    "super-duper-secret",
+		permissions:    oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access", "password", "email:verify"},
+		tokenAlgorithm: "RS256",
 		tokenLifetime:  60,
 	}
 
@@ -83,7 +84,7 @@ var (
 		ClientSecret: "super-secret",
 		Permissions: oauth.PermissionSet{
 			"snowcrash": oauth.Permissions{
-				"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+				"metaverse:read", "metaverse:write", "openid", "profile", "offline_access", "password", "email:verify"},
 		},
 		AllowedGrants: oauth.PermissionSet{
 			"snowcrash": oauth.Permissions{
@@ -115,12 +116,13 @@ var (
 		Login:             "hiro@metaverse.org",
 		PasswordExpiresAt: time.Now().Add(time.Hour),
 		Permissions: oauth.PermissionSet{
-			"snowcrash": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+			"snowcrash": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access", "password", "email:verify"},
 		},
 		Profile: &oauth.Profile{
-			Subject:    uuid.Must(uuid.NewRandom()).String(),
+			Subject:    "00000000-0000-0000-0000-000000000000",
 			GivenName:  "Hiro",
 			FamilyName: "Protagonist",
+			Name:       "Hiro Protagonist",
 		},
 	}
 
@@ -168,11 +170,18 @@ func init() {
 		panic(err)
 	}
 
+	reader := rand.Reader
+	key, err := rsa.GenerateKey(reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+	testAud.key = key
+
 	structs.DefaultTagName = "json"
 
 	verifier = base64.RawURLEncoding.EncodeToString(token)
 
-	sum := sha256.Sum256(token)
+	sum := sha256.Sum256([]byte(verifier))
 
 	challenge = base64.RawURLEncoding.EncodeToString(sum[:])
 
@@ -188,15 +197,19 @@ func init() {
 
 	state := "foo"
 
+	sub := "00000000-0000-0000-0000-000000000000"
+
 	testRequest = &oauth.AuthRequest{
 		ClientID:            "00000000-0000-0000-0000-000000000000",
+		AppURI:              mockURI,
 		RedirectURI:         mockURI,
-		Scope:               oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
+		Scope:               oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access", "password", "email:verify"},
 		Audience:            "snowcrash",
 		CodeChallenge:       &challenge,
 		CodeChallengeMethod: "S256",
 		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
 		State:               &state,
+		Subject:             &sub,
 	}
 
 	testCode = &oauth.AuthCode{
@@ -208,31 +221,17 @@ func init() {
 		UserAuthenticated: true,
 	}
 
-	signer := func(ctx context.Context, claims oauth.Claims) (string, error) {
-		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
-		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
-	}
-
-	testToken, err = signValue(context.TODO(), signer, testRequest)
-	if err != nil {
-		panic(err)
-	}
+	testToken = mockToken(testRequest)
 
 	expiredReq = *testRequest
 	expiredReq.ExpiresAt = time.Now().Add(time.Minute * -10).Unix()
 
-	expiredToken, err = signValue(context.TODO(), signer, expiredReq)
-	if err != nil {
-		panic(err)
-	}
+	expiredToken = mockToken(&expiredReq)
 
 	badReq := *testRequest
-	*badReq.CodeChallenge += "bad stuff"
+	badReq.CodeChallenge = ptr.String(*testRequest.CodeChallenge + "bad stuff")
 
-	badToken, err = signValue(context.TODO(), signer, badReq)
-	if err != nil {
-		panic(err)
-	}
+	badToken = mockToken(&badReq)
 
 	token = make([]byte, 32)
 	if _, err := rand.Read(token); err != nil {
@@ -246,21 +245,34 @@ func init() {
 	misMatchReq := *testRequest
 	misMatchReq.CodeChallenge = &misChal
 
-	misMatchToken, err = signValue(context.TODO(), signer, misMatchReq)
-	if err != nil {
-		panic(err)
-	}
+	misMatchToken = mockToken(&misMatchReq)
 
 	emptyScopeReq = *testRequest
 	emptyScopeReq.Scope = oauth.Permissions{}
 
-	emptyScopeToken, err = signValue(context.TODO(), signer, emptyScopeReq)
+	emptyScopeToken = mockToken(&emptyScopeReq)
+}
+
+func mockToken(req *oauth.AuthRequest, src ...oauth.AuthRequest) string {
+	signer := func(ctx context.Context, claims oauth.Claims) (string, error) {
+		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	}
+
+	if len(src) > 0 {
+		mergo.Merge(&src[0], req, mergo.WithOverride)
+		*req = src[0]
+	}
+
+	token, err := signValue(context.TODO(), signer, req)
 	if err != nil {
 		panic(err)
 	}
+
+	return token
 }
 
-func (c *mockController) ApplicationGet(ctx context.Context, id string) (*oauth.Application, error) {
+func (c *MockController) ApplicationGet(ctx context.Context, id string) (*oauth.Application, error) {
 	args := c.Called(ctx, id)
 
 	if args.Get(0) == nil {
@@ -269,7 +281,7 @@ func (c *mockController) ApplicationGet(ctx context.Context, id string) (*oauth.
 	return args.Get(0).(*oauth.Application), args.Error(1)
 }
 
-func (c *mockController) AudienceGet(ctx context.Context, name string) (oauth.Audience, error) {
+func (c *MockController) AudienceGet(ctx context.Context, name string) (oauth.Audience, error) {
 	args := c.Called(ctx, name)
 
 	if args.Get(0) == nil {
@@ -278,7 +290,7 @@ func (c *mockController) AudienceGet(ctx context.Context, name string) (oauth.Au
 	return args.Get(0).(oauth.Audience), args.Error(1)
 }
 
-func (c *mockController) UserGet(ctx context.Context, login string) (*oauth.User, interface{}, error) {
+func (c *MockController) UserGet(ctx context.Context, login string) (*oauth.User, interface{}, error) {
 	args := c.Called(ctx, login)
 
 	if args.Get(0) == nil {
@@ -288,7 +300,7 @@ func (c *mockController) UserGet(ctx context.Context, login string) (*oauth.User
 	return args.Get(0).(*oauth.User), args.Get(1), args.Error(2)
 }
 
-func (c *mockController) UserAuthenticate(ctx context.Context, login string, password string) (*oauth.User, interface{}, error) {
+func (c *MockController) UserAuthenticate(ctx context.Context, login string, password string) (*oauth.User, interface{}, error) {
 	args := c.Called(ctx, login, password)
 
 	if args.Get(0) == nil {
@@ -298,8 +310,8 @@ func (c *mockController) UserAuthenticate(ctx context.Context, login string, pas
 	return args.Get(0).(*oauth.User), args.Get(1), args.Error(2)
 }
 
-func (c *mockController) UserCreate(ctx context.Context, login string, password *string, profile *oauth.Profile, invite ...string) (*oauth.User, error) {
-	args := c.Called(ctx, login, password, profile)
+func (c *MockController) UserCreate(ctx context.Context, login string, password *string, profile *oauth.Profile, invite ...string) (*oauth.User, error) {
+	args := c.Called(ctx, login, password, profile, invite)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -313,30 +325,30 @@ func (c *mockController) UserCreate(ctx context.Context, login string, password 
 	return user, args.Error(1)
 }
 
-func (c *mockController) UserVerify(ctx context.Context, id string, code string) error {
+func (c *MockController) UserVerify(ctx context.Context, id string, code string) error {
 	return nil
 }
 
-func (c *mockController) UserUpdate(ctx context.Context, id string, profile *oauth.Profile) error {
+func (c *MockController) UserUpdate(ctx context.Context, id string, profile *oauth.Profile) error {
 	args := c.Called(ctx, id, profile)
 
 	return args.Error(0)
 }
 
-func (c *mockController) UserResetPassword(ctx context.Context, login string, resetCode string) error {
+func (c *MockController) UserResetPassword(ctx context.Context, login string, resetCode string) error {
 	return nil
 }
 
-func (c *mockController) UserSetPassword(ctx context.Context, id string, password string) error {
+func (c *MockController) UserSetPassword(ctx context.Context, id string, password string) error {
 	return nil
 }
 
 // UserNotify should create an email or sms with the verification link or code for the user
-func (c *mockController) UserNotify(ctx context.Context, note oauth.Notification) error {
+func (c *MockController) UserNotify(ctx context.Context, note oauth.Notification) error {
 	return nil
 }
 
-func (c *mockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
+func (c *MockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
 	args := c.Called(ctx, claims)
 	if args.String(0) == "" {
 		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
@@ -345,15 +357,19 @@ func (c *mockController) TokenFinalize(ctx context.Context, claims oauth.Claims)
 	return args.String(0), args.Error(1)
 }
 
-func (c *mockController) TokenValidate(ctx context.Context, bearerToken string) (oauth.Claims, error) {
+func (c *MockController) TokenValidate(ctx context.Context, bearerToken string) (oauth.Claims, error) {
 	args := c.Called(ctx, bearerToken)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 
 	return args.Get(0).(oauth.Claims), args.Error(1)
 }
 
 // AuthCodeCreate creates a new authcode from the request if code expires at is set
 // the store should use that value, otherwise set the defaults
-func (c *mockController) AuthCodeCreate(ctx context.Context, code *oauth.AuthCode) error {
+func (c *MockController) AuthCodeCreate(ctx context.Context, code *oauth.AuthCode) error {
 	args := c.Called(ctx, code)
 
 	if code != nil {
@@ -364,7 +380,7 @@ func (c *mockController) AuthCodeCreate(ctx context.Context, code *oauth.AuthCod
 }
 
 // AuthCodeGet returns a code from the store
-func (c *mockController) AuthCodeGet(ctx context.Context, id string) (*oauth.AuthCode, error) {
+func (c *MockController) AuthCodeGet(ctx context.Context, id string) (*oauth.AuthCode, error) {
 	args := c.Called(ctx, id)
 
 	if args.Get(0) == nil {
@@ -374,14 +390,14 @@ func (c *mockController) AuthCodeGet(ctx context.Context, id string) (*oauth.Aut
 }
 
 // AuthCodeDestroy removes a code from the store
-func (c *mockController) AuthCodeDestroy(ctx context.Context, id string) error {
+func (c *MockController) AuthCodeDestroy(ctx context.Context, id string) error {
 	args := c.Called(ctx, id)
 
 	return args.Error(0)
 }
 
 // SessionCreate creates a session
-func (c *mockController) SessionCreate(ctx context.Context, r *http.Request) (oauth.Session, error) {
+func (c *MockController) SessionCreate(ctx context.Context, r *http.Request) (oauth.Session, error) {
 	args := c.Called(ctx, r)
 
 	if args.Get(0) == nil {
@@ -391,7 +407,7 @@ func (c *mockController) SessionCreate(ctx context.Context, r *http.Request) (oa
 }
 
 // SessionRead retrieves the session from the request
-func (c *mockController) SessionRead(ctx context.Context, r *http.Request) (oauth.Session, error) {
+func (c *MockController) SessionRead(ctx context.Context, r *http.Request) (oauth.Session, error) {
 	args := c.Called(ctx, r)
 
 	if args.Get(0) == nil {
@@ -401,25 +417,28 @@ func (c *mockController) SessionRead(ctx context.Context, r *http.Request) (oaut
 }
 
 // SessionDestroy destroys the session in the response
-func (c *mockController) SessionDestroy(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (c *MockController) SessionDestroy(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	args := c.Called(ctx, w, r)
 
 	return args.Error(0)
 }
 
-func (c *mockController) Authorize(opts ...oauth.AuthOption) api.Authorizer {
+func (c *MockController) Authorize(opts ...oauth.AuthOption) api.Authorizer {
 	return func(r *http.Request) (context.Context, error) {
 		return context.TODO(), nil
 	}
 }
 
-func (c *mockAuthorizer) Authorize(opts ...oauth.AuthOption) api.Authorizer {
+func (c *MockAuthorizer) Authorize(opts ...oauth.AuthOption) api.Authorizer {
 	return func(r *http.Request) (context.Context, error) {
+		if c.handler == nil {
+			return context.TODO(), nil
+		}
 		return c.handler(r)
 	}
 }
 
-func (c *mockAuthorizer) Handler(h api.Authorizer) {
+func (c *MockAuthorizer) Handler(h api.Authorizer) {
 	c.handler = h
 }
 
@@ -501,7 +520,7 @@ func (a mockAudience) TokenSecret() string {
 }
 
 func (a mockAudience) VerifyKey() interface{} {
-	return nil
+	return &a.key.PublicKey
 }
 
 func (a mockAudience) Principal() interface{} {

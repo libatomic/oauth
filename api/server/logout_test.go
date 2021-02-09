@@ -166,7 +166,7 @@ func TestLogout(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctrl := new(mockController)
+			ctrl := new(MockController)
 
 			mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
 
