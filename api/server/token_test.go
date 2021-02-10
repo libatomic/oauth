@@ -1000,18 +1000,7 @@ func TestTokenRefreshToken(t *testing.T) {
 				Encode(),
 		},
 		"TokenRefreshTokenMissingToken": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-			},
+			Operations:         []litmus.Operation{},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
 			ExpectedStatus:     http.StatusBadRequest,
