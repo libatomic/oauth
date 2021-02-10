@@ -227,10 +227,6 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, "refresh code expired")
 		}
 
-		if len(params.Scope) == 0 {
-			params.Scope = code.Scope
-		}
-
 		fallthrough
 
 	case oauth.GrantTypeAuthCode:
