@@ -375,12 +375,16 @@ func (c *MockController) UserResetPassword(ctx context.Context, login string, re
 }
 
 func (c *MockController) UserSetPassword(ctx context.Context, id string, password string) error {
-	return nil
+	args := c.Called(ctx, id, password)
+
+	return args.Error(0)
 }
 
 // UserNotify should create an email or sms with the verification link or code for the user
 func (c *MockController) UserNotify(ctx context.Context, note oauth.Notification) error {
-	return nil
+	args := c.Called(ctx, note)
+
+	return args.Error(0)
 }
 
 func (c *MockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {

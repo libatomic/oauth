@@ -30,100 +30,70 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestLoginOK(t *testing.T) {
+	testRequest := *testRequest
+
+	// zero this out to get more coverage and test empty scope
+	testRequest.Scope = oauth.Permissions{}
+
+	testToken := mockRequestToken(&testRequest)
+
+	test := litmus.Test{
+		Operations: []litmus.Operation{
+			{
+				Name:    "TokenValidate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+				Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
+			},
+			{
+				Name:    "AudienceGet",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+				Returns: litmus.Returns{testAud, nil},
+			},
+			{
+				Name:    "ApplicationGet",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+				Returns: litmus.Returns{testApp, nil},
+			},
+			{
+				Name:    "UserAuthenticate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
+				Returns: litmus.Returns{testUser, testPrin, nil},
+			},
+			{
+				Name:    "SessionCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
+				Returns: litmus.Returns{testSession, nil},
+			},
+			{
+				Name:    "AuthCodeCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
+				Returns: litmus.Returns{nil},
+			},
+		},
+		Method:             http.MethodPost,
+		Path:               "/oauth/login",
+		ExpectedStatus:     http.StatusFound,
+		RequestContentType: "application/x-www-form-urlencoded",
+		Request: litmus.BeginQuery().
+			Add("login", "hiro@metaverse.org").
+			Add("password", "password").
+			Add("request_token", testToken).
+			Encode(),
+		ExpectedHeaders: map[string]string{
+			"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000`,
+		},
+	}
+
+	ctrl := new(MockController)
+
+	mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
+
+	test.Do(&ctrl.Mock, mockServer, t)
+}
+
 func TestLogin(t *testing.T) {
 	tests := map[string]litmus.Test{
-		"LoginOK": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenValidate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "UserAuthenticate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testUser, testPrin, nil},
-				},
-				{
-					Name:    "SessionCreate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
-					Returns: litmus.Returns{testSession, nil},
-				},
-				{
-					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
-					Returns: litmus.Returns{nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", testToken).
-				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000`,
-			},
-		},
-		"LoginOKEmptyScope": {
-			Operations: []litmus.Operation{
-				{
-					Name:    "TokenValidate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
-				},
-				{
-					Name:    "AudienceGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testAud, nil},
-				},
-				{
-					Name:    "ApplicationGet",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testApp, nil},
-				},
-				{
-					Name:    "UserAuthenticate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
-					Returns: litmus.Returns{testUser, testPrin, nil},
-				},
-				{
-					Name:    "SessionCreate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
-					Returns: litmus.Returns{testSession, nil},
-				},
-				{
-					Name:    "AuthCodeCreate",
-					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
-					Returns: litmus.Returns{nil},
-				},
-			},
-			Method:             http.MethodPost,
-			Path:               "/oauth/login",
-			ExpectedStatus:     http.StatusFound,
-			RequestContentType: "application/x-www-form-urlencoded",
-			Request: litmus.BeginQuery().
-				Add("login", "hiro@metaverse.org").
-				Add("password", "password").
-				Add("request_token", emptyScopeToken).
-				Encode(),
-			ExpectedHeaders: map[string]string{
-				"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000`,
-			},
-		},
 		"LoginBadToken": {
 			Operations: []litmus.Operation{
 				{

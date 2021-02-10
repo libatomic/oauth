@@ -59,4 +59,9 @@ var (
 	ErrUnauthorizedRediretURI = func(u *url.URL) api.Responder {
 		return api.ErrorRedirect(u, http.StatusForbidden, "unauthorized redirect_uri")
 	}
+
+	// ErrUnauthorized is returned when the request has been denied
+	ErrUnauthorized = func(u *url.URL, reason string) api.Responder {
+		return api.ErrorRedirect(u, http.StatusUnauthorized, reason)
+	}
 )

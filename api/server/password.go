@@ -19,11 +19,9 @@ package server
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -149,7 +147,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 			if *req.CodeChallenge != check {
-				return ErrInvalidParameter(u, "code_verifier")
+				return ErrUnauthorized(u, "invalid code_verifier")
 			}
 		}
 
@@ -172,21 +170,18 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			app := octx.Application
 
 			// ensure the redirect uri path is allowed
-			u, err := EnsureURI(string(*params.RedirectURI), app.RedirectUris[aud.Name()])
+			ru, err := EnsureURI(string(*params.RedirectURI), app.RedirectUris[aud.Name()])
 			if err != nil {
 				return ErrUnauthorizedRediretURI(u)
 			}
 
-			req.RedirectURI = u.String()
+			req.RedirectURI = ru.String()
 		}
 	} else {
 		octx := oauth.AuthContext(ctx)
 
 		if params.AppURI != nil {
-			u, err = url.Parse(string(*params.AppURI))
-			if err != nil {
-				return api.StatusErrorf(http.StatusBadRequest, "invalid app_uri")
-			}
+			u, _ = params.AppURI.Parse()
 		}
 
 		if params.RedirectURI == nil {
@@ -202,11 +197,6 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		req = octx.Request
 
 		req.RedirectURI = string(*params.RedirectURI)
-
-		_, err := url.Parse(string(*params.RedirectURI))
-		if err != nil {
-			return ErrInvalidParameter(u, "redirect_uri")
-		}
 	}
 
 	octx := oauth.AuthContext(ctx)
@@ -297,7 +287,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		link.RawQuery = q.Encode()
 
 		note.uri = oauth.URI(link.String()).Ptr()
-	case PasswordTypeCode:
+	//case PasswordTypeCode:
 		// TODO: 2FA
 	}
 
@@ -366,16 +356,4 @@ func (n passwordNotification) Code() string {
 
 func (n passwordNotification) Channels() oauth.NotificationChannels {
 	return n.notify
-}
-
-func generatePasscode(max int) string {
-	b := make([]byte, max)
-	n, err := io.ReadAtLeast(rand.Reader, b, max)
-	if n != max {
-		panic(err)
-	}
-	for i := 0; i < len(b); i++ {
-		b[i] = passcodeAlpha[int(b[i])%len(passcodeAlpha)]
-	}
-	return string(b)
 }

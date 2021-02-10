@@ -41,6 +41,11 @@ func TestVerifySend(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
 					Returns: litmus.Returns{"", nil},
 				},
+				{
+					Name:    "UserNotify",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*server.verifyNotification")},
+					Returns: litmus.Returns{nil},
+				},
 			},
 			Method: http.MethodPost,
 			Path:   "/oauth/verify",

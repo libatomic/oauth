@@ -62,6 +62,11 @@ func TestSignup(t *testing.T) {
 					Returns: litmus.Returns{testUser, nil},
 				},
 				{
+					Name:    "UserNotify",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*server.verifyNotification")},
+					Returns: litmus.Returns{nil},
+				},
+				{
 					Name:    "UserAuthenticate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
@@ -112,6 +117,11 @@ func TestSignup(t *testing.T) {
 					Name:    "ApplicationGet",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testApp, nil},
+				},
+				{
+					Name:    "UserNotify",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*server.verifyNotification")},
+					Returns: litmus.Returns{nil},
 				},
 				{
 					Name: "UserCreate",

@@ -25,6 +25,7 @@ import (
 	"github.com/apex/log"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/litmus/pkg/litmus"
+	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -56,7 +57,6 @@ func TestLogout(t *testing.T) {
 			Query: litmus.BeginQuery().
 				Add("client_id", "00000000-0000-0000-0000-000000000000").
 				Add("state", "foo").
-				Add("audience", testAud.name).
 				EndQuery(),
 			ExpectedStatus: http.StatusFound,
 			ExpectedHeaders: map[string]string{
@@ -173,4 +173,29 @@ func TestLogout(t *testing.T) {
 			test.Do(&ctrl.Mock, mockServer, t)
 		})
 	}
+}
+
+func TestLogoutErrAudNotFound(t *testing.T) {
+	test := litmus.Test{
+		Operations: []litmus.Operation{
+			{
+				Name:    "AudienceGet",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+				Returns: litmus.Returns{nil, oauth.ErrAudienceNotFound},
+			},
+		},
+		Method: http.MethodGet,
+		Path:   "/oauth/logout",
+		Query: litmus.BeginQuery().
+			Add("client_id", "00000000-0000-0000-0000-000000000000").
+			Add("audience", testAud.name).
+			EndQuery(),
+		ExpectedStatus: http.StatusBadRequest,
+	}
+
+	ctrl := new(MockController)
+
+	mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl))
+
+	test.Do(&ctrl.Mock, mockServer, t)
 }
