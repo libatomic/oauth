@@ -63,12 +63,12 @@ func (p TokenParams) Validate() error {
 		"audience":         validation.Validate(p.Audience, validation.NilOrNotEmpty),
 		"client_id":        validation.Validate(p.ClientID, validation.NilOrNotEmpty),
 		"client_secret":    validation.Validate(p.ClientSecret, validation.NilOrNotEmpty),
-		"code":             validation.Validate(p.Code, validation.NilOrNotEmpty),
+		"code":             validation.Validate(p.Code, validation.When(p.GrantType == oauth.GrantTypeAuthCode, validation.Required)),
 		"code_verifier":    validation.Validate(p.CodeVerifier, validation.NilOrNotEmpty),
 		"grant_Type":       validation.Validate(p.GrantType, validation.Required),
 		"password":         validation.Validate(p.Password, validation.NilOrNotEmpty),
 		"refresh_nonce":    validation.Validate(p.RefreshNonce, validation.NilOrNotEmpty),
-		"refresh_token":    validation.Validate(p.RefreshToken, validation.NilOrNotEmpty),
+		"refresh_token":    validation.Validate(p.RefreshToken, validation.When(p.GrantType == oauth.GrantTypeRefreshToken, validation.Required)),
 		"refresh_verifier": validation.Validate(p.RefreshVerifier, validation.NilOrNotEmpty),
 		"scope":            validation.Validate(p.Scope, validation.NilOrNotEmpty),
 		"username":         validation.Validate(p.Username, validation.NilOrNotEmpty),
@@ -221,10 +221,24 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, "token validation failed")
 		}
 
+		issAt := time.Unix(code.IssuedAt, 0)
+
+		if issAt.Add(time.Hour * 24 * 7).Before(time.Now()) {
+			return api.StatusErrorf(http.StatusUnauthorized, "refresh code expired")
+		}
+
+		if len(params.Scope) == 0 {
+			params.Scope = code.Scope
+		}
+
 		fallthrough
 
 	case oauth.GrantTypeAuthCode:
 		oauth.AuthContext(ctx).Request = &code.AuthRequest
+
+		if code == nil {
+			return api.StatusErrorf(http.StatusUnauthorized, "missing authorization code")
+		}
 
 		if code.CodeChallenge != nil {
 			if params.CodeVerifier == nil {
@@ -312,12 +326,6 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			}
 
 			refreshCode := *code
-
-			issAt := time.Unix(refreshCode.IssuedAt, 0)
-
-			if issAt.Add(time.Hour * 24 * 7).Before(time.Now()) {
-				return api.StatusErrorf(http.StatusUnauthorized, "refresh code expired")
-			}
 
 			refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
 
