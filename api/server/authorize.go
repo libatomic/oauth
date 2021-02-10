@@ -20,6 +20,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -106,7 +107,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	ctx = oauth.NewContext(ctx, app)
 
 	if len(app.RedirectUris) == 0 || len(app.RedirectUris[aud.Name()]) == 0 {
-		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
+		return api.Errorf("application has no valid redirect uri").WithStatus(http.StatusUnauthorized)
 	}
 
 	if params.RedirectURI == nil && len(app.RedirectUris[aud.Name()]) > 0 {
@@ -123,14 +124,14 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	if g, ok := app.AllowedGrants[aud.Name()]; !ok || !g.Contains("authorization_code") {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
-			"error_description": err.Error(),
+			"error_description": "unsupported grant",
 		})
 	}
 
 	if len(app.AppUris) == 0 || len(app.AppUris[aud.Name()]) == 0 {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
-			"error_description": err.Error(),
+			"error_description": "application has no valid app uris",
 		})
 	}
 
@@ -142,25 +143,25 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
-			"error_description": err.Error(),
+			"error_description": fmt.Sprintf("%s: app_uri", err),
 		})
 	}
 
 	if len(params.Scope) > 0 && len(app.Permissions) > 0 {
-		// check the scope against the app and audience
-		perms, ok := app.Permissions[*params.Audience]
-		if !ok || !perms.Every(params.Scope...) {
-			return api.Redirect(u, map[string]string{
-				"error":             "access_denied",
-				"error_description": "invalid audience scope",
-			})
-		}
-
 		// sanity check to ensure the audience actually has the permissions requested
 		if !aud.Permissions().Every(params.Scope...) {
 			return api.Redirect(u, map[string]string{
 				"error":             "access_denied",
-				"error_description": "insufficient permissions",
+				"error_description": "insufficient audience permissions",
+			})
+		}
+
+		// check the scope against the app and audience
+		perms, ok := app.Permissions[aud.Name()]
+		if !ok || !perms.Every(params.Scope...) {
+			return api.Redirect(u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "invalid application scope",
 			})
 		}
 	}
@@ -170,7 +171,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		AppURI:              *params.AppURI,
 		RedirectURI:         *params.RedirectURI,
 		Scope:               params.Scope,
-		Audience:            *params.Audience,
+		Audience:            aud.Name(),
 		State:               params.State,
 		Nonce:               params.Nonce,
 		CodeChallenge:       params.CodeChallenge,

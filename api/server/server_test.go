@@ -385,10 +385,16 @@ func (c *MockController) UserNotify(ctx context.Context, note oauth.Notification
 
 func (c *MockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
 	args := c.Called(ctx, claims)
+
+	if args.Get(0) == nil {
+		return "", args.Error(1)
+	}
+
 	if args.String(0) == "" {
 		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
 		return token.SignedString(jwt.UnsafeAllowNoneSignatureType)
 	}
+
 	return args.String(0), args.Error(1)
 }
 

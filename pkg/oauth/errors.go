@@ -40,6 +40,9 @@ var (
 
 	// ErrInvalidToken is returned when the token is not valid
 	ErrInvalidToken = errors.New("invalid token")
+	
+	// ErrUserNotFound is returned when the user lookup failed
+	ErrUserNotFound = errors.New("user not found")
 
 	// ErrExpiredToken is returned when the token is expired
 	ErrExpiredToken = errors.New("expired token")
