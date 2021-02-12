@@ -142,8 +142,13 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 		s.Values["client_id"] = octx.Application.ClientID
 	}
 
-	s.Values["subject"] = octx.User.Profile.Subject
-	s.Values["aud"] = octx.Audience.Name()
+	if octx.User != nil {
+		s.Values["subject"] = octx.User.Profile.Subject
+	}
+
+	if octx.Audience != nil {
+		s.Values["aud"] = octx.Audience.Name()
+	}
 
 	s.Values["created_at"] = time.Now().Unix()
 	s.Values["expires_at"] = time.Now().Add(c.sessionLifetime).Unix()

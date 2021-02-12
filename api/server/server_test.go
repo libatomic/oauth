@@ -113,6 +113,9 @@ var (
 		sub:       "00000000-0000-0000-0000-000000000000",
 	}
 
+	userEmail = "hiro@metaverse.org"
+	userPhone = "555-1212"
+
 	testUser = &oauth.User{
 		Login:             "hiro@metaverse.org",
 		PasswordExpiresAt: time.Now().Add(time.Hour),
@@ -124,6 +127,12 @@ var (
 			GivenName:  "Hiro",
 			FamilyName: "Protagonist",
 			Name:       "Hiro Protagonist",
+			EmailClaim: &oauth.EmailClaim{
+				Email: &userEmail,
+			},
+			PhoneClaim: &oauth.PhoneClaim{
+				PhoneNumber: &userPhone,
+			},
 		},
 	}
 
@@ -390,7 +399,7 @@ func (c *MockController) UserNotify(ctx context.Context, note oauth.Notification
 func (c *MockController) TokenFinalize(ctx context.Context, claims oauth.Claims) (string, error) {
 	args := c.Called(ctx, claims)
 
-	if args.Get(0) == nil {
+	if args.Get(0) == nil && args.Error(1) != nil {
 		return "", args.Error(1)
 	}
 

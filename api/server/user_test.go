@@ -46,7 +46,9 @@ func TestUserInfoUpdate(t *testing.T) {
 			Path:               "/oauth/userInfo",
 			ExpectedStatus:     http.StatusNoContent,
 			RequestContentType: "application/json",
-			Request:            testUser.Profile,
+			Request: UserInfoUpdateParams{
+				Profile: *testUser.Profile,
+			},
 			Setup: func(r *http.Request) {
 				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
@@ -63,7 +65,9 @@ func TestUserInfoUpdate(t *testing.T) {
 			Path:               "/oauth/userInfo",
 			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/json",
-			Request:            testUser.Profile,
+			Request: UserInfoUpdateParams{
+				Profile: *testUser.Profile,
+			},
 			Setup: func(r *http.Request) {
 				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(

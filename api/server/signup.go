@@ -99,7 +99,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	}, safestr(params.InviteCode))
 	if err != nil {
 		return api.Redirect(u, map[string]string{
-			"error":             "bad_request",
+			"error":             "internal_server_error",
 			"error_description": err.Error(),
 		})
 	}
@@ -114,7 +114,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 
 		log.Error(err.Error())
 
-		q.Set("error", "server_error")
+		q.Set("error", "internal_server_error")
 		q.Set("error_description", err.Error())
 	}
 

@@ -79,8 +79,52 @@ func TestVerifySend(t *testing.T) {
 	}
 }
 
+func TestVerifySendErrToken(t *testing.T) {
+	auth := new(MockAuthorizer)
+
+	test := litmus.Test{
+
+		Operations: []litmus.Operation{
+			{
+				Name:    "TokenFinalize",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
+				Returns: litmus.Returns{nil, oauth.ErrInvalidToken},
+			},
+		},
+		Method: http.MethodPost,
+		Path:   "/oauth/verify",
+		Request: &VerifySendParams{
+			Method: oauth.NotificationChannelEmail,
+		},
+		ExpectedStatus:     http.StatusInternalServerError,
+		RequestContentType: "application/json",
+		Setup: func(r *http.Request) {
+			auth.Handler(func(r *http.Request) (context.Context, error) {
+				return oauth.NewContext(
+					r.Context(),
+					oauth.Context{
+						Application: testApp,
+						Audience:    testAud,
+						User:        testUser,
+						Principal:   testPrin,
+					}), nil
+			})
+		},
+	}
+
+	ctrl := new(MockController)
+
+	mockServer := New(ctrl, api.WithLog(log.Log), WithAuthorizer(auth))
+
+	test.Do(&ctrl.Mock, mockServer, t)
+}
+
 func TestVerify(t *testing.T) {
 	auth := new(MockAuthorizer)
+
+	badRequest := *testRequest
+
+	badRequest.Scope = badRequest.Scope.Without("email:verify")
 
 	tests := map[string]litmus.Test{
 		"Verify": {
@@ -111,6 +155,110 @@ func TestVerify(t *testing.T) {
 							User:        testUser,
 							Principal:   testPrin,
 							Token:       oauth.Claims(structs.Map(testRequest)),
+						}), nil
+				})
+			},
+		},
+		"VerifyErrBadURI": {
+			Operations: []litmus.Operation{},
+			Method:     http.MethodGet,
+			Path:       "/oauth/verify",
+			Request: &VerifyParams{
+				RedirectURI: "http://lougle.com",
+			},
+			ExpectedStatus:     http.StatusUnauthorized,
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        testUser,
+							Principal:   testPrin,
+							Token:       oauth.Claims(structs.Map(testRequest)),
+						}), nil
+				})
+			},
+		},
+		"VerifyErrBadPrincipal": {
+			Operations: []litmus.Operation{},
+			Method:     http.MethodGet,
+			Path:       "/oauth/verify",
+			Request: &VerifyParams{
+				RedirectURI: testRequest.RedirectURI,
+			},
+			ExpectedStatus:     http.StatusUnauthorized,
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        testUser,
+							Principal:   nil,
+							Token:       oauth.Claims(structs.Map(testRequest)),
+						}), nil
+				})
+			},
+		},
+		"VerifyErrUpdate": {
+			Operations: []litmus.Operation{
+				{
+					Name:    "UserUpdate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("*oauth.Profile")},
+					Returns: litmus.Returns{oauth.ErrUserNotFound},
+				},
+			},
+			Method: http.MethodGet,
+			Path:   "/oauth/verify",
+			Request: &VerifyParams{
+				RedirectURI: testRequest.RedirectURI,
+			},
+			ExpectedStatus: http.StatusFound,
+			ExpectedHeaders: map[string]string{
+				"Location": `https:\/\/meta\.org\/`,
+			},
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        testUser,
+							Principal:   testPrin,
+							Token:       oauth.Claims(structs.Map(testRequest)),
+						}), nil
+				})
+			},
+		},
+		"VerifyErrBadScope": {
+			Operations: []litmus.Operation{},
+			Method:     http.MethodGet,
+			Path:       "/oauth/verify",
+			Request: &VerifyParams{
+				RedirectURI: testRequest.RedirectURI,
+			},
+			ExpectedStatus: http.StatusFound,
+			ExpectedHeaders: map[string]string{
+				"Location": `https:\/\/meta\.org\/`,
+			},
+			RequestContentType: "application/json",
+			Setup: func(r *http.Request) {
+				auth.Handler(func(r *http.Request) (context.Context, error) {
+					return oauth.NewContext(
+						r.Context(),
+						oauth.Context{
+							Application: testApp,
+							Audience:    testAud,
+							User:        testUser,
+							Principal:   testPrin,
+							Token:       oauth.Claims(structs.Map(badRequest)),
 						}), nil
 				})
 			},

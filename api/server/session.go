@@ -47,14 +47,14 @@ func init() {
 func session(ctx context.Context, params *SessionParams) api.Responder {
 	s := serverContext(ctx)
 
-	octx := oauth.AuthContext(ctx)
-
 	req := &oauth.AuthRequest{}
 	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
-		return api.Error(err).WithStatus(http.StatusBadRequest)
+		return api.Error(err).WithStatus(http.StatusUnauthorized)
 	}
 
 	u, _ := url.Parse(req.AppURI)
+
+	octx := oauth.AuthContext(ctx)
 
 	// check for authorization errors so we can return the to the redirect
 	if octx.Error != nil {
