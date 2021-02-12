@@ -73,7 +73,9 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
 	}
 
-	u, err := EnsureURI(params.RedirectURI, auth.Application.RedirectUris[auth.Audience.Name()])
+	r, _ := api.Request(ctx)
+	
+	u, err := EnsureURI(params.RedirectURI, auth.Application.RedirectUris[auth.Audience.Name()], r)
 	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
 	}

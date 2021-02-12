@@ -21,6 +21,7 @@ package server
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"sync"
@@ -201,7 +202,7 @@ func (s *Server) addRoute(r route) {
 
 func (s *Server) addContext(ctx context.Context) context.Context {
 	ctx = context.WithValue(ctx, ctrlKey, s)
-	
+
 	return oauth.NewContext(ctx, s.ctrl)
 }
 
@@ -220,7 +221,7 @@ func serverContext(ctx context.Context) *Server {
 }
 
 // EnsureURI checks that a uri matches within a list
-func EnsureURI(uri string, search []string) (*url.URL, error) {
+func EnsureURI(uri string, search []string, r ...*http.Request) (*url.URL, error) {
 	if search == nil || len(search) == 0 {
 		return nil, errors.New("unauthorized uri")
 	}
@@ -228,6 +229,11 @@ func EnsureURI(uri string, search []string) (*url.URL, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(r) > 0 && r[0].Host == u.Host {
+		u.Host = ""
+		u.Scheme = ""
 	}
 
 	for _, a := range search {
