@@ -31,8 +31,8 @@ import (
 type (
 	// Profile A profile object based on the [openid connect standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).
 	Profile struct {
-		*EmailClaim `json:",flatten,omitempty"`
-		*PhoneClaim `json:",flatten,omitempty"`
+		*EmailClaim `json:",squash,flatten,omitempty"`
+		*PhoneClaim `json:",squash,flatten,omitempty"`
 
 		// Subject - Identifier for the End-User at the Issuer.
 		//

@@ -21,9 +21,10 @@ require (
 	github.com/libatomic/api v0.1.0
 	github.com/libatomic/litmus v0.5.4
 	github.com/mailru/easyjson v0.7.1 // indirect
-	github.com/mitchellh/mapstructure v1.3.3
+	github.com/mitchellh/mapstructure v1.4.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/spf13/cast v1.3.1
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect

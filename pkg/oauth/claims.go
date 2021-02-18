@@ -28,6 +28,7 @@ import (
 	"errors"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/spf13/cast"
 )
 
 type (
@@ -81,6 +82,8 @@ func (c Claims) Audience() []string {
 		return []string{s}
 	case []string:
 		return s
+	case []interface{}:
+		return cast.ToStringSlice(s)
 	}
 
 	return []string{}

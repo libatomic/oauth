@@ -78,6 +78,7 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 		TokenEndpoint          oauth.URI `json:"token_endpoint"`
 		IntrospectionEndpoint  oauth.URI `json:"introspection_endpoint"`
 		UserInfoEndpoint       oauth.URI `json:"userinfo_endpoint"`
+		EndSessionEndpoint     oauth.URI `json:"end_session_endpoint"`
 		RevocationEndpoint     oauth.URI `json:"revocation_endpoint"`
 		GrantTypesSupported    []string  `json:"grant_types_supported"`
 		ScopesSupported        []string  `json:"scopes_supported"`
@@ -92,7 +93,8 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 		TokenEndpoint:          iss.Append("token"),
 		//	IntrospectionEndpoint:  iss.Append("token-introspect"),
 		// RevocationEndpoint:     issuer.Append("..", "token-revoke"),
-		UserInfoEndpoint: iss.Append("userInfo"),
+		UserInfoEndpoint:   iss.Append("userInfo"),
+		EndSessionEndpoint: iss.Append("logout"),
 		GrantTypesSupported: []string{
 			oauth.GrantTypeAuthCode,
 			oauth.GrantTypeClientCredentials,

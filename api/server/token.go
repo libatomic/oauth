@@ -361,6 +361,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				dec, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 					TagName: "json",
 					Result:  &claims,
+					Squash:  true,
 				})
 
 				if err := dec.Decode(user.Profile); err != nil {

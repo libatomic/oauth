@@ -31,10 +31,12 @@ import (
 type (
 	// LogoutParams contains all the bound params for the logout operation
 	LogoutParams struct {
-		Audience    *string `json:"audience,omitempty"`
-		ClientID    string  `json:"client_id"`
-		RedirectURI *string `json:"redirect_uri"`
-		State       *string `json:"state"`
+		Audience              *string `json:"audience,omitempty"`
+		ClientID              *string `json:"client_id"`
+		RedirectURI           *string `json:"redirect_uri,omitempty"`
+		PostLogoutRedirectURI *string `json:"post_logout_redirect_uri,omitempty"`
+		TokenHint             *string `json:"id_token_hint,omitempty"`
+		State                 *string `json:"state"`
 	}
 )
 
@@ -47,9 +49,11 @@ func init() {
 // Validate validates LogoutParams
 func (p LogoutParams) Validate() error {
 	return validation.Errors{
-		"audience":     validation.Validate(p.Audience, validation.NilOrNotEmpty),
-		"client_id":    validation.Validate(p.ClientID, validation.Required),
-		"redirect_uri": validation.Validate(p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
+		"audience":                 validation.Validate(p.Audience, validation.NilOrNotEmpty),
+		"client_id":                validation.Validate(p.ClientID, validation.When(p.TokenHint == nil, validation.Required).Else(validation.Nil)),
+		"id_token_hint":            validation.Validate(p.TokenHint, validation.When(p.ClientID == nil, validation.Required).Else(validation.Nil)),
+		"redirect_uri":             validation.Validate(p.RedirectURI, validation.NilOrNotEmpty, is.RequestURI),
+		"post_logout_redirect_uri": validation.Validate(p.PostLogoutRedirectURI, validation.NilOrNotEmpty, is.RequestURI),
 	}.Filter()
 }
 
@@ -70,22 +74,34 @@ func logout(ctx context.Context, params *LogoutParams) api.Responder {
 	}
 	ctx = oauth.NewContext(ctx, aud)
 
+	if params.TokenHint != nil {
+		claims, err := ctrl.TokenValidate(ctx, *params.TokenHint)
+		if err != nil {
+			return api.StatusError(http.StatusUnauthorized, err)
+		}
+		clientID := claims.ClientID()
+
+		params.ClientID = &clientID
+	}
+
 	// ensure this is a valid application
-	app, err := ctrl.ApplicationGet(ctx, params.ClientID)
+	app, err := ctrl.ApplicationGet(ctx, *params.ClientID)
 	if err != nil {
 		return api.StatusError(http.StatusBadRequest, err)
 	}
 
-	ctx = oauth.NewContext(ctx, oauth.Context{
-		Application: app,
-		Audience:    aud,
-	})
+	ctx = oauth.NewContext(ctx, app)
+
+	// openid connect parameter has precedence
+	if params.PostLogoutRedirectURI != nil {
+		params.RedirectURI = params.PostLogoutRedirectURI
+	}
 
 	if (params.RedirectURI == nil || *params.RedirectURI == "") && len(app.RedirectUris[aud.Name()]) > 0 {
 		params.RedirectURI = &app.RedirectUris[aud.Name()][0]
 	}
 
-	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()])
+	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()], r)
 	if err != nil {
 		return api.Error(err).WithStatus(http.StatusBadRequest)
 	}
