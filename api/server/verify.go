@@ -40,7 +40,7 @@ type (
 	// VerifySendParams are the params for the verification send method
 	VerifySendParams struct {
 		Method oauth.NotificationChannel `json:"method"`
-		Signup bool
+		Signup bool                      `json:"-"`
 	}
 
 	verifyNotification struct {
@@ -74,7 +74,7 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 	}
 
 	r, _ := api.Request(ctx)
-	
+
 	u, err := EnsureURI(params.RedirectURI, auth.Application.RedirectUris[auth.Audience.Name()], r)
 	if err != nil {
 		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
@@ -97,6 +97,37 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 			"error":             "access_denied",
 			"error_description": "insufficient scope",
 		})
+	}
+
+	if auth.Token.Scope().Contains(oauth.ScopeSession) {
+		user := auth.User
+
+		r, w := api.Request(ctx)
+
+		session, err := sessionStore(ctx).SessionCreate(oauth.NewContext(ctx, user), r)
+		if err != nil {
+			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create session", err)
+		}
+
+		if err := session.Write(w); err != nil {
+			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to write session", err)
+		}
+
+		authCode := &oauth.AuthCode{
+			AuthRequest:       *auth.Request,
+			Subject:           user.Profile.Subject,
+			SessionID:         session.ID(),
+			UserAuthenticated: true,
+		}
+		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
+			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create auth code", err)
+		}
+
+		q := u.Query()
+
+		q.Set("code", authCode.Code)
+
+		u.RawQuery = q.Encode()
 	}
 
 	return api.Redirect(u)
@@ -127,13 +158,19 @@ func VerifySend(ctx context.Context, params *VerifySendParams) error {
 
 	iss := issuer(ctx)
 
+	scope := []string{oauth.ScopeOpenID, oauth.ScopeProfile, oauth.ScopeEmailVerify}
+
+	if params.Signup {
+		scope = append(scope, oauth.ScopeSession)
+	}
+
 	claims := oauth.Claims{
 		"iss":   iss,
 		"use":   "access",
 		"iat":   time.Now().Unix(),
 		"aud":   auth.Audience.Name(),
 		"sub":   auth.User.Profile.Subject,
-		"scope": strings.Join([]string{oauth.ScopeOpenID, oauth.ScopeProfile, oauth.ScopeEmailVerify}, " "),
+		"scope": strings.Join(scope, " "),
 		"exp":   time.Now().Add(time.Hour * 24).Unix(),
 		"azp":   auth.Application.ClientID,
 	}
