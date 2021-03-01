@@ -47,14 +47,32 @@ func init() {
 func session(ctx context.Context, params *SessionParams) api.Responder {
 	s := serverContext(ctx)
 
+	octx := oauth.AuthContext(ctx)
+
 	req := &oauth.AuthRequest{}
-	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
+
+	if uri, ok := octx.Token["rdr"].(string); ok {
+		req.AppURI = uri
+		req.RedirectURI = uri
+
+		auds := octx.Token.Audience()
+		if len(auds) > 0 {
+			req.Audience = auds[0]
+		}
+		sub := octx.Token.Subject()
+		req.Subject = &sub
+		req.Scope = octx.Token.Scope()
+		req.ExpiresAt = octx.Token.ExpiresAt().Unix()
+
+	} else if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
 		return api.Error(err).WithStatus(http.StatusUnauthorized)
 	}
 
 	u, _ := url.Parse(req.AppURI)
 
-	octx := oauth.AuthContext(ctx)
+	if u.Path == "" {
+		u.Path = "/"
+	}
 
 	// check for authorization errors so we can return the to the redirect
 	if octx.Error != nil {
@@ -90,6 +108,10 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 	}
 
 	u, _ = url.Parse(req.RedirectURI)
+
+	if u.Path == "" {
+		u.Path = "/"
+	}
 
 	if params.AuthCode {
 		authCode := &oauth.AuthCode{

@@ -120,8 +120,8 @@ func (c Claims) IssuedAt() time.Time {
 
 // ExpiresAt returns the expiration for the token
 func (c Claims) ExpiresAt() time.Time {
-	if s, ok := c["exp"].(int64); ok {
-		return time.Unix(s, 0)
+	if s, ok := c["exp"]; ok {
+		return time.Unix(cast.ToInt64(s), 0)
 	}
 
 	return time.Time{}
