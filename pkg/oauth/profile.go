@@ -153,7 +153,7 @@ func (e EmailClaim) Validate() error {
 // Validate handles validation for the PhoneClaim struct
 func (p PhoneClaim) Validate() error {
 	return validation.ValidateStruct(&p,
-		validation.Field(&p.PhoneNumber, validation.NilOrNotEmpty),
+		validation.Field(&p.PhoneNumber, validation.NilOrNotEmpty, is.E164),
 	)
 }
 
