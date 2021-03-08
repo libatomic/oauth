@@ -174,6 +174,10 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, "bad scope")
 		}
 
+		if len(params.Scope) == 0 {
+			params.Scope = perms
+		}
+
 		claims := oauth.Claims{
 			"use": "access",
 		}
