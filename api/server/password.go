@@ -19,8 +19,6 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -274,7 +272,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		link.RawQuery = q.Encode()
 
 		note.uri = oauth.URI(link.String()).Ptr()
-	//case PasswordTypeCode:
+		//case PasswordTypeCode:
 		// TODO: 2FA
 	}
 
