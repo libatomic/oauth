@@ -37,7 +37,7 @@ type (
 		Audience            *string  `json:"audience,omitempty"`
 		ClientID            string   `json:"client_id"`
 		CodeChallenge       *string  `json:"code_challenge"`
-		CodeChallengeMethod *string  `json:"code_challenge_method"`
+		CodeChallengeMethod *string  `json:"code_challenge_method,omitempty"`
 		RedirectURI         *string  `json:"redirect_uri"`
 		ResponseType        string   `json:"response_type"`
 		Scope               []string `json:"scope"`

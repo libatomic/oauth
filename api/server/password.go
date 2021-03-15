@@ -138,19 +138,6 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			return ErrExpiredRequestToken(u)
 		}
 
-		if req.CodeChallenge != nil {
-			if params.CodeVerifier == nil {
-				return ErrMissingParameter(u, "code_verifier")
-			}
-
-			sum := sha256.Sum256([]byte(*params.CodeVerifier))
-			check := base64.RawURLEncoding.EncodeToString(sum[:])
-
-			if *req.CodeChallenge != check {
-				return ErrUnauthorized(u, "invalid code_verifier")
-			}
-		}
-
 		ctx, err = oauth.ContextFromRequest(ctx, s.ctrl, req)
 		if err != nil {
 			return ErrInvalidContext(u)

@@ -240,7 +240,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			return api.StatusErrorf(http.StatusUnauthorized, "missing authorization code")
 		}
 
-		if code.CodeChallenge != nil {
+		if code.CodeChallenge != nil { //&& strings.EqualFold(code.CodeChallengeMethod, "s256") {
 			if params.CodeVerifier == nil {
 				return api.StatusErrorf(http.StatusBadRequest, "missing code or verifier")
 			}
