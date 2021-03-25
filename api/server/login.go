@@ -117,6 +117,8 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 		})
 	}
 
+	session.Set("scope", []string(req.Scope))
+
 	if err := session.Write(w); err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",

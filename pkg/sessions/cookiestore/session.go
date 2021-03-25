@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/gorilla/sessions"
+	"github.com/libatomic/oauth/pkg/oauth"
 )
 
 type (
@@ -47,6 +48,14 @@ func (s *session) ClientID() string {
 
 func (s *session) Audience() string {
 	return s.s.Values["aud"].(string)
+}
+
+func (s *session) Scope() oauth.Permissions {
+	if v, ok := s.s.Values["scope"].([]string); ok {
+		return oauth.Permissions(v)
+	}
+
+	return oauth.Permissions{}
 }
 
 // CreatedAt is the session creation time

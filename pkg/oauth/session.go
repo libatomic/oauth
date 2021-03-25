@@ -37,6 +37,9 @@ type (
 		// Subject is the user subject id
 		Subject() string
 
+		// Scope is the session scope
+		Scope() Permissions
+
 		// CreatedAt is the session creation time
 		CreatedAt() time.Time
 

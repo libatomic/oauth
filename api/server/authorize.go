@@ -188,7 +188,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	}
 
 	// if we already have a session, use that to create the code
-	if session != nil {
+	if session != nil && session.Scope().Every(params.Scope...) {
 		_, _, err := ctrl.UserGet(ctx, session.Subject())
 		if err != nil {
 			sessionStore(ctx).SessionDestroy(ctx, w, r)
