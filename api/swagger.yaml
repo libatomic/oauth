@@ -475,7 +475,7 @@ paths:
   /login:
     post:
       description: |
-        Authenticates a user the `oauth.Controller` interface.
+        Authenticates a user via the `oauth.Controller` interface.
       operationId: "Login"
       tags: ["Auth"]
       consumes: ["application/x-www-form-urlencoded"]
@@ -493,7 +493,7 @@ paths:
         - name: "request_token"
           type: "string"
           description: |
-            "The authorization request token"
+            "The authorization request token obtained from an /authorize call"
           in: "formData"
           required: true
       responses:
@@ -534,11 +534,12 @@ paths:
           in: "query"
           required: true
         - name: "audience"
+          description: "The target audience"
           in: "query"
           type: "string"
         - name: "state"
           type: "string"
-          description: "Logout state"
+          description: "Logout state returned via the redirect_uri"
           in: "query"
       responses:
         302:
@@ -595,7 +596,7 @@ paths:
         - name: "request_token"
           type: "string"
           description: |
-            "The authorization request token"
+            "The authorization request token obtained from the /authorize method"
           in: "formData"
           required: true
       responses:
@@ -825,7 +826,7 @@ paths:
       description: |
         Gererates an oauth authorization request for login and redirects the browser to the login form.
 
-        This method will redirect the browser to `app_uri` with an encoded `request_token` parameter, which will present the user with a form.
+        This method will redirect the browser to `app_uri` with an encoded `request_token` parameter, which should present the user with a form.
 
           `app_uri` and `redirect_uri` must be registered with the api client.
 
@@ -1004,6 +1005,53 @@ paths:
           description: "unauthorized"
           schema:
             $ref: "#/definitions/ErrorResponse"
+        500:
+          description: "internal server error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /.well-known/openid-configuration
+    get:
+      description: |
+        Returns the supported OpenID Connect endpoints
+      operationId: "OIDConfigGet"
+      tags: ["Auth"]
+      responses:
+        200:
+          description: "ok"
+          schema:
+            type: "object"
+            properties:
+              issuer:
+                type: "string"
+              jwks_uri:
+                type: "string"
+              authorization_endpoint:
+                type: "string"
+              response_type_supported:
+                type: "array"
+                items:
+                  type: "string"
+              subject_types_supported:
+                type: "array"
+                items:
+                  type: "string"
+              id_token_signing_alg_values_supported:
+                type: "array"
+                items:
+                  type: "string"
+              token_endpoint:
+                type: "string"
+              userinfo_endpoint:
+                type: "string"
+              end_session_endpoint:
+                type: "string"
+              grant_types_supported:
+                type: "string"
+              scopes_supported:
+                type: "string"
+              code_challenge_methods_supported:
+                type: "string"
         500:
           description: "internal server error"
           schema:

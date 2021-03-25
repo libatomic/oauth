@@ -76,10 +76,8 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 		SubjectTypesSupported  []string  `json:"subject_types_supported"`
 		SigningAlgSupported    []string  `json:"id_token_signing_alg_values_supported"`
 		TokenEndpoint          oauth.URI `json:"token_endpoint"`
-		IntrospectionEndpoint  oauth.URI `json:"introspection_endpoint"`
 		UserInfoEndpoint       oauth.URI `json:"userinfo_endpoint"`
 		EndSessionEndpoint     oauth.URI `json:"end_session_endpoint"`
-		RevocationEndpoint     oauth.URI `json:"revocation_endpoint"`
 		GrantTypesSupported    []string  `json:"grant_types_supported"`
 		ScopesSupported        []string  `json:"scopes_supported"`
 		CodeChallengeMethods   []string  `json:"code_challenge_methods_supported,omitempty"`
@@ -91,8 +89,6 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 		SubjectTypesSupported:  []string{"public"},
 		SigningAlgSupported:    []string{"RS256", "HS256"},
 		TokenEndpoint:          iss.Append("token"),
-		//	IntrospectionEndpoint:  iss.Append("token-introspect"),
-		// RevocationEndpoint:     issuer.Append("..", "token-revoke"),
 		UserInfoEndpoint:   iss.Append("userInfo"),
 		EndSessionEndpoint: iss.Append("logout"),
 		GrantTypesSupported: []string{

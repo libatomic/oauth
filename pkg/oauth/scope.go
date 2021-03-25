@@ -67,6 +67,19 @@ func (s Permissions) Without(elements ...string) Permissions {
 	return r
 }
 
+// Unique returns a scope withonly unique values
+func (s Permissions) Unique() Permissions {
+	p := make(Permissions, 0)
+
+	for _, v := range s {
+		if !p.Contains(v) {
+			p = append(p, v)
+		}
+	}
+
+	return p
+}
+
 // CurrentRoles returns the user roles in the given context
 func (u User) CurrentRoles(ctx context.Context) Permissions {
 	if len(u.Roles) == 0 {
