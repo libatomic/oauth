@@ -41,6 +41,7 @@ type (
 	VerifySendParams struct {
 		Method oauth.NotificationChannel `json:"method"`
 		Signup bool                      `json:"-"`
+		scope  oauth.Permissions
 	}
 
 	verifyNotification struct {
@@ -162,6 +163,10 @@ func VerifySend(ctx context.Context, params *VerifySendParams) error {
 
 	if params.Signup {
 		scope = append(scope, oauth.ScopeSession)
+	}
+
+	if len(params.scope) {
+		scope = append(scope, params.scope...)
 	}
 
 	claims := oauth.Claims{
