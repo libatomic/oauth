@@ -165,7 +165,7 @@ func VerifySend(ctx context.Context, params *VerifySendParams) error {
 		scope = append(scope, oauth.ScopeSession)
 	}
 
-	if len(params.scope) {
+	if len(params.scope) > 0 {
 		scope = append(scope, params.scope...)
 	}
 
