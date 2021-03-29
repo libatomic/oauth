@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -252,7 +253,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			"iat":   time.Now().Unix(),
 			"aud":   octx.Audience.Name(),
 			"sub":   user.Profile.Subject,
-			"scope": oauth.ScopeSession,
+			"scope": strings.Join(append(req.Scope, oauth.ScopeSession), " "),
 			"exp":   req.ExpiresAt,
 			"azp":   octx.Application.ClientID,
 		}

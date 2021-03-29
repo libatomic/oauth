@@ -250,6 +250,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	q := appURI.Query()
 
 	q.Set(AuthRequestParam, token)
+	q.Set("mode", "password")
 
 	appURI.RawQuery = q.Encode()
 

@@ -146,6 +146,12 @@ func (c *cookieStore) SessionCreate(ctx context.Context, r *http.Request) (oauth
 		s.Values["subject"] = octx.User.Profile.Subject
 	}
 
+	if octx.Token != nil {
+		if len(octx.Token.Scope()) > 0 {
+			s.Values["scope"] = []string(octx.Token.Scope())
+		}
+	}
+
 	if octx.Audience != nil {
 		s.Values["aud"] = octx.Audience.Name()
 	}
