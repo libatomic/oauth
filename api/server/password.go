@@ -60,6 +60,7 @@ type (
 		uri          *oauth.URI
 		code         string
 		notify       oauth.NotificationChannels
+		context      map[string]interface{}
 	}
 )
 
@@ -273,8 +274,8 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		link.RawQuery = q.Encode()
 
 		note.uri = oauth.URI(link.String()).Ptr()
-		//case PasswordTypeCode:
-		// TODO: 2FA
+
+	case PasswordTypeCode:
 	}
 
 	if err := s.ctrl.UserNotify(ctx, note); err != nil {
@@ -342,4 +343,12 @@ func (n passwordNotification) Code() string {
 
 func (n passwordNotification) Channels() oauth.NotificationChannels {
 	return n.notify
+}
+
+func (n passwordNotification) Context() map[string]interface{} {
+	if n.context == nil {
+		return map[string]interface{}{}
+	}
+
+	return n.context
 }

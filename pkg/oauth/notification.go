@@ -24,6 +24,7 @@ type (
 		Subject() string
 		Channels() NotificationChannels
 		URI() *URI
+		Context() map[string]interface{}
 	}
 
 	// NotificationType is a notification type
@@ -45,6 +46,9 @@ const (
 
 	// NotificationTypePassword are password notification
 	NotificationTypePassword NotificationType = "password"
+
+	// NotificationTypeCode is a  code notification
+	NotificationTypeCode NotificationType = "code"
 
 	// NotificationTypePasswordReset are password reset notification
 	NotificationTypePasswordReset NotificationType = "password-reset"

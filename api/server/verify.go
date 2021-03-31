@@ -49,6 +49,7 @@ type (
 		uri     oauth.URI
 		channel oauth.NotificationChannel
 		signup  bool
+		context map[string]interface{}
 	}
 )
 
@@ -217,4 +218,11 @@ func (n verifyNotification) URI() *oauth.URI {
 
 func (n verifyNotification) Channels() oauth.NotificationChannels {
 	return []oauth.NotificationChannel{oauth.NotificationChannel(n.channel)}
+}
+
+func (n verifyNotification) Context() map[string]interface{} {
+	if n.context == nil {
+		return map[string]interface{}{}
+	}
+	return n.context
 }
