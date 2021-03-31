@@ -77,13 +77,29 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 		})
 	}
 
-	user, _, err := s.ctrl.UserAuthenticate(ctx, params.Login, params.Password)
-	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "access_denied",
-			"error_description": "user authentication failed",
-			"request_token":     params.RequestToken,
-		})
+	var user *oauth.User
+
+	code, err := s.codes.AuthCodeGet(ctx, params.Password)
+	if err == nil {
+		s.codes.AuthCodeDestroy(ctx, params.Password)
+
+		user, _, err = s.ctrl.UserGet(ctx, params.Login)
+		if err != nil || code.Subject != user.Profile.Subject {
+			return api.Redirect(u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "user authentication failed",
+				"request_token":     params.RequestToken,
+			})
+		}
+	} else {
+		user, _, err = s.ctrl.UserAuthenticate(ctx, params.Login, params.Password)
+		if err != nil {
+			return api.Redirect(u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "user authentication failed",
+				"request_token":     params.RequestToken,
+			})
+		}
 	}
 
 	oauth.AuthContext(ctx).User = user

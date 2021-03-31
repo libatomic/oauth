@@ -19,7 +19,9 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -201,6 +203,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		sub:          user.Profile.Subject,
 		passwordType: params.Type,
 		notify:       params.Notify,
+		context:      map[string]interface{}{},
 	}
 
 	r, _ := api.Request(ctx)
@@ -243,6 +246,9 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		fallthrough
 
 	case PasswordTypeLink:
+		fallthrough
+
+	case PasswordTypeCode:
 		reqToken, err := signValue(ctx, s.ctrl.TokenFinalize, req)
 		if err != nil {
 			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to sign request token", err)
@@ -275,7 +281,19 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 
 		note.uri = oauth.URI(link.String()).Ptr()
 
-	case PasswordTypeCode:
+		if params.Type != PasswordTypeReset {
+			passCode := &oauth.AuthCode{
+				AuthRequest: *req,
+				Code:        generatePasscode(7),
+				Subject:     user.Profile.Subject,
+			}
+
+			if err := s.codes.AuthCodeCreate(ctx, passCode); err != nil {
+				return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to finalize claims", err)
+			}
+
+			note.context["code"] = passCode.Code
+		}
 	}
 
 	if err := s.ctrl.UserNotify(ctx, note); err != nil {
@@ -351,4 +369,16 @@ func (n passwordNotification) Context() map[string]interface{} {
 	}
 
 	return n.context
+}
+
+func generatePasscode(max int) string {
+	b := make([]byte, max)
+	n, err := io.ReadAtLeast(rand.Reader, b, max)
+	if n != max {
+		panic(err)
+	}
+	for i := 0; i < len(b); i++ {
+		b[i] = passcodeAlpha[int(b[i])%len(passcodeAlpha)]
+	}
+	return string(b)
 }
