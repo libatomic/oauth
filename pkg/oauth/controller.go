@@ -60,6 +60,12 @@ type (
 
 		// TokenValidate validate the token signature and parse it into the Claims
 		TokenValidate(ctx context.Context, bearerToken string) (Claims, error)
+
+		// TokenGet gets a token by id
+		TokenGet(ctx context.Context, id string) (Claims, error)
+
+		// TokenRevoke revokes a token by id
+		TokenRevoke(ctx context.Context, sub string, id string) error
 	}
 
 	// CodeStore defines an AuthCode storage interface

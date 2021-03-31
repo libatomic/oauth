@@ -86,6 +86,8 @@ securityDefinitions:
       email:verify: Used by controllers to verify a user's email address
       password: User to reset passwords
       session: Scope used to create a user session using a token
+      token:read: Read token information
+      token:revoke: Revoke tokens
 
 definitions:
   BearerToken:
@@ -1009,6 +1011,62 @@ paths:
           description: "internal server error"
           schema:
             $ref: "#/definitions/ErrorResponse"
+
+  /token-introspect:
+    post:
+      description: "Intropsect a token"
+      operationId: "TokenIntrospect"
+      tags: ["Auth"]
+      consumes: ["application/x-www-form-urlencoded"]
+      parameters:
+        - name: "token"
+          description: "The access token id to inspect"
+          type: "string"
+          in: "formData"
+          required: true
+      responses:
+        200:
+          description: "ok"
+          schema:
+            type: "string"
+        400:
+          $ref: "#/definitions/ErrorResponse"
+        401:
+          $ref: "#/definitions/ErrorResponse"
+        403:
+          $ref: "#/definitions/ErrorResponse"
+        500:
+          $ref: "#/definitions/ErrorResponse"
+      security:
+        - oauth: ["token:read"]
+
+  /token-revoke:
+    post:
+      description: "Revoke a token"
+      operationId: "TokenRevoke"
+      tags: ["Auth"]
+      consumes: ["application/x-www-form-urlencoded"]
+      parameters:
+        - name: "token"
+          description: "The access token id to inspect"
+          type: "string"
+          in: "formData"
+          required: true
+      responses:
+        200:
+          description: "ok"
+          schema:
+            type: "string"
+        400:
+          $ref: "#/definitions/ErrorResponse"
+        401:
+          $ref: "#/definitions/ErrorResponse"
+        403:
+          $ref: "#/definitions/ErrorResponse"
+        500:
+          $ref: "#/definitions/ErrorResponse"
+      security:
+        - oauth: ["token:revoke"]
 
   /.well-known/openid-configuration
     get:

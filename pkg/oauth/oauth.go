@@ -40,6 +40,12 @@ const (
 	// ScopeEmailVerify is required to verify a users email address
 	ScopeEmailVerify = "email:verify"
 
+	// ScopeTokenRead is required to call /token-introspect
+	ScopeTokenRead = "token:read"
+
+	// ScopeTokenRevoke is required to call /token-revoke
+	ScopeTokenRevoke = "token:revoke"
+
 	// GrantTypeAuthCode is the auth code grant type
 	GrantTypeAuthCode = "authorization_code"
 

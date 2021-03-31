@@ -49,11 +49,23 @@ type (
 		Scope           []string `json:"scope,omitempty"`
 		Username        *string  `json:"username,omitempty"`
 	}
+
+	// TokenIntrospectParams is the parameters for token introspect
+	TokenIntrospectParams struct {
+		Token string `json:"token"`
+	}
+
+	// TokenRevokeParams is the parameters for token revoke
+	TokenRevokeParams struct {
+		Token string `json:"token"`
+	}
 )
 
 func init() {
 	registerRoutes([]route{
 		{"/token", http.MethodPost, &TokenParams{}, token, nil, nil},
+		{"/token-introspect", http.MethodPost, &TokenIntrospectParams{}, tokenIntrospect, oauth.Scope(oauth.ScopeTokenRead), nil},
+		{"/token-revoke", http.MethodPost, &TokenRevokeParams{}, tokenRevoke, oauth.Scope(oauth.ScopeTokenRevoke), nil},
 	})
 }
 
@@ -382,4 +394,51 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	}
 
 	return api.NewResponse(bearer)
+}
+
+func tokenIntrospect(ctx context.Context, params *TokenIntrospectParams) api.Responder {
+	s := serverContext(ctx)
+
+	if len(params.Token) == 22 {
+		token, err := s.ctrl.TokenGet(ctx, params.Token)
+		if err != nil {
+			return api.Error(err)
+		}
+
+		if token.ExpiresAt().After(time.Now()) {
+			token["active"] = true
+		}
+
+		return api.NewResponse(token)
+	}
+
+	t, err := s.ctrl.TokenValidate(ctx, params.Token)
+	if err != nil {
+		return api.Error(err)
+	}
+
+	if t.ExpiresAt().After(time.Now()) {
+		t["active"] = true
+	}
+
+	return api.NewResponse(t)
+}
+
+func tokenRevoke(ctx context.Context, params *TokenRevokeParams) api.Responder {
+	ctrl := oauth.AuthContext(ctx).Controller
+	auth := oauth.AuthContext(ctx)
+
+	if auth.User == nil {
+		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
+	}
+
+	if len(params.Token) == 22 {
+		if err := ctrl.TokenRevoke(ctx, auth.User.Profile.Subject, params.Token); err != nil {
+			return api.Error(err)
+		}
+
+		return api.NewResponse().WithStatus(http.StatusNoContent)
+	}
+
+	return api.StatusErrorf(http.StatusBadRequest, "invalid token")
 }
