@@ -421,6 +421,16 @@ func (c *MockController) TokenValidate(ctx context.Context, bearerToken string) 
 	return args.Get(0).(oauth.Claims), args.Error(1)
 }
 
+// TokenGet gets a token by id
+func (c *MockController) TokenGet(ctx context.Context, id string) (oauth.Claims, error) {
+	return nil, nil
+}
+
+// TokenRevoke revokes a token by id
+func (c *MockController) TokenRevoke(ctx context.Context, sub string, id string) error {
+	return nil
+}
+
 // AuthCodeCreate creates a new authcode from the request if code expires at is set
 // the store should use that value, otherwise set the defaults
 func (c *MockController) AuthCodeCreate(ctx context.Context, code *oauth.AuthCode) error {

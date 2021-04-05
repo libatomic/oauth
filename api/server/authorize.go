@@ -80,6 +80,7 @@ func (p *AuthorizeParams) Validate() error {
 }
 
 func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
+	s := serverContext(ctx)
 	ctrl := oauth.AuthContext(ctx).Controller
 	log := api.Log(ctx)
 
@@ -176,7 +177,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		Nonce:               params.Nonce,
 		CodeChallenge:       params.CodeChallenge,
 		CodeChallengeMethod: *params.CodeChallengeMethod,
-		ExpiresAt:           time.Now().Add(time.Minute * 10).Unix(),
+		ExpiresAt:           time.Now().Add(s.requestTokenLifetime).Unix(),
 	}
 
 	session, err := sessionStore(ctx).SessionRead(ctx, r)

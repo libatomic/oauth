@@ -53,6 +53,8 @@ type (
 		sessionKey [64]byte
 
 		jwks []byte
+
+		requestTokenLifetime time.Duration
 	}
 
 	// Option provides the server options, these will override th defaults and instance values.
@@ -108,6 +110,7 @@ func New(ctrl oauth.Controller, opts ...interface{}) *Server {
 			oauth.GrantTypeClientCredentials,
 			oauth.GrantTypeRefreshToken,
 		},
+		requestTokenLifetime: time.Minute * 10,
 	}
 
 	// apply the server options
@@ -149,6 +152,12 @@ func WithSessionStore(c oauth.SessionStore) Option {
 func WithAllowedGrants(g oauth.Permissions) Option {
 	return func(s *Server) {
 		s.allowedGrants = g
+	}
+}
+
+func WithRequestTokenLifetime(d time.Duration) Option {
+	return func(s *Server) {
+		s.requestTokenLifetime = d
 	}
 }
 
