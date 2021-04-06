@@ -284,7 +284,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		if params.Type != PasswordTypeReset {
 			passCode := &oauth.AuthCode{
 				AuthRequest: *req,
-				Code:        generatePasscode(7),
+				Code:        generatePasscode(s.otpLen),
 				Subject:     user.Profile.Subject,
 			}
 

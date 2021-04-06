@@ -55,6 +55,8 @@ type (
 		jwks []byte
 
 		requestTokenLifetime time.Duration
+
+		otpLen int
 	}
 
 	// Option provides the server options, these will override th defaults and instance values.
@@ -111,6 +113,7 @@ func New(ctrl oauth.Controller, opts ...interface{}) *Server {
 			oauth.GrantTypeRefreshToken,
 		},
 		requestTokenLifetime: time.Minute * 10,
+		otpLen:               6,
 	}
 
 	// apply the server options
@@ -145,6 +148,14 @@ func WithCodeStore(c oauth.CodeStore) Option {
 func WithSessionStore(c oauth.SessionStore) Option {
 	return func(s *Server) {
 		s.sessions = c
+	}
+}
+
+func WithOTPLen(l int) Option {
+	return func(s *Server) {
+		if l > 4 {
+			s.otpLen = l
+		}
 	}
 }
 
