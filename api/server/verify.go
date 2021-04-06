@@ -216,6 +216,10 @@ func (n verifyNotification) URI() *oauth.URI {
 	return &n.uri
 }
 
+func (n verifyNotification) Code() *string {
+	return nil
+}
+
 func (n verifyNotification) Channels() oauth.NotificationChannels {
 	return []oauth.NotificationChannel{oauth.NotificationChannel(n.channel)}
 }

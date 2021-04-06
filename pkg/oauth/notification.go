@@ -24,6 +24,7 @@ type (
 		Subject() string
 		Channels() NotificationChannels
 		URI() *URI
+		Code() *string
 		Context() map[string]interface{}
 	}
 
@@ -59,8 +60,8 @@ const (
 	// NotificationChannelEmail is an email notification
 	NotificationChannelEmail NotificationChannel = "email"
 
-	// NotificationChannelPhone is an sms notification
-	NotificationChannelPhone NotificationChannel = "phone"
+	// NotificationChannelSMS is an sms notification
+	NotificationChannelSMS NotificationChannel = "sms"
 )
 
 // Contains returns if the channel

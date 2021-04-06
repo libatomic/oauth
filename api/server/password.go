@@ -204,6 +204,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		passwordType: params.Type,
 		notify:       params.Notify,
 		context:      map[string]interface{}{},
+		code:         generatePasscode(s.otpLen),
 	}
 
 	r, _ := api.Request(ctx)
@@ -284,7 +285,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 		if params.Type != PasswordTypeReset {
 			passCode := &oauth.AuthCode{
 				AuthRequest: *req,
-				Code:        generatePasscode(s.otpLen),
+				Code:        note.code,
 				Subject:     user.Profile.Subject,
 			}
 
@@ -351,12 +352,12 @@ func (n passwordNotification) URI() *oauth.URI {
 	return n.uri
 }
 
-func (n passwordNotification) PasswordType() PasswordType {
-	return n.passwordType
+func (n passwordNotification) Code() *string {
+	return &n.code
 }
 
-func (n passwordNotification) Code() string {
-	return n.code
+func (n passwordNotification) PasswordType() PasswordType {
+	return n.passwordType
 }
 
 func (n passwordNotification) Channels() oauth.NotificationChannels {
