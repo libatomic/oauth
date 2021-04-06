@@ -17,6 +17,8 @@
 
 package oauth
 
+import "strings"
+
 type (
 	// Notification is a simply a notification interface
 	Notification interface {
@@ -73,6 +75,18 @@ func (n NotificationChannels) Contains(value NotificationChannel) bool {
 	}
 
 	return false
+}
+
+func (n *NotificationChannels) UnmarshalText(v []byte) error {
+	if v == nil {
+		return nil
+	}
+
+	for _, c := range strings.Split(string(v), ",") {
+		*n = append(*n, NotificationChannel(c))
+	}
+
+	return nil
 }
 
 func (n NotificationType) String() string {
