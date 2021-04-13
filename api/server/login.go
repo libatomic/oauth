@@ -19,6 +19,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -133,7 +134,7 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 		})
 	}
 
-	session.Set("scope", []string(req.Scope))
+	session.Set(fmt.Sprintf("scope:%s", oauth.AuthContext(ctx).Audience.Name()), []string(req.Scope))
 
 	if err := session.Write(w); err != nil {
 		return api.Redirect(u, map[string]string{

@@ -189,55 +189,60 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	}
 
 	// if we already have a session, use that to create the code
-	if session != nil && session.Scope().Every(params.Scope...) {
-		_, _, err := ctrl.UserGet(ctx, session.Subject())
-		if err != nil {
-			sessionStore(ctx).SessionDestroy(ctx, w, r)
+	if session != nil {
+		scope := session.Scope(aud.Name())
+		if scope.Empty() || scope.Every(params.Scope...) {
+			_, _, err := ctrl.UserGet(ctx, session.Subject())
+			if err != nil {
+				sessionStore(ctx).SessionDestroy(ctx, w, r)
 
-			return api.Redirect(u, map[string]string{
-				"error":             "access_denied",
-				"error_description": "user not found",
-			})
+				return api.Redirect(u, map[string]string{
+					"error":             "access_denied",
+					"error_description": "user not found",
+				})
+			}
+
+			session.Set(fmt.Sprintf("scope:%s", aud.Name()), params.Scope)
+
+			if err := session.Write(w); err != nil {
+				return api.Redirect(u, map[string]string{
+					"error":             "server_error",
+					"error_description": err.Error(),
+				})
+			}
+
+			authCode := &oauth.AuthCode{
+				AuthRequest: *req,
+				Subject:     session.Subject(),
+				SessionID:   session.ID(),
+			}
+			if err := codeStore(ctx).AuthCodeCreate(oauth.NewContext(
+				ctx,
+				oauth.Context{
+					Application: app,
+					Audience:    aud,
+				},
+			), authCode); err != nil {
+				log.Error(err.Error())
+
+				return api.Redirect(u, map[string]string{
+					"error":             "server_error",
+					"error_description": err.Error(),
+				})
+			}
+
+			q := u.Query()
+
+			q.Set("code", authCode.Code)
+
+			if req.State != nil {
+				q.Set("state", *req.State)
+			}
+
+			u.RawQuery = q.Encode()
+
+			return api.Redirect(u)
 		}
-
-		if err := session.Write(w); err != nil {
-			return api.Redirect(u, map[string]string{
-				"error":             "server_error",
-				"error_description": err.Error(),
-			})
-		}
-
-		authCode := &oauth.AuthCode{
-			AuthRequest: *req,
-			Subject:     session.Subject(),
-			SessionID:   session.ID(),
-		}
-		if err := codeStore(ctx).AuthCodeCreate(oauth.NewContext(
-			ctx,
-			oauth.Context{
-				Application: app,
-				Audience:    aud,
-			},
-		), authCode); err != nil {
-			log.Error(err.Error())
-
-			return api.Redirect(u, map[string]string{
-				"error":             "server_error",
-				"error_description": err.Error(),
-			})
-		}
-
-		q := u.Query()
-
-		q.Set("code", authCode.Code)
-
-		if req.State != nil {
-			q.Set("state", *req.State)
-		}
-
-		u.RawQuery = q.Encode()
-
-		return api.Redirect(u)
 	}
 
 	token, err := signValue(ctx, ctrl.TokenFinalize, req)

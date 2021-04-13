@@ -126,6 +126,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 			Password:     *params.Password,
 			RequestToken: params.RequestToken,
 		}
+
 		return login(ctx, loginParams)
 	}
 

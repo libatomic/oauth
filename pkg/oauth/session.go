@@ -38,7 +38,7 @@ type (
 		Subject() string
 
 		// Scope is the session scope
-		Scope() Permissions
+		Scope(aud string) Permissions
 
 		// CreatedAt is the session creation time
 		CreatedAt() time.Time

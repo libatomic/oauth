@@ -35,6 +35,11 @@ func (s Permissions) Contains(value string) bool {
 	return false
 }
 
+// Empty return true if empty
+func (s Permissions) Empty() bool {
+	return len(s) == 0
+}
+
 // Every returns true if every element is contained in the scope
 func (s Permissions) Every(elements ...string) bool {
 	for _, elem := range elements {

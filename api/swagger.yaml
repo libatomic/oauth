@@ -1,4 +1,4 @@
-# A Swagger 2.0 (a.k.a. OpenAPI) definition of the OAuth 2.0 API.
+# A Swagger 2.0 (a.k.a. OpenAPI) definition of the oauth 2.0 API.
 #
 # This is used for generating API documentation and the types used by the
 # client/server. See api/README.md for more information.
@@ -23,7 +23,7 @@ info:
   title: "OAuth API"
   version: "1.0.0"
   description: |
-    The OAuth API provides OAuth Bearer Token management as well as
+    The oauth API provides oauth Bearer Token management as well as
     session and cookie mangement for browser based flows.
 
     # Errors
@@ -74,7 +74,7 @@ tags:
       User methods provide access to user and session information and require a valid access_token
 
 securityDefinitions:
-  OAuth:
+  oauth:
     type: oauth2
     flow: accessCode
     authorizationUrl: https://auth.server.local/oauth2/authorize
@@ -137,7 +137,7 @@ definitions:
 
   Permissions:
     description: |
-      Permissions are used for both OAuth scopes and API ACL lists.
+      Permissions are used for both oauth scopes and API ACL lists.
     type: array
     items:
       type: "string"
@@ -208,16 +208,6 @@ definitions:
       permissions:
         $ref: "#/definitions/PermissionSet"
 
-  ApplicationRef:
-    description: |
-      Application reference object for go consumers
-    allOf:
-      - $ref: "#/definitions/Application"
-    x-go-type:
-      import:
-        package: github.com/libatomic/oauth/pkg/oauth
-      type: Application
-
   Audience:
     description: |
       An audience is an API that applications can request permission to access on behalf of
@@ -252,16 +242,6 @@ definitions:
       permissions:
         $ref: "#/definitions/Permissions"
 
-  AudienceRef:
-    description: |
-      Audience reference object for go consumers
-    allOf:
-      - $ref: "#/definitions/Audience"
-    x-go-type:
-      import:
-        package: github.com/libatomic/oauth/pkg/oauth
-      type: Audience
-
   User:
     description: |
       A user is a user object
@@ -284,16 +264,6 @@ definitions:
         description: "The time the user password expirts"
         format: "date-time"
         x-nullable: false
-
-  UserRef:
-    description: |
-      User reference object for go consumers
-    allOf:
-      - $ref: "#/definitions/User"
-    x-go-type:
-      import:
-        package: github.com/libatomic/oauth/pkg/oauth
-      type: User
 
   Profile:
     description: |
@@ -649,7 +619,7 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
       security:
-        - OAuth: ["openid", "profile", "email:verify"]
+        - oauth: ["openid", "profile", "email:verify"]
     post:
       description: |
         Send's a verification token to the current user for the specified contact method
@@ -1068,7 +1038,7 @@ paths:
       security:
         - oauth: ["token:revoke"]
 
-  /.well-known/openid-configuration
+  /.well-known/openid-configuration:
     get:
       description: |
         Returns the supported OpenID Connect endpoints
@@ -1163,7 +1133,7 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
       security:
-        - OAuth: ["openid", "profile"]
+        - oauth: ["openid", "profile"]
 
   /userInfo:
     get:
@@ -1189,7 +1159,7 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
       security:
-        - OAuth: ["openid", "profile"]
+        - oauth: ["openid", "profile"]
     put:
       description: |
         Update the user's info
@@ -1219,7 +1189,7 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
       security:
-        - OAuth: ["openid", "profile"]
+        - oauth: ["openid", "profile"]
 
 responses:
   Accepted:
@@ -1239,28 +1209,28 @@ responses:
   BadRequest:
     description: "bad request"
     schema:
-      $ref: "#/definitions/Error"
+      $ref: "#/definitions/ErrorResponse"
   Unauthorized:
     description: "access denied"
     schema:
-      $ref: "#/definitions/Error"
+      $ref: "#/definitions/ErrorResponse"
   Forbidden:
     description: "forbidden"
     schema:
-      $ref: "#/definitions/Error"
+      $ref: "#/definitions/ErrorResponse"
   NotFound:
     description: "not found"
     schema:
-      $ref: "#/definitions/Error"
+      $ref: "#/definitions/ErrorResponse"
   Conflict:
     description: "conflict"
     schema:
-      $ref: "#/definitions/Error"
+      $ref: "#/definitions/ErrorResponse"
   ServerError:
     description: "server error"
     schema:
-      $ref: "#/definitions/Error"
+      $ref: "#/definitions/ErrorResponse"
   Unacceptable:
     description: "unacceptable"
     schema:
-      $ref: "#/definitions/Error"
+      $ref: "#/definitions/ErrorResponse"

@@ -20,6 +20,7 @@ package cookiestore
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -50,8 +51,8 @@ func (s *session) Audience() string {
 	return s.s.Values["aud"].(string)
 }
 
-func (s *session) Scope() oauth.Permissions {
-	if v, ok := s.s.Values["scope"].([]string); ok {
+func (s *session) Scope(aud string) oauth.Permissions {
+	if v, ok := s.s.Values[fmt.Sprintf("scope:%s", aud)].([]string); ok {
 		return oauth.Permissions(v)
 	}
 
@@ -92,8 +93,12 @@ func (s *session) Write(w http.ResponseWriter) error {
 		Value:    s.s.ID,
 		Expires:  s.ExpiresAt(),
 		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		Path:     "/",
+	}
+
+	if domain, ok := os.LookupEnv("AUTH_DOMAIN"); ok {
+		id.Domain = domain
 	}
 
 	http.SetCookie(w, id)
