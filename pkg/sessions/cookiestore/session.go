@@ -20,7 +20,6 @@ package cookiestore
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -95,10 +94,6 @@ func (s *session) Write(w http.ResponseWriter) error {
 		Secure:   true,
 		SameSite: http.SameSiteNoneMode,
 		Path:     "/",
-	}
-
-	if domain, ok := os.LookupEnv("AUTH_DOMAIN"); ok {
-		id.Domain = domain
 	}
 
 	http.SetCookie(w, id)
