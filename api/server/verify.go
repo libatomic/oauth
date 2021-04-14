@@ -145,8 +145,8 @@ func verifySend(ctx context.Context, params *VerifySendParams) api.Responder {
 
 // VerifySend sends a verification to the user
 func VerifySend(ctx context.Context, params *VerifySendParams) error {
-	ctrl := oauth.AuthContext(ctx).Controller
 	auth := oauth.AuthContext(ctx)
+	ctrl := auth.Controller
 
 	r, _ := api.Request(ctx)
 
