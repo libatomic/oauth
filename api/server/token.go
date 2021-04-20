@@ -126,6 +126,10 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	}
 	ctx = oauth.NewContext(ctx, app)
 
+	if params.ClientSecret != nil && *params.ClientSecret != app.ClientSecret {
+		return api.StatusErrorf(http.StatusBadRequest, "bad client secret")
+	}
+
 	bearer := &oauth.BearerToken{
 		TokenType: "bearer",
 	}
@@ -153,8 +157,8 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		if *params.ClientID != app.ClientID {
 			return api.StatusErrorf(http.StatusBadRequest, "bad client id")
 		}
-		if params.ClientSecret == nil || *params.ClientSecret != app.ClientSecret {
-			return api.StatusErrorf(http.StatusBadRequest, "bad client secret")
+		if params.ClientSecret == nil {
+			return api.StatusErrorf(http.StatusBadRequest, "client secret required")
 		}
 
 		if params.Username == nil || params.Password == nil {
@@ -176,8 +180,8 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		fallthrough
 
 	case oauth.GrantTypeClientCredentials:
-		if params.ClientSecret == nil || *params.ClientSecret != app.ClientSecret {
-			return api.StatusErrorf(http.StatusBadRequest, "bad client secret")
+		if params.ClientSecret == nil {
+			return api.StatusErrorf(http.StatusBadRequest, "client secret required")
 		}
 
 		// ensure this app has these permissions
@@ -221,20 +225,22 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		bearer.ExpiresIn = int64(exp - time.Now().Unix())
 
 	case oauth.GrantTypeRefreshToken:
-		if params.RefreshToken == nil || params.RefreshVerifier == nil {
-			return api.StatusErrorf(http.StatusBadRequest, "missing refresh token or verifier")
-		}
-
 		code, err = codeStore(ctx).AuthCodeGet(ctx, *params.RefreshToken)
 		if err != nil {
 			return api.StatusErrorf(http.StatusUnauthorized, "invalid refresh token")
 		}
 
-		sum := sha256.Sum256([]byte(*params.RefreshVerifier))
-		check := base64.RawURLEncoding.EncodeToString(sum[:])
+		if params.ClientSecret == nil {
+			if params.RefreshToken == nil || params.RefreshVerifier == nil {
+				return api.StatusErrorf(http.StatusBadRequest, "missing refresh token or verifier")
+			}
 
-		if code.RefreshNonce != check {
-			return api.StatusErrorf(http.StatusUnauthorized, "token validation failed")
+			sum := sha256.Sum256([]byte(*params.RefreshVerifier))
+			check := base64.RawURLEncoding.EncodeToString(sum[:])
+
+			if code.RefreshNonce != check {
+				return api.StatusErrorf(http.StatusUnauthorized, "token validation failed")
+			}
 		}
 
 		issAt := time.Unix(code.IssuedAt, 0)
@@ -333,20 +339,22 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		// check for offline_access
 		if scope.Contains(oauth.ScopeOffline) {
-			if params.RefreshNonce == nil {
-				return api.StatusErrorf(http.StatusUnauthorized, "missing refresh nonce")
-			}
-
 			refreshCode := *code
 
 			refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
 
 			refreshCode.CodeChallenge = nil
 
-			if refreshCode.RefreshNonce == *params.RefreshNonce {
-				return api.StatusErrorf(http.StatusUnauthorized, "nonce reused")
+			if params.RefreshNonce == nil {
+				if params.ClientSecret == nil {
+					return api.StatusErrorf(http.StatusUnauthorized, "missing refresh nonce")
+				}
+			} else {
+				if refreshCode.RefreshNonce == *params.RefreshNonce {
+					return api.StatusErrorf(http.StatusUnauthorized, "nonce reused")
+				}
+				refreshCode.RefreshNonce = *params.RefreshNonce
 			}
-			refreshCode.RefreshNonce = *params.RefreshNonce
 
 			if err := codeStore(ctx).AuthCodeCreate(ctx, &refreshCode); err != nil {
 				return api.StatusError(http.StatusInternalServerError, err)
