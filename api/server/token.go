@@ -71,13 +71,13 @@ func init() {
 
 // Validate validate TokenParams
 func (p TokenParams) Validate() error {
-	return validation.Errors{
+	err := validation.Errors{
 		"audience":         validation.Validate(p.Audience, validation.NilOrNotEmpty),
-		"client_id":        validation.Validate(p.ClientID, validation.NilOrNotEmpty),
+		"client_id":        validation.Validate(p.ClientID, validation.When(p.Code == nil, validation.Required)),
 		"client_secret":    validation.Validate(p.ClientSecret, validation.NilOrNotEmpty),
 		"code":             validation.Validate(p.Code, validation.When(p.GrantType == oauth.GrantTypeAuthCode, validation.Required)),
 		"code_verifier":    validation.Validate(p.CodeVerifier, validation.NilOrNotEmpty),
-		"grant_Type":       validation.Validate(p.GrantType, validation.Required),
+		"grant_type":       validation.Validate(p.GrantType, validation.Required),
 		"password":         validation.Validate(p.Password, validation.NilOrNotEmpty),
 		"refresh_nonce":    validation.Validate(p.RefreshNonce, validation.NilOrNotEmpty),
 		"refresh_token":    validation.Validate(p.RefreshToken, validation.When(p.GrantType == oauth.GrantTypeRefreshToken, validation.Required)),
@@ -85,6 +85,15 @@ func (p TokenParams) Validate() error {
 		"scope":            validation.Validate(p.Scope, validation.NilOrNotEmpty),
 		"username":         validation.Validate(p.Username, validation.NilOrNotEmpty),
 	}.Filter()
+
+	if err != nil {
+		return &ErrorResponder{
+			Responder: oauth.Error(oauth.ErrorCodeInvalidRequest, err),
+			err:       err,
+		}
+	}
+
+	return nil
 }
 
 func token(ctx context.Context, params *TokenParams) api.Responder {
@@ -100,14 +109,14 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	// ensure the audience
 	aud, err := s.ctrl.AudienceGet(ctx, *params.Audience)
 	if err != nil {
-		return api.StatusError(http.StatusBadRequest, err)
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience lookup failed: %s", err)
 	}
 	ctx = oauth.NewContext(ctx, aud)
 
 	if params.Code != nil {
 		code, err = codeStore(ctx).AuthCodeGet(ctx, *params.Code)
 		if err != nil {
-			return api.StatusErrorf(http.StatusUnauthorized, "invalid code")
+			return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "invalid authorization code")
 		}
 
 		if params.ClientID == nil {
@@ -116,18 +125,18 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	}
 
 	if params.ClientID == nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "missing client context")
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "client_id: cannot be blank")
 	}
 
 	// ensure this is a valid application
 	app, err := s.ctrl.ApplicationGet(ctx, *params.ClientID)
 	if err != nil {
-		return api.StatusError(http.StatusBadRequest, err)
+		return oauth.Errorf(oauth.ErrorCodeInvalidClient, "application lookup failed: %s", err)
 	}
 	ctx = oauth.NewContext(ctx, app)
 
 	if params.ClientSecret != nil && *params.ClientSecret != app.ClientSecret {
-		return api.StatusErrorf(http.StatusBadRequest, "bad client secret")
+		return oauth.Errorf(oauth.ErrorCodeInvalidClient, "bad client secret")
 	}
 
 	bearer := &oauth.BearerToken{
@@ -135,17 +144,17 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	}
 
 	if g, ok := app.AllowedGrants[aud.Name()]; !ok || !g.Contains(params.GrantType) {
-		return api.StatusErrorf(http.StatusUnauthorized, "unauthorized grant")
+		return oauth.Errorf(oauth.ErrorCodeUnauthorizedClient, "unauthorized grant")
 	}
 
 	// ensure the controller allows these grants
 	if !s.allowedGrants.Contains(params.GrantType) {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid grant type")
+		return oauth.Errorf(oauth.ErrorCodeUnauthorizedClient, "unauthorized grant")
 	}
 
 	// sanity check to ensure the audience actually has the permissions requested
 	if !aud.Permissions().Every(params.Scope...) {
-		return api.StatusErrorf(http.StatusUnauthorized, "bad scope")
+		return oauth.Errorf(oauth.ErrorCodeInvalidScope, "bad scope")
 	}
 
 	iss := issuer(ctx)
@@ -155,14 +164,14 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	switch params.GrantType {
 	case oauth.GrantTypePassword:
 		if *params.ClientID != app.ClientID {
-			return api.StatusErrorf(http.StatusBadRequest, "bad client id")
+			return oauth.Errorf(oauth.ErrorCodeInvalidClient, "client id mismatch")
 		}
 		if params.ClientSecret == nil {
-			return api.StatusErrorf(http.StatusBadRequest, "client secret required")
+			return oauth.Errorf(oauth.ErrorCodeInvalidClient, "client secret required")
 		}
 
 		if params.Username == nil || params.Password == nil {
-			return api.StatusErrorf(http.StatusBadRequest, "bad credentials")
+			return oauth.Errorf(oauth.ErrorCodeInvalidClient, "bad credentials")
 		}
 
 		user, _, err = s.ctrl.UserAuthenticate(
@@ -171,7 +180,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			*params.Password,
 		)
 		if err != nil {
-			return api.StatusErrorf(http.StatusUnauthorized, "not authorized")
+			return oauth.Error(oauth.ErrorCodeInvalidClient, err)
 		}
 
 		if len(params.Scope) == 0 {
@@ -181,13 +190,13 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 	case oauth.GrantTypeClientCredentials:
 		if params.ClientSecret == nil {
-			return api.StatusErrorf(http.StatusBadRequest, "client secret required")
+			return oauth.Errorf(oauth.ErrorCodeInvalidClient, "client secret required")
 		}
 
 		// ensure this app has these permissions
 		perms, ok := app.Permissions[*params.Audience]
 		if !ok || !perms.Every(params.Scope...) {
-			return api.StatusErrorf(http.StatusUnauthorized, "bad scope")
+			return oauth.Errorf(oauth.ErrorCodeInvalidScope, "bad scope")
 		}
 
 		if len(params.Scope) == 0 {
@@ -219,7 +228,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
-			return api.StatusError(http.StatusInternalServerError, err)
+			return oauth.Error(oauth.ErrorCodeServerError, err)
 		}
 		bearer.AccessToken = token
 		bearer.ExpiresIn = int64(exp - time.Now().Unix())
@@ -227,26 +236,26 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 	case oauth.GrantTypeRefreshToken:
 		code, err = codeStore(ctx).AuthCodeGet(ctx, *params.RefreshToken)
 		if err != nil {
-			return api.StatusErrorf(http.StatusUnauthorized, "invalid refresh token")
+			return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "invalid refresh token")
 		}
 
 		if params.ClientSecret == nil {
 			if params.RefreshToken == nil || params.RefreshVerifier == nil {
-				return api.StatusErrorf(http.StatusBadRequest, "missing refresh token or verifier")
+				return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "missing refresh_verifier")
 			}
 
 			sum := sha256.Sum256([]byte(*params.RefreshVerifier))
 			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 			if code.RefreshNonce != check {
-				return api.StatusErrorf(http.StatusUnauthorized, "token validation failed")
+				return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "refresh_verifier mismatch")
 			}
 		}
 
 		issAt := time.Unix(code.IssuedAt, 0)
 
 		if issAt.Add(time.Hour * 24 * 7).Before(time.Now()) {
-			return api.StatusErrorf(http.StatusUnauthorized, "refresh code expired")
+			return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "refresh token expired")
 		}
 
 		fallthrough
@@ -255,19 +264,19 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		oauth.AuthContext(ctx).Request = &code.AuthRequest
 
 		if code == nil {
-			return api.StatusErrorf(http.StatusUnauthorized, "missing authorization code")
+			return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "authorization code missing")
 		}
 
 		if code.CodeChallenge != nil { //&& strings.EqualFold(code.CodeChallengeMethod, "s256") {
 			if params.CodeVerifier == nil {
-				return api.StatusErrorf(http.StatusBadRequest, "missing code or verifier")
+				return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "missing code_verifier")
 			}
 
 			sum := sha256.Sum256([]byte(*params.CodeVerifier))
 			check := base64.RawURLEncoding.EncodeToString(sum[:])
 
 			if *code.CodeChallenge != check {
-				return api.Errorf("verifier mismatch").WithStatus(http.StatusUnauthorized)
+				return oauth.Errorf(oauth.ErrorCodeInvalidClient, "code verifier mismatch")
 			}
 		}
 
@@ -275,7 +284,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		user, prin, err := s.ctrl.UserGet(ctx, code.Subject)
 		if err != nil {
-			return api.StatusErrorf(http.StatusUnauthorized, err.Error())
+			return oauth.Error(oauth.ErrorCodeInvalidClient, err)
 		}
 
 		oauth.AuthContext(ctx).User = user
@@ -291,20 +300,20 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		// check the scope against the code
 		if !ok || !code.Scope.Every(params.Scope...) {
-			return api.StatusErrorf(http.StatusUnauthorized, "invalid request scope")
+			return oauth.Errorf(oauth.ErrorCodeInvalidScope, "bad scope")
 		}
 
 		// ensure the app has access to this audience
 		perms, ok = app.Permissions[aud.Name()]
 		// check the scope against the app, audience and user permissions
 		if !ok || !perms.Every(params.Scope...) {
-			return api.StatusErrorf(http.StatusUnauthorized, "invalid application scope")
+			return oauth.Errorf(oauth.ErrorCodeInvalidScope, "unauthorized application scope")
 		}
 
 		// ensure the user has access to this audience
 		perms, ok = user.Permissions[aud.Name()]
 		if !ok || !perms.Every(params.Scope...) {
-			return api.StatusErrorf(http.StatusUnauthorized, "invalid user scope")
+			return oauth.Errorf(oauth.ErrorCodeInvalidScope, "unauthorized user scope")
 		}
 
 		exp := time.Now().Add(time.Second * time.Duration(aud.TokenLifetime())).Unix()
@@ -330,7 +339,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
-			return api.StatusError(http.StatusInternalServerError, err)
+			return oauth.Error(oauth.ErrorCodeServerError, err)
 		}
 
 		bearer.AccessToken = token
@@ -347,17 +356,17 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 			if params.RefreshNonce == nil {
 				if params.ClientSecret == nil {
-					return api.StatusErrorf(http.StatusUnauthorized, "missing refresh nonce")
+					return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "missing refresh nonce")
 				}
 			} else {
 				if refreshCode.RefreshNonce == *params.RefreshNonce {
-					return api.StatusErrorf(http.StatusUnauthorized, "nonce reused")
+					return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "nonce reused")
 				}
 				refreshCode.RefreshNonce = *params.RefreshNonce
 			}
 
 			if err := codeStore(ctx).AuthCodeCreate(ctx, &refreshCode); err != nil {
-				return api.StatusError(http.StatusInternalServerError, err)
+				return oauth.Error(oauth.ErrorCodeServerError, err)
 			}
 
 			bearer.RefreshToken = refreshCode.Code
@@ -389,13 +398,13 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 				})
 
 				if err := dec.Decode(user.Profile); err != nil {
-					return api.StatusError(http.StatusInternalServerError, err)
+					return oauth.Error(oauth.ErrorCodeServerError, err)
 				}
 			}
 
 			token, err := s.ctrl.TokenFinalize(ctx, claims)
 			if err != nil {
-				return api.StatusError(http.StatusInternalServerError, err)
+				return oauth.Error(oauth.ErrorCodeServerError, err)
 			}
 			bearer.IDToken = token
 		}
@@ -437,7 +446,7 @@ func tokenRevoke(ctx context.Context, params *TokenRevokeParams) api.Responder {
 	auth := oauth.AuthContext(ctx)
 
 	if auth.User == nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
+		return oauth.Errorf(oauth.ErrorCodeInvalidClient, "missing user context")
 	}
 
 	if len(params.Token) == 22 {
@@ -448,5 +457,5 @@ func tokenRevoke(ctx context.Context, params *TokenRevokeParams) api.Responder {
 		return api.NewResponse().WithStatus(http.StatusNoContent)
 	}
 
-	return api.StatusErrorf(http.StatusBadRequest, "invalid token")
+	return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "invalid token")
 }

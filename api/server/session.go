@@ -65,7 +65,7 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 		req.ExpiresAt = octx.Token.ExpiresAt().Unix()
 
 	} else if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
-		return api.Error(err).WithStatus(http.StatusUnauthorized)
+		return oauth.Error(oauth.ErrorCodeAccessDenied, err)
 	}
 
 	u, _ := url.Parse(req.AppURI)
@@ -77,9 +77,9 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 	// check for authorization errors so we can return the to the redirect
 	if octx.Error != nil {
 		if errors.Is(octx.Error, oauth.ErrAccessDenied) {
-			return api.ErrorRedirect(u, http.StatusUnauthorized, octx.Error.Error())
+			return ErrUnauthorized(u, octx.Error.Error())
 		}
-		return api.ErrorRedirect(u, http.StatusBadRequest, octx.Error.Error())
+		return ErrBadRequest(u, octx.Error.Error())
 	}
 
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
@@ -100,11 +100,11 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 
 	session, err := sessionStore(ctx).SessionCreate(oauth.NewContext(ctx, user), r)
 	if err != nil {
-		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create session", err)
+		return ErrServerError(u, "%s: failed to create session", err)
 	}
 
 	if err := session.Write(w); err != nil {
-		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to write session", err)
+		return ErrServerError(u, "%s: failed to write session", err)
 	}
 
 	u, _ = url.Parse(req.RedirectURI)
@@ -121,7 +121,7 @@ func session(ctx context.Context, params *SessionParams) api.Responder {
 			UserAuthenticated: true,
 		}
 		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
-			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create auth code", err)
+			return ErrServerError(u, "%s: failed to create auth code", err)
 		}
 
 		q := u.Query()

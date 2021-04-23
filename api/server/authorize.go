@@ -94,7 +94,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	// ensure the audience
 	aud, err := ctrl.AudienceGet(ctx, *params.Audience)
 	if err != nil {
-		return api.Error(err).WithStatus(http.StatusBadRequest)
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience lookup failed: %s", err)
 	}
 
 	ctx = oauth.NewContext(ctx, aud)
@@ -102,13 +102,13 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	// ensure this is a valid application
 	app, err := ctrl.ApplicationGet(ctx, params.ClientID)
 	if err != nil {
-		return api.Error(err).WithStatus(http.StatusBadRequest)
+		return oauth.Errorf(oauth.ErrorCodeInvalidClient, "application lookup failed: %s", err)
 	}
 
 	ctx = oauth.NewContext(ctx, app)
 
 	if len(app.RedirectUris) == 0 || len(app.RedirectUris[aud.Name()]) == 0 {
-		return api.Errorf("application has no valid redirect uri").WithStatus(http.StatusUnauthorized)
+		return oauth.Errorf(oauth.ErrorCodeServerError, "application has no valid redirect uri")
 	}
 
 	if params.RedirectURI == nil && len(app.RedirectUris[aud.Name()]) > 0 {
@@ -118,7 +118,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	// ensure the redirect uri path is allowed
 	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()])
 	if err != nil {
-		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
+		return oauth.Errorf(oauth.ErrorCodeAccessDenied, "unauthorized redirect uri")
 	}
 
 	// enusure this app supports the authorization_code flow

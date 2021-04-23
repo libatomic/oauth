@@ -45,7 +45,7 @@ func userInfoUpdate(ctx context.Context, params *UserInfoUpdateParams) api.Respo
 	auth := oauth.AuthContext(ctx)
 
 	if auth.User == nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "user context not found")
 	}
 
 	if params.Profile.EmailClaim != nil {
@@ -67,7 +67,7 @@ func userInfo(ctx context.Context) api.Responder {
 	auth := oauth.AuthContext(ctx)
 
 	if auth.User == nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "user context not found")
 	}
 
 	return api.NewResponse(auth.User.Profile)
@@ -77,7 +77,7 @@ func userPrincipal(ctx context.Context) api.Responder {
 	auth := oauth.AuthContext(ctx)
 
 	if auth.Principal == nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "user context not found")
 	}
 
 	return api.NewResponse(auth.Principal)

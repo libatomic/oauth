@@ -70,14 +70,14 @@ func logout(ctx context.Context, params *LogoutParams) api.Responder {
 
 	aud, err := ctrl.AudienceGet(ctx, *params.Audience)
 	if err != nil {
-		return api.StatusError(http.StatusBadRequest, err)
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience lookup failed: %s", err)
 	}
 	ctx = oauth.NewContext(ctx, aud)
 
 	if params.TokenHint != nil {
 		claims, err := ctrl.TokenValidate(ctx, *params.TokenHint)
 		if err != nil {
-			return api.StatusError(http.StatusUnauthorized, err)
+			return oauth.Error(oauth.ErrorCodeInvalidClient, err)
 		}
 		clientID := claims.ClientID()
 
@@ -87,7 +87,7 @@ func logout(ctx context.Context, params *LogoutParams) api.Responder {
 	// ensure this is a valid application
 	app, err := ctrl.ApplicationGet(ctx, *params.ClientID)
 	if err != nil {
-		return api.StatusError(http.StatusBadRequest, err)
+		return oauth.Errorf(oauth.ErrorCodeInvalidClient, "application lookup failed: %s", err)
 	}
 
 	ctx = oauth.NewContext(ctx, app)
@@ -103,7 +103,7 @@ func logout(ctx context.Context, params *LogoutParams) api.Responder {
 
 	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()], r)
 	if err != nil {
-		return api.Error(err).WithStatus(http.StatusBadRequest)
+		return oauth.Error(oauth.ErrorCodeAccessDenied, err)
 	}
 
 	if err := sessionStore(ctx).SessionDestroy(ctx, w, r); err != nil && !errors.Is(err, oauth.ErrSessionNotFound) {

@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,6 +78,11 @@ func New(opts ...Option) oauth.SessionStore {
 		MaxAge:   int(s.sessionLifetime / time.Second),
 		HttpOnly: true,
 		Path:     "/",
+		SameSite: http.SameSiteNoneMode,
+	}
+
+	if domain, ok := os.LookupEnv("OAUTH_COOKIE_DOMAIN"); ok {
+		s.store.Options.Domain = domain
 	}
 
 	return s

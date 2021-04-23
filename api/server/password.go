@@ -126,13 +126,13 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	if params.RequestToken != nil {
 		req = &oauth.AuthRequest{}
 		if err := verifyValue(ctx, s.ctrl.TokenValidate, *params.RequestToken, req); err != nil {
-			return api.StatusErrorf(http.StatusBadRequest, "%s: failed to verify request token", err)
+			return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "%s: failed to verify request token", err)
 		}
 
 		if req.AppURI != "" {
 			u, err = url.Parse(req.AppURI)
 			if err != nil {
-				return api.StatusErrorf(http.StatusBadRequest, "%s: failed to parse request app uri", err)
+				return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "%s: failed to parse request app uri", err)
 			}
 		}
 
@@ -315,15 +315,15 @@ func passwordUpdate(ctx context.Context, params *PasswordUpdateParams) api.Respo
 
 	code, err := codeStore(ctx).AuthCodeGet(ctx, params.ResetCode)
 	if err != nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid reset code")
+		return oauth.Errorf(oauth.ErrorCodeAccessDenied, "invalid reset code")
 	}
 
 	if octx.User.Profile.Subject != code.Subject {
-		return api.StatusErrorf(http.StatusUnauthorized, "subject mismatch")
+		return oauth.Errorf(oauth.ErrorCodeAccessDenied, "subject mismatch")
 	}
 
 	if err := s.ctrl.UserSetPassword(ctx, octx.User.Profile.Subject, params.Password); err != nil {
-		return api.Error(err)
+		return oauth.Error(oauth.ErrorCodeServerError, err)
 	}
 
 	codeStore(ctx).AuthCodeDestroy(ctx, code.Code)

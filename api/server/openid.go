@@ -63,7 +63,7 @@ func openidConfig(ctx context.Context, params *OIDConfigInput) api.Responder {
 
 	aud, err := ctrl.AudienceGet(ctx, api.RequestHost(ctx))
 	if err != nil {
-		return api.Error(err)
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience lookup failed: %s", err)
 	}
 
 	iss := issuer(ctx)
@@ -118,7 +118,7 @@ func jwks(ctx context.Context, params *JWKSInput) api.Responder {
 	}
 
 	if aud.TokenAlgorithm() != oauth.AudienceTokenAlgorithmRS256 {
-		return api.Errorf("audience does not support rsa tokens")
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience does not support rsa tokens")
 	}
 
 	key := jose.JSONWebKey{

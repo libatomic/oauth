@@ -68,9 +68,13 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 
 	req := &oauth.AuthRequest{}
 	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
-		return api.Error(err).WithStatus(http.StatusBadRequest)
+		return oauth.Error(oauth.ErrorCodeInvalidRequest, err)
 	}
-	u, _ := url.Parse(req.AppURI)
+
+	u, err := url.Parse(req.AppURI)
+	if err != nil {
+		return oauth.Error(oauth.ErrorCodeInvalidRequest, err)
+	}
 
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
 		return api.Redirect(u, map[string]string{
@@ -79,7 +83,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		})
 	}
 
-	ctx, err := oauth.ContextFromRequest(ctx, s.ctrl, req)
+	ctx, err = oauth.ContextFromRequest(ctx, s.ctrl, req)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "bad_request",

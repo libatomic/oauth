@@ -17,7 +17,18 @@
 
 package oauth
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+
+	"github.com/libatomic/api/pkg/api"
+)
+
+type (
+	// ErrorCode defines an oauth error code
+	ErrorCode string
+)
 
 var (
 	// ErrAccessDenied is returned when authentication has failed
@@ -40,7 +51,7 @@ var (
 
 	// ErrInvalidToken is returned when the token is not valid
 	ErrInvalidToken = errors.New("invalid token")
-	
+
 	// ErrUserNotFound is returned when the user lookup failed
 	ErrUserNotFound = errors.New("user not found")
 
@@ -62,3 +73,51 @@ var (
 	// ErrInvalidInviteCode is returned when an invitation code is bad
 	ErrInvalidInviteCode = errors.New("bad invite code")
 )
+
+// ErrorCode response to oauth endpoint request errors
+const (
+	ErrorCodeInvalidRequest ErrorCode = "invalid_request"
+
+	ErrorCodeInvalidClient ErrorCode = "invalid_client"
+
+	ErrorCodeInvalidGrant ErrorCode = "invalid_grant"
+
+	ErrorCodeUnauthorizedClient ErrorCode = "unauthorized_client"
+
+	ErrorCodeUnsupportedGrantType ErrorCode = "unsupported_grant_type"
+
+	ErrorCodeInvalidScope ErrorCode = "invalid_scope"
+
+	ErrorCodeAccessDenied ErrorCode = "access_denied"
+
+	ErrorCodeServerError ErrorCode = "server_error"
+)
+
+// Error returns an error responder
+func Error(code ErrorCode, e error) *api.Response {
+	return Errorf(code, e.Error())
+}
+
+// Errorf returns a new error response from a string
+func Errorf(code ErrorCode, f string, args ...interface{}) *api.Response {
+	status := http.StatusBadRequest
+
+	switch code {
+	case ErrorCodeInvalidClient:
+		fallthrough
+	case ErrorCodeAccessDenied:
+		status = http.StatusUnauthorized
+	case ErrorCodeServerError:
+		status = http.StatusInternalServerError
+	}
+
+	p := struct {
+		Error       ErrorCode `json:"error"`
+		Description string    `json:"error_description,omitempty"`
+	}{
+		Error:       code,
+		Description: fmt.Sprintf(f, args...),
+	}
+
+	return api.NewResponse(p).WithStatus(status)
+}

@@ -18,50 +18,151 @@
 package server
 
 import (
-	"net/http"
+	"fmt"
 	"net/url"
 
 	"github.com/libatomic/api/pkg/api"
+	"github.com/libatomic/oauth/pkg/oauth"
 )
 
 type (
 	// RedirectError defines a redirect error handler
 	RedirectError func(u *url.URL) api.Responder
+
+	ErrorResponder struct {
+		api.Responder
+		err error
+	}
 )
 
 var (
 	// ErrMissingParameter is returned when a parameter is missing
 	ErrMissingParameter = func(u *url.URL, param string) api.Responder {
-		return api.ErrorRedirect(u, http.StatusBadRequest, "%s required", param)
+		msg := fmt.Sprintf("parameter %s is a required", param)
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeInvalidRequest, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeInvalidRequest),
+			"error_description": msg,
+		})
 	}
 
 	// ErrInvalidParameter is returned when a parameter is valid
 	ErrInvalidParameter = func(u *url.URL, param string) api.Responder {
-		return api.ErrorRedirect(u, http.StatusBadRequest, "%s is not valid", param)
+		msg := fmt.Sprintf("parameter %s is not valid", param)
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeInvalidRequest, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeInvalidRequest),
+			"error_description": msg,
+		})
 	}
 
 	// ErrInvalidContext is returned when the context can not be resolved
 	ErrInvalidContext = func(u *url.URL) api.Responder {
-		return api.ErrorRedirect(u, http.StatusForbidden, "invalid context")
+		msg := fmt.Sprintf("invalid context")
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeInvalidRequest, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeInvalidRequest),
+			"error_description": msg,
+		})
 	}
 
 	// ErrExpiredRequestToken is returned when the token is expired
 	ErrExpiredRequestToken = func(u *url.URL) api.Responder {
-		return api.ErrorRedirect(u, http.StatusUnauthorized, "request token is expired")
+		msg := fmt.Sprintf("request token expired")
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeAccessDenied, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeAccessDenied),
+			"error_description": msg,
+		})
 	}
 
 	// ErrUserNotFound is returned when the user is not found
 	ErrUserNotFound = func(u *url.URL) api.Responder {
-		return api.ErrorRedirect(u, http.StatusUnauthorized, "user does not exist")
+		msg := fmt.Sprintf("user not found")
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeAccessDenied, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeAccessDenied),
+			"error_description": msg,
+		})
 	}
 
 	// ErrUnauthorizedRediretURI is returned when the redirect uri is not authorized
 	ErrUnauthorizedRediretURI = func(u *url.URL) api.Responder {
-		return api.ErrorRedirect(u, http.StatusForbidden, "unauthorized redirect_uri")
+		msg := fmt.Sprintf("unauthorized redirect uri")
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeAccessDenied, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeAccessDenied),
+			"error_description": msg,
+		})
 	}
 
 	// ErrUnauthorized is returned when the request has been denied
 	ErrUnauthorized = func(u *url.URL, reason string) api.Responder {
-		return api.ErrorRedirect(u, http.StatusUnauthorized, reason)
+		msg := fmt.Sprintf("unauthorized request: %s", reason)
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeAccessDenied, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeAccessDenied),
+			"error_description": msg,
+		})
+	}
+
+	// ErrBadRequest is used for invalid requests
+	ErrBadRequest = func(u *url.URL, reason string) api.Responder {
+		msg := fmt.Sprintf("bad request: %s", reason)
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeInvalidRequest, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeInvalidRequest),
+			"error_description": msg,
+		})
+	}
+
+	// ErrServerError is used for internal errors
+	ErrServerError = func(u *url.URL, f string, args ...interface{}) api.Responder {
+		msg := fmt.Sprintf(f, args...)
+
+		if u == nil {
+			return oauth.Errorf(oauth.ErrorCodeServerError, msg)
+		}
+
+		return api.Redirect(u, map[string]string{
+			"error":             string(oauth.ErrorCodeServerError),
+			"error_description": msg,
+		})
 	}
 )
+
+func (e ErrorResponder) Error() string {
+	return e.err.Error()
+}

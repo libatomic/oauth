@@ -72,14 +72,14 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 	auth := oauth.AuthContext(ctx)
 
 	if auth.Principal == nil {
-		return api.StatusErrorf(http.StatusUnauthorized, "invalid token")
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "user context not found")
 	}
 
 	r, _ := api.Request(ctx)
 
 	u, err := EnsureURI(params.RedirectURI, auth.Application.RedirectUris[auth.Audience.Name()], r)
 	if err != nil {
-		return api.Errorf("unauthorized redirect uri").WithStatus(http.StatusUnauthorized)
+		return oauth.Errorf(oauth.ErrorCodeAccessDenied, "unauthorized redirect uri")
 	}
 
 	if auth.Token.Scope().Contains(oauth.ScopeEmailVerify) {
@@ -108,11 +108,11 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 
 		session, err := sessionStore(ctx).SessionCreate(oauth.NewContext(ctx, user), r)
 		if err != nil {
-			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create session", err)
+			return ErrServerError(u, "%s: failed to create session", err)
 		}
 
 		if err := session.Write(w); err != nil {
-			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to write session", err)
+			return ErrServerError(u, "%s: failed to write session", err)
 		}
 
 		authCode := &oauth.AuthCode{
@@ -122,7 +122,7 @@ func verify(ctx context.Context, params *VerifyParams) api.Responder {
 			UserAuthenticated: true,
 		}
 		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
-			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create auth code", err)
+			return ErrServerError(u, "%s: failed to create auth code", err)
 		}
 
 		q := u.Query()
