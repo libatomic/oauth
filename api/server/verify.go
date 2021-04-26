@@ -39,9 +39,10 @@ type (
 
 	// VerifySendParams are the params for the verification send method
 	VerifySendParams struct {
-		Method oauth.NotificationChannel `json:"method"`
-		Signup bool                      `json:"-"`
-		scope  oauth.Permissions
+		Method      oauth.NotificationChannel `json:"method"`
+		Signup      bool                      `json:"-"`
+		scope       oauth.Permissions
+		redirectURI *string
 	}
 
 	verifyNotification struct {
@@ -187,6 +188,11 @@ func VerifySend(ctx context.Context, params *VerifySendParams) error {
 	}
 	q := link.Query()
 	q.Set("access_token", token)
+
+	if params.redirectURI != nil {
+		q.Set("redirect_uri", *params.redirectURI)
+	}
+
 	link.RawQuery = q.Encode()
 
 	if err := ctrl.UserNotify(ctx, &verifyNotification{

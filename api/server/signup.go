@@ -112,9 +112,10 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	q := u.Query()
 
 	if err := VerifySend(oauth.NewContext(ctx, user), &VerifySendParams{
-		Method: oauth.NotificationChannelEmail,
-		Signup: true,
-		scope:  req.Scope,
+		Method:      oauth.NotificationChannelEmail,
+		Signup:      true,
+		scope:       req.Scope,
+		redirectURI: &req.RedirectURI,
 	}); err != nil {
 		err = fmt.Errorf("failed to send email verification to user %s: %s", user.Login, err.Error())
 
