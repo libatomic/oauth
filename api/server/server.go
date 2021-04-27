@@ -251,13 +251,9 @@ func EnsureURI(uri string, search []string, r ...*http.Request) (*url.URL, error
 		return nil, err
 	}
 
-	if len(r) > 0 && u.Host == "" {
-		u.Host = r[0].Host
-		u.Scheme = r[0].URL.Scheme
-
-		if u.Scheme == "" {
-			u.Scheme = "https"
-		}
+	if len(r) > 0 && u.Host == r[0].Host {
+		u.Host = ""
+		u.Scheme = ""
 	}
 
 	for _, a := range search {
@@ -266,6 +262,11 @@ func EnsureURI(uri string, search []string, r ...*http.Request) (*url.URL, error
 		}
 
 		uu, _ := url.Parse(a)
+
+		if len(r) > 0 && uu.Host == r[0].Host {
+			uu.Host = ""
+			uu.Scheme = ""
+		}
 
 		if uu.Scheme == u.Scheme && u.Host == uu.Host {
 			if ok, _ := filepath.Match(uu.Path, u.Path); ok {
