@@ -23,10 +23,10 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/codestore/memstore"
 	"github.com/libatomic/oauth/pkg/oauth"
@@ -269,7 +269,7 @@ func EnsureURI(uri string, search []string, r ...*http.Request) (*url.URL, error
 		}
 
 		if uu.Scheme == u.Scheme && u.Host == uu.Host {
-			if ok, _ := filepath.Match(uu.Path, u.Path); ok {
+			if ok, _ := doublestar.Match(uu.Path, u.Path); ok {
 				return u, nil
 			}
 		}
