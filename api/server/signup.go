@@ -102,10 +102,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		},
 	}, safestr(params.InviteCode))
 	if err != nil {
-		return api.Redirect(u, map[string]string{
-			"error":             "internal_server_error",
-			"error_description": err.Error(),
-		})
+		return api.Redirect(u, err)
 	}
 
 	u, _ = url.Parse(req.RedirectURI)
