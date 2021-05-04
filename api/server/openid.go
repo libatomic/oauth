@@ -114,7 +114,7 @@ func jwks(ctx context.Context, params *JWKSInput) api.Responder {
 
 	aud, err := ctrl.AudienceGet(ctx, api.RequestHost(ctx))
 	if err != nil {
-		return api.Error(err)
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience lookup failed: %s", err)
 	}
 
 	if aud.TokenAlgorithm() != oauth.AudienceTokenAlgorithmRS256 {

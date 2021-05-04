@@ -201,7 +201,7 @@ func TestSessionErrAccessDenied(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=unauthorized`,
+			"Location": `https:\/\/meta\.org\/\?error=access_denied`,
 		},
 	}
 
@@ -254,7 +254,7 @@ func TestSessionErrExpiredRequest(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=unauthorized`,
+			"Location": `https:\/\/meta\.org\/\?error=access_denied`,
 		},
 	}
 
@@ -304,7 +304,7 @@ func TestSessionErrMissingSubject(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=forbidden`,
+			"Location": `https:\/\/meta\.org\/\?error=invalid_request`,
 		},
 	}
 
@@ -363,7 +363,7 @@ func TestSessionErrBadSubject(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=forbidden`,
+			"Location": `https:\/\/meta\.org\/\?error=invalid_request`,
 		},
 	}
 
@@ -421,7 +421,7 @@ func TestSessionErrSessionCreate(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=internal_server_error`,
+			"Location": `https:\/\/meta\.org\/\?error=server_error`,
 		},
 	}
 
@@ -484,7 +484,7 @@ func TestSessionErrAuthCode(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=internal_server_error`,
+			"Location": `https:\/\/meta\.org\/\?error=server_error`,
 		},
 	}
 

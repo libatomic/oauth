@@ -189,7 +189,7 @@ func TestVerify(t *testing.T) {
 			Request: &VerifyParams{
 				RedirectURI: testRequest.RedirectURI,
 			},
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/json",
 			Setup: func(r *http.Request) {
 				auth.Handler(func(r *http.Request) (context.Context, error) {

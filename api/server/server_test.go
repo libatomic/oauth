@@ -536,6 +536,11 @@ func (s *mockSession) Subject() string {
 	return s.sub
 }
 
+// Subject is the user subject id
+func (s *mockSession) Scope(aud string) oauth.Permissions {
+	return oauth.Permissions{}
+}
+
 // Set sets a value in the session interface
 func (s *mockSession) Set(key string, value interface{}) {
 

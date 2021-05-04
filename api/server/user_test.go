@@ -63,7 +63,7 @@ func TestUserInfoUpdate(t *testing.T) {
 			Operations:         []litmus.Operation{},
 			Method:             http.MethodPut,
 			Path:               "/oauth/userInfo",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/json",
 			Request: UserInfoUpdateParams{
 				Profile: *testUser.Profile,
@@ -136,7 +136,7 @@ func TestUserInfo(t *testing.T) {
 			Operations:     []litmus.Operation{},
 			Method:         http.MethodGet,
 			Path:           "/oauth/userInfo",
-			ExpectedStatus: http.StatusUnauthorized,
+			ExpectedStatus: http.StatusBadRequest,
 			Setup: func(r *http.Request) {
 				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(
@@ -183,7 +183,7 @@ func TestUserPrincipal(t *testing.T) {
 			Operations:     []litmus.Operation{},
 			Method:         http.MethodGet,
 			Path:           "/oauth/userPrincipal",
-			ExpectedStatus: http.StatusUnauthorized,
+			ExpectedStatus: http.StatusBadRequest,
 			Setup: func(r *http.Request) {
 				auth.Handler(func(r *http.Request) (context.Context, error) {
 					return oauth.NewContext(

@@ -62,6 +62,11 @@ func TestPasswordCreateOK(t *testing.T) {
 				Returns: litmus.Returns{nil},
 			},
 			{
+				Name:    "AuthCodeCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
+				Returns: litmus.Returns{nil},
+			},
+			{
 				Name:    "TokenFinalize",
 				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
 				Returns: litmus.Returns{"", nil},
@@ -116,6 +121,11 @@ func TestPasswordCreateNoRedirect(t *testing.T) {
 				Name:    "UserGet",
 				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 				Returns: litmus.Returns{testUser, testUser, nil},
+			},
+			{
+				Name:    "AuthCodeCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
+				Returns: litmus.Returns{nil},
 			},
 			{
 				Name:    "UserNotify",
@@ -176,6 +186,11 @@ func TestPasswordCreateErrNotify(t *testing.T) {
 				Name:    "UserNotify",
 				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("server.passwordNotification")},
 				Returns: litmus.Returns{oauth.ErrUserNotFound},
+			},
+			{
+				Name:    "AuthCodeCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
+				Returns: litmus.Returns{nil},
 			},
 			{
 				Name:    "TokenFinalize",
@@ -474,6 +489,11 @@ func TestPasswordCreate(t *testing.T) {
 					Returns: litmus.Returns{"", nil},
 				},
 				{
+					Name:    "AuthCodeCreate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
+					Returns: litmus.Returns{nil},
+				},
+				{
 					Name:    "UserNotify",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("server.passwordNotification")},
 					Returns: litmus.Returns{nil},
@@ -504,6 +524,11 @@ func TestPasswordCreate(t *testing.T) {
 				{
 					Name:    "UserNotify",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("server.passwordNotification")},
+					Returns: litmus.Returns{nil},
+				},
+				{
+					Name:    "AuthCodeCreate",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 					Returns: litmus.Returns{nil},
 				},
 			},
@@ -569,7 +594,7 @@ func TestPasswordErrBadContext(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=forbidden&error_description=invalid\+context`,
+			"Location": `https:\/\/meta\.org\/\?error=invalid_request&error_description=invalid\+context`,
 		},
 	}
 
@@ -664,72 +689,7 @@ func TestPasswordErrExpiredRequest(t *testing.T) {
 		},
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=unauthorized&.?`,
-		},
-	}
-
-	ctrl := new(MockController)
-
-	mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl), WithAuthorizer(ctrl))
-
-	test.Do(&ctrl.Mock, mockServer, t)
-}
-
-func TestPasswordErrMissingCodeVerifier(t *testing.T) {
-	test := litmus.Test{
-		Operations: []litmus.Operation{
-			{
-				Name:    "TokenValidate",
-				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-				Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
-			},
-		},
-		Method: http.MethodPost,
-		Path:   "/oauth/password",
-		Request: PasswordCreateParams{
-			Login:        &testUser.Login,
-			Type:         PasswordTypeLink,
-			RequestToken: &testToken,
-			Notify:       []oauth.NotificationChannel{"email"},
-		},
-		ExpectedStatus: http.StatusFound,
-		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=bad_request&.?`,
-		},
-	}
-
-	ctrl := new(MockController)
-
-	mockServer := New(ctrl, ctrl, api.WithLog(log.Log), WithCodeStore(ctrl), WithSessionStore(ctrl), WithAuthorizer(ctrl))
-
-	test.Do(&ctrl.Mock, mockServer, t)
-}
-
-func TestPasswordErrBadChallenge(t *testing.T) {
-	testRequest := *testRequest
-	testRequest.CodeChallenge = &verifier
-	testToken := mockRequestToken(&testRequest)
-
-	test := litmus.Test{
-		Operations: []litmus.Operation{
-			{
-				Name:    "TokenValidate",
-				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
-				Returns: litmus.Returns{oauth.Claims(structs.Map(testRequest)), nil},
-			},
-		},
-		Method: http.MethodPost,
-		Path:   "/oauth/password",
-		Request: PasswordCreateParams{
-			Login:        &testUser.Login,
-			Type:         PasswordTypeLink,
-			RequestToken: &testToken,
-			CodeVerifier: &verifier,
-			Notify:       []oauth.NotificationChannel{"email"},
-		},
-		ExpectedStatus: http.StatusFound,
-		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=unauthorized&.?`,
+			"Location": `https:\/\/meta\.org\/\?error=access_denied&.?`,
 		},
 	}
 
@@ -925,7 +885,7 @@ func TestPasswordUpdate(t *testing.T) {
 			},
 			{
 				Name:    "UserSetPassword",
-				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"),  mock.AnythingOfType("string")},
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 				Returns: litmus.Returns{nil},
 			},
 		},
@@ -1057,7 +1017,7 @@ func TestPasswordUpdateErrSetPassword(t *testing.T) {
 			},
 			{
 				Name:    "UserSetPassword",
-				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"),  mock.AnythingOfType("string")},
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 				Returns: litmus.Returns{oauth.ErrUserNotFound},
 			},
 		},
@@ -1107,15 +1067,15 @@ func TestPasswordUpdateNoRedirect(t *testing.T) {
 			},
 			{
 				Name:    "UserSetPassword",
-				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"),  mock.AnythingOfType("string")},
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 				Returns: litmus.Returns{nil},
 			},
 		},
 		Method: http.MethodPut,
 		Path:   "/oauth/password",
 		Request: PasswordUpdateParams{
-			Password:    "foo",
-			ResetCode:   testCode.Code,
+			Password:  "foo",
+			ResetCode: testCode.Code,
 		},
 		Setup: func(r *http.Request) {
 			auth.Handler(func(r *http.Request) (context.Context, error) {

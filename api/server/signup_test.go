@@ -82,6 +82,11 @@ func TestSignup(t *testing.T) {
 				Returns: litmus.Returns{nil},
 			},
 			{
+				Name:    "AuthCodeGet",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+				Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
+			},
+			{
 				Name:    "TokenFinalize",
 				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("oauth.Claims")},
 				Returns: litmus.Returns{"", nil},

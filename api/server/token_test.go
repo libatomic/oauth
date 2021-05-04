@@ -128,7 +128,7 @@ func TestTokenAuthcode(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).
@@ -198,7 +198,7 @@ func TestTokenAuthcode(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).
@@ -335,7 +335,7 @@ func TestTokenAuthcode(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).
@@ -395,7 +395,7 @@ func TestTokenAuthcode(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).
@@ -427,7 +427,7 @@ func TestTokenAuthcode(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).
@@ -454,7 +454,7 @@ func TestTokenAuthcode(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeAuthCode).
@@ -656,7 +656,7 @@ func TestTokenPassword(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypePassword).
@@ -669,7 +669,8 @@ func TestTokenPassword(t *testing.T) {
 				Encode(),
 			ExpectedResponse: `
 				{
-					"message": "bad client id"
+					"error":"invalid_client", 
+					"error_description":"client id mismatch"
 				}`,
 		},
 		"TokenAuthPasswordBadSecret": {
@@ -687,7 +688,7 @@ func TestTokenPassword(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypePassword).
@@ -700,7 +701,8 @@ func TestTokenPassword(t *testing.T) {
 				Encode(),
 			ExpectedResponse: `
 				{
-					"message": "bad client secret"
+					"error":"invalid_client", 
+					"error_description":"bad client secret"
 				}`,
 		},
 		"TokenAuthPasswordMissingUsername": {
@@ -718,7 +720,7 @@ func TestTokenPassword(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypePassword).
@@ -730,7 +732,8 @@ func TestTokenPassword(t *testing.T) {
 				Encode(),
 			ExpectedResponse: `
 				{
-					"message": "bad credentials"
+					"error":"invalid_client", 
+					"error_description":"bad credentials"
 				}`,
 		},
 		"TokenAuthPasswordAuthFailed": {
@@ -831,7 +834,7 @@ func TestTokenClientCredentials(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusBadRequest,
+			ExpectedStatus:     http.StatusUnauthorized,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeClientCredentials).
@@ -878,7 +881,7 @@ func TestTokenClientCredentials(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeClientCredentials).
@@ -1033,7 +1036,7 @@ func TestTokenRefreshToken(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeRefreshToken).
@@ -1073,7 +1076,7 @@ func TestTokenRefreshToken(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeRefreshToken).
@@ -1105,7 +1108,7 @@ func TestTokenRefreshToken(t *testing.T) {
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/token",
-			ExpectedStatus:     http.StatusUnauthorized,
+			ExpectedStatus:     http.StatusBadRequest,
 			RequestContentType: "application/x-www-form-urlencoded",
 			Request: litmus.BeginQuery().
 				Add("grant_type", oauth.GrantTypeRefreshToken).

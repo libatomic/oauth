@@ -37,13 +37,13 @@ import (
 type (
 	// PasswordCreateParams is the input to the password get route
 	PasswordCreateParams struct {
-		Login        *string                    `json:"login,omitempty"`
-		Notify       oauth.NotificationChannels `json:"notify"`
-		Type         PasswordType               `json:"type"`
-		RequestToken *string                    `json:"request_token,omitempty"`
-		AppURI       *oauth.URI                 `json:"app_uri,omitempty"`
-		RedirectURI  *oauth.URI                 `json:"redirect_uri,omitempty"`
-		CodeVerifier *string                    `json:"code_verifier,omitempty"`
+		Login        *string                     `json:"login,omitempty"`
+		Notify       []oauth.NotificationChannel `json:"notify"`
+		Type         PasswordType                `json:"type"`
+		RequestToken *string                     `json:"request_token,omitempty"`
+		AppURI       *oauth.URI                  `json:"app_uri,omitempty"`
+		RedirectURI  *oauth.URI                  `json:"redirect_uri,omitempty"`
+		CodeVerifier *string                     `json:"code_verifier,omitempty"`
 	}
 
 	// PasswordUpdateParams are used by the password update route

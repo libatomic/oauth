@@ -66,6 +66,11 @@ func TestLoginOK(t *testing.T) {
 				Returns: litmus.Returns{testSession, nil},
 			},
 			{
+				Name:    "AuthCodeGet",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+				Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
+			},
+			{
 				Name:    "AuthCodeCreate",
 				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
 				Returns: litmus.Returns{nil},
@@ -112,9 +117,10 @@ func TestLogin(t *testing.T) {
 				Add("request_token", "bad-token").
 				Encode(),
 			ExpectedResponse: `
-{
-	"message": "bad token"
-}`,
+		{
+			"error": "invalid_request",
+			"error_description":"bad token"
+		}`,
 		},
 		"LoginExpiredToken": {
 			Operations: []litmus.Operation{
@@ -179,6 +185,11 @@ func TestLogin(t *testing.T) {
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{nil, nil, oauth.ErrAccessDenied},
 				},
+				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
+				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
@@ -216,6 +227,11 @@ func TestLogin(t *testing.T) {
 								"crypto": oauth.Permissions{"metaverse:read", "metaverse:write", "openid", "profile", "offline_access"},
 							},
 						}, testPrin, nil},
+				},
+				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
 				},
 			},
 			Method:             http.MethodPost,
@@ -255,6 +271,11 @@ func TestLogin(t *testing.T) {
 							},
 						}, testPrin, nil},
 				},
+				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
+				},
 			},
 			Method:             http.MethodPost,
 			Path:               "/oauth/login",
@@ -287,6 +308,11 @@ func TestLogin(t *testing.T) {
 					Name:    "UserAuthenticate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string"), mock.AnythingOfType("string")},
 					Returns: litmus.Returns{testUser, testPrin, nil},
+				},
+				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
 				},
 				{
 					Name:    "SessionCreate",
@@ -330,6 +356,11 @@ func TestLogin(t *testing.T) {
 					Name:    "SessionCreate",
 					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
 					Returns: litmus.Returns{testSession, nil},
+				},
+				{
+					Name:    "AuthCodeGet",
+					Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
+					Returns: litmus.Returns{nil, oauth.ErrCodeNotFound},
 				},
 				{
 					Name:    "AuthCodeCreate",

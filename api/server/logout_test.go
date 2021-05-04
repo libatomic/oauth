@@ -83,10 +83,11 @@ func TestLogout(t *testing.T) {
 				Add("redirect_uri", mockURI+"?logout").
 				Add("audience", testAud.name).
 				EndQuery(),
-			ExpectedStatus: http.StatusBadRequest,
+			ExpectedStatus: http.StatusUnauthorized,
 			ExpectedResponse: `
 {
-	"message": "something bad"
+	"error":"invalid_client", 
+	"error_description":"application lookup failed: something bad"
 }`,
 		},
 		"LogoutInvalidURI": {
@@ -124,11 +125,12 @@ func TestLogout(t *testing.T) {
 				Add("redirect_uri", "https://www.google.com").
 				Add("audience", testAud.name).
 				EndQuery(),
-			ExpectedStatus: http.StatusBadRequest,
+			ExpectedStatus: http.StatusUnauthorized,
 			ExpectedResponse: `
-{
-	"message": "unauthorized uri"
-}`,
+			{
+				"error":"access_denied", 
+				"error_description":"unauthorized uri"
+			}`,
 		},
 		"LogoutSessionDestroyFail": {
 			Operations: []litmus.Operation{

@@ -52,10 +52,11 @@ func TestOpenIDConfig(t *testing.T) {
 			},
 			Method:         http.MethodGet,
 			Path:           "/oauth/.well-known/openid-configuration",
-			ExpectedStatus: http.StatusInternalServerError,
+			ExpectedStatus: http.StatusBadRequest,
 			ExpectedResponse: `
 			{
-				"message": "audience not found"
+				"error":"invalid_request", 
+				"error_description":"audience lookup failed: audience not found"
 			}`,
 		},
 	}
@@ -95,10 +96,11 @@ func TestJWKS(t *testing.T) {
 			},
 			Method:         http.MethodGet,
 			Path:           "/oauth/.well-known/jwks.json",
-			ExpectedStatus: http.StatusInternalServerError,
+			ExpectedStatus: http.StatusBadRequest,
 			ExpectedResponse: `
 			{
-				"message": "audience not found"
+				"error":"invalid_request", 
+				"error_description":"audience lookup failed: audience not found"
 			}`,
 		},
 		"JWKSBadAlgorithm": {
@@ -113,10 +115,11 @@ func TestJWKS(t *testing.T) {
 			},
 			Method:         http.MethodGet,
 			Path:           "/oauth/.well-known/jwks.json",
-			ExpectedStatus: http.StatusInternalServerError,
+			ExpectedStatus: http.StatusBadRequest,
 			ExpectedResponse: `
 			{
-				"message": "audience does not support rsa tokens"
+				"error":"invalid_request", 
+				"error_description":"audience does not support rsa tokens"
 			}`,
 		},
 	}

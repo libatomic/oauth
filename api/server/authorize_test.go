@@ -64,7 +64,7 @@ func TestAuthorizeOK(t *testing.T) {
 			EndQuery(),
 		ExpectedStatus: http.StatusFound,
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?request_token=.?`,
+			"Location": `https:\/\/meta\.org\/\?mode=password&request_token=.?`,
 		},
 	}
 
@@ -303,7 +303,7 @@ func TestAuthorizeErrAppNotFound(t *testing.T) {
 			Add("scope", "metaverse:read metaverse:write openid profile offline_access").
 			Add("code_challenge", challenge).
 			EndQuery(),
-		ExpectedStatus: http.StatusBadRequest,
+		ExpectedStatus: http.StatusUnauthorized,
 	}
 
 	ctrl := new(MockController)
@@ -343,7 +343,7 @@ func TestAuthorizeErrMissingRedirectURI(t *testing.T) {
 			Add("scope", "metaverse:read metaverse:write openid profile offline_access").
 			Add("code_challenge", challenge).
 			EndQuery(),
-		ExpectedStatus: http.StatusUnauthorized,
+		ExpectedStatus: http.StatusBadRequest,
 	}
 
 	ctrl := new(MockController)

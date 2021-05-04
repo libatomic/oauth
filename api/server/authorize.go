@@ -108,7 +108,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	ctx = oauth.NewContext(ctx, app)
 
 	if len(app.RedirectUris) == 0 || len(app.RedirectUris[aud.Name()]) == 0 {
-		return oauth.Errorf(oauth.ErrorCodeServerError, "application has no valid redirect uri")
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "application has no valid redirect uri")
 	}
 
 	if params.RedirectURI == nil && len(app.RedirectUris[aud.Name()]) > 0 {
