@@ -132,6 +132,39 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		return login(ctx, loginParams)
 	}
 
+	r, w := api.Request(ctx)
+
+	session, err := sessionStore(ctx).SessionCreate(ctx, r)
+	if err != nil {
+		return api.Redirect(u, map[string]string{
+			"error":             "server_error",
+			"error_description": err.Error(),
+		})
+	}
+
+	session.Set(fmt.Sprintf("scope:%s", oauth.AuthContext(ctx).Audience.Name()), []string(req.Scope))
+
+	if err := session.Write(w); err != nil {
+		return api.Redirect(u, map[string]string{
+			"error":             "server_error",
+			"error_description": err.Error(),
+		})
+	}
+
+	authCode := &oauth.AuthCode{
+		AuthRequest:       *req,
+		Subject:           user.Profile.Subject,
+		SessionID:         session.ID(),
+		UserAuthenticated: true,
+	}
+	if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
+		return api.Redirect(u, map[string]string{
+			"error":             "server_error",
+			"error_description": err.Error(),
+		})
+	}
+	q.Set("code", authCode.Code)
+
 	if req.State != nil {
 		q.Set("state", *req.State)
 	}
