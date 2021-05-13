@@ -132,6 +132,8 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		return login(ctx, loginParams)
 	}
 
+	oauth.AuthContext(ctx).User = user
+
 	r, w := api.Request(ctx)
 
 	session, err := sessionStore(ctx).SessionCreate(ctx, r)
