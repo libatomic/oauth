@@ -216,7 +216,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			r.Host,
 			path.Clean(path.Join(path.Dir(r.URL.Path), "session")))).Parse()
 	if err != nil {
-		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to parse notify link", err)
+		return api.ErrBadRequest.WithMessage("%w: failed to parse notify link", err).Redirect(u)
 	}
 
 	q := link.Query()
@@ -232,7 +232,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			Subject:     user.Profile.Subject,
 		}
 		if err := codeStore(ctx).AuthCodeCreate(ctx, authCode); err != nil {
-			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to create auth code", err)
+			return api.ErrServerError.WithMessage("%w: failed to create auth code", err).Redirect(u)
 		}
 
 		ru, _ := url.Parse(req.RedirectURI)
@@ -252,7 +252,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	case PasswordTypeCode:
 		reqToken, err := signValue(ctx, s.ctrl.TokenFinalize, req)
 		if err != nil {
-			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to sign request token", err)
+			return api.ErrServerError.WithMessage("%s: failed to sign request token", err).Redirect(u)
 		}
 
 		claims := oauth.Claims{
@@ -268,7 +268,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 
 		token, err := s.ctrl.TokenFinalize(ctx, claims)
 		if err != nil {
-			return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to finalize claims", err)
+			return api.ErrServerError.WithMessage("%s: failed to finalize claims", err).Redirect(u)
 		}
 
 		q.Set("access_token", token)
@@ -290,7 +290,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 			}
 
 			if err := s.codes.AuthCodeCreate(ctx, passCode); err != nil {
-				return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to finalize claims", err)
+				return api.ErrServerError.WithMessage("%s: failed to finalize claims", err).Redirect(u)
 			}
 
 			note.context["code"] = passCode.Code
@@ -298,7 +298,7 @@ func passwordCreate(ctx context.Context, params *PasswordCreateParams) api.Respo
 	}
 
 	if err := s.ctrl.UserNotify(ctx, note); err != nil {
-		return api.ErrorRedirect(u, http.StatusInternalServerError, "%s: failed to send user notification", err)
+		return api.ErrServerError.WithMessage("%s: failed to send user notification", err).Redirect(u)
 	}
 
 	if u == nil {
