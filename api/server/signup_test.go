@@ -128,6 +128,16 @@ func TestSignupNoPass(t *testing.T) {
 				Returns: litmus.Returns{testAud, nil},
 			},
 			{
+				Name:    "SessionCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
+				Returns: litmus.Returns{testSession, nil},
+			},
+			{
+				Name:    "AuthCodeCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
+				Returns: litmus.Returns{nil},
+			},
+			{
 				Name:    "ApplicationGet",
 				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("string")},
 				Returns: litmus.Returns{testApp, nil},
@@ -164,7 +174,7 @@ func TestSignupNoPass(t *testing.T) {
 			RequestToken: testToken,
 		},
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?state=foo`,
+			"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000&state=foo`,
 		},
 	}
 
@@ -348,6 +358,16 @@ func TestSignupWarnUserNotify(t *testing.T) {
 				Returns: litmus.Returns{testApp, nil},
 			},
 			{
+				Name:    "SessionCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*http.Request")},
+				Returns: litmus.Returns{testSession, nil},
+			},
+			{
+				Name:    "AuthCodeCreate",
+				Args:    litmus.Args{litmus.Context, mock.AnythingOfType("*oauth.AuthCode")},
+				Returns: litmus.Returns{nil},
+			},
+			{
 				Name: "UserCreate",
 				Args: litmus.Args{
 					litmus.Context,
@@ -378,7 +398,7 @@ func TestSignupWarnUserNotify(t *testing.T) {
 			RequestToken: testToken,
 		},
 		ExpectedHeaders: map[string]string{
-			"Location": `https:\/\/meta\.org\/\?error=internal_server_error`,
+			"Location": `https:\/\/meta\.org\/\?code=00000000-0000-0000-0000-000000000000&error=internal_server_error`,
 		},
 	}
 
