@@ -104,7 +104,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 
 		aud, err = a.ctrl.AudienceGet(r.Context(), token.Audience()[0])
 		if err != nil {
-			return errDone(ctx, err)
+			return errDone(ctx, api.ErrForbidden.WithMessage("%w: invalid audience", err))
 		}
 
 		scopes := token.Scope()
@@ -124,7 +124,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		}
 
 		if !allowed {
-			return errDone(ctx, ErrAccessDenied)
+			return errDone(ctx, api.ErrUnauthorized.WithMessage("insufficient scope"))
 		}
 
 		c := Context{
@@ -135,7 +135,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		if token.ClientID() != "" {
 			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), token.ClientID())
 			if err != nil {
-				return errDone(ctx, ErrAccessDenied)
+				return errDone(ctx, api.ErrForbidden.WithMessage("%w: invalid client", err))
 			}
 			c.Application = app
 		}
@@ -143,14 +143,14 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		if token.Subject() != "" && !strings.HasSuffix(token.Subject(), "@applications") {
 			user, prin, err := a.ctrl.UserGet(NewContext(ctx, c), token.Subject())
 			if err != nil {
-				return errDone(ctx, ErrAccessDenied)
+				return errDone(ctx, api.ErrForbidden.WithMessage("%w: invalid user", err))
 			}
 
 			// check roles
 			if len(o.roles) > 0 {
 				roles, ok := user.Roles[aud.Name()]
 				if !ok {
-					return errDone(ctx, ErrAccessDenied)
+					return errDone(ctx, api.ErrUnauthorized.WithMessage("insufficient role"))
 				}
 
 				allowed := false
@@ -163,7 +163,7 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 				}
 
 				if !allowed {
-					return errDone(ctx, ErrAccessDenied)
+					return errDone(ctx, api.ErrUnauthorized.WithMessage("insufficient role"))
 				}
 			}
 

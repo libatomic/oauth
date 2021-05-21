@@ -116,7 +116,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 	}
 
 	// ensure the redirect uri path is allowed
-	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()])
+	u, err := EnsureURI(*params.RedirectURI, app.RedirectUris[aud.Name()], r)
 	if err != nil {
 		return oauth.Errorf(oauth.ErrorCodeAccessDenied, "unauthorized redirect uri")
 	}
