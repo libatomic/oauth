@@ -140,7 +140,7 @@ func authorize(ctx context.Context, params *AuthorizeParams) api.Responder {
 		params.AppURI = &app.AppUris[aud.Name()][0]
 	}
 
-	appURI, err := EnsureURI(*params.AppURI, app.AppUris[aud.Name()])
+	appURI, err := EnsureURI(*params.AppURI, app.AppUris[aud.Name()], r)
 	if err != nil {
 		return api.Redirect(u, map[string]string{
 			"error":             "access_denied",
