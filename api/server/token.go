@@ -184,7 +184,9 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		}
 
 		if len(params.Scope) == 0 {
-			params.Scope = user.Permissions[*params.Audience]
+			if perms, ok := user.Permissions[*params.Audience]; ok {
+				params.Scope = perms
+			}
 		}
 		fallthrough
 
