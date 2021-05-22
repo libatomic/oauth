@@ -17,6 +17,8 @@
 
 package oauth
 
+import "crypto/x509"
+
 // Audience An audience is an API that applications can request permission to access on behalf of
 // a user or itself.
 type Audience interface {
@@ -41,6 +43,8 @@ type Audience interface {
 
 	// VerifyKey returns the audience RSA public key used for token verification
 	VerifyKey() interface{}
+
+	VerifyCertificate() (*x509.Certificate, []byte)
 
 	// Principal is the implementation specfic audience object
 	Principal() interface{}
