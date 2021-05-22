@@ -22,7 +22,10 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -590,6 +593,37 @@ func (a mockAudience) TokenSecret() string {
 
 func (a mockAudience) VerifyKey() interface{} {
 	return &a.key.PublicKey
+}
+
+func (a mockAudience) VerifyCertificate() (*x509.Certificate, error) {
+	key := a.key
+
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"Atomic Publishing"},
+			Country:       []string{"US"},
+			Province:      []string{"NV"},
+			Locality:      []string{"Reno"},
+			StreetAddress: []string{""},
+			PostalCode:    []string{"89503"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &key.PublicKey, key)
+	if err != nil {
+		return nil, err
+	}
+
+	cert, _ := x509.ParseCertificate(caBytes)
+
+	return cert, nil
 }
 
 func (a mockAudience) Principal() interface{} {

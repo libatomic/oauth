@@ -20,6 +20,7 @@ package server
 import (
 	"context"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"fmt"
 	"net/http"
@@ -122,10 +123,12 @@ func jwks(ctx context.Context, params *JWKSInput) api.Responder {
 		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience does not support rsa tokens")
 	}
 
-	cert, print := aud.VerifyCertificate()
-	if cert == nil {
-		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience does not support rsa tokens")
+	cert, err := aud.VerifyCertificate()
+	if err != nil {
+		return oauth.Errorf(oauth.ErrorCodeInvalidRequest, "audience does not support rsa tokens: %s", err)
 	}
+
+	print := sha1.Sum(cert.Raw)
 
 	key := jose.JSONWebKey{
 		KeyID:                     aud.Name(),
@@ -133,7 +136,7 @@ func jwks(ctx context.Context, params *JWKSInput) api.Responder {
 		Algorithm:                 aud.TokenAlgorithm(),
 		Use:                       "sig",
 		Certificates:              []*x509.Certificate{cert},
-		CertificateThumbprintSHA1: print,
+		CertificateThumbprintSHA1: print[:],
 	}
 
 	keys = append(keys, key)
