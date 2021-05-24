@@ -144,6 +144,11 @@ func (c Claims) Sign(ctx context.Context, alg string, key interface{}) (string, 
 		token = jwt.NewWithClaims(jwt.SigningMethodHS256, c)
 
 	}
+
+	if octx := AuthContext(ctx); octx != nil {
+		token.Header["kid"] = octx.Audience.Name()
+	}
+
 	return token.SignedString(key)
 }
 
