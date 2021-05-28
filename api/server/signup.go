@@ -39,6 +39,7 @@ type (
 		Login        string  `json:"login"`
 		Name         *string `json:"name"`
 		Password     *string `json:"password"`
+		SignupOnly   bool    `json:"signup_only"`
 		RequestToken string  `json:"request_token"`
 	}
 )
@@ -77,6 +78,10 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	}
 
 	if time.Unix(req.ExpiresAt, 0).Before(time.Now()) {
+		if params.SignupOnly {
+			return api.ErrBadRequest.WithMessage("expired request token")
+		}
+
 		return api.Redirect(u, map[string]string{
 			"error":             "bad_request",
 			"error_description": "expired request token",
@@ -85,6 +90,10 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 
 	ctx, err = oauth.ContextFromRequest(ctx, s.ctrl, req)
 	if err != nil {
+		if params.SignupOnly {
+			return api.ErrBadRequest.WithError(err)
+		}
+
 		return api.Redirect(u, map[string]string{
 			"error":             "bad_request",
 			"error_description": err.Error(),
@@ -102,6 +111,10 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 		},
 	}, safestr(params.InviteCode))
 	if err != nil {
+		if params.SignupOnly {
+			return api.ErrServerError.WithError(err)
+		}
+
 		return api.Redirect(u, err)
 	}
 
@@ -129,7 +142,15 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 			RequestToken: params.RequestToken,
 		}
 
+		if params.SignupOnly {
+			return api.NewResponse().WithStatus(http.StatusNoContent)
+		}
+
 		return login(ctx, loginParams)
+	}
+
+	if params.SignupOnly {
+		return api.NewResponse().WithStatus(http.StatusNoContent)
 	}
 
 	oauth.AuthContext(ctx).User = user
@@ -138,6 +159,10 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 
 	session, err := sessionStore(ctx).SessionCreate(ctx, r)
 	if err != nil {
+		if params.SignupOnly {
+			return api.ErrServerError.WithError(err)
+		}
+
 		return api.Redirect(u, map[string]string{
 			"error":             "server_error",
 			"error_description": err.Error(),

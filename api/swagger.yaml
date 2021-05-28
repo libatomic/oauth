@@ -571,7 +571,13 @@ paths:
             "The authorization request token obtained from the /authorize method"
           in: "formData"
           required: true
+        - name: "signup_only"
+          type: "boolean"
+          description: "supress the session creation and redirect, just add the user"
+          in: "formData"
       responses:
+        204:
+          description: "no content"
         302:
           description: "found"
           headers:
