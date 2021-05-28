@@ -129,7 +129,9 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	}); err != nil {
 		err = fmt.Errorf("failed to send email verification to user %s: %s", user.Login, err.Error())
 
-		log.Error(err.Error())
+		if params.SignupOnly {
+			return api.ErrServerError.WithCode("user_notify_failed").WithError(err)
+		}
 
 		q.Set("error", "internal_server_error")
 		q.Set("error_description", err.Error())
