@@ -65,8 +65,6 @@ func (p SignupParams) Validate() error {
 func signup(ctx context.Context, params *SignupParams) api.Responder {
 	s := serverContext(ctx)
 
-	log := api.Log(ctx).WithField("operation", "signup")
-
 	req := &oauth.AuthRequest{}
 	if err := verifyValue(ctx, s.ctrl.TokenValidate, params.RequestToken, req); err != nil {
 		return oauth.Error(oauth.ErrorCodeInvalidRequest, err)
