@@ -29,7 +29,6 @@ import (
 
 	"errors"
 
-	"github.com/ModelRocket/hiro/pkg/oauth"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/libatomic/api/pkg/api"
 	"github.com/spf13/cast"
@@ -194,7 +193,7 @@ func ParseClaims(ctx context.Context, bearer string, keyfn func(claims Claims) (
 func Issuer(ctx context.Context) URI {
 	r, _ := api.Request(ctx)
 
-	iss := oauth.URI(
+	iss := URI(
 		fmt.Sprintf("https://%s%s",
 			r.Host,
 			path.Clean(path.Dir(r.URL.Path))),
