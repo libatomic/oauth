@@ -95,6 +95,20 @@ func login(ctx context.Context, params *LoginParams) api.Responder {
 				"request_token":     params.RequestToken,
 			})
 		}
+
+		if user.Profile.EmailClaim != nil && user.Profile.EmailVerified != nil && !*user.Profile.EmailVerified {
+			t := true
+
+			user.Profile.EmailVerified = &t
+		}
+
+		if err := s.ctrl.UserUpdate(ctx, user.Profile.Subject, user.Profile); err != nil {
+			return api.Redirect(u, map[string]string{
+				"error":             "access_denied",
+				"error_description": "user authentication failed",
+				"request_token":     params.RequestToken,
+			})
+		}
 	} else {
 		user, _, err = s.ctrl.UserAuthenticate(ctx, params.Login, params.Password)
 		if err != nil {
