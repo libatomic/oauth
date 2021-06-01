@@ -161,7 +161,7 @@ func (c Claims) Value() (driver.Value, error) {
 }
 
 // Scan reads a json value from the database into a Map
-func (c Claims) Scan(value interface{}) error {
+func (c *Claims) Scan(value interface{}) error {
 	b, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")
