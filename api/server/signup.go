@@ -121,7 +121,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 
 	if err := VerifySend(oauth.NewContext(ctx, user), &VerifySendParams{
 		Method:      oauth.NotificationChannelEmail,
-		Signup:      !params.SignupOnly,
+		Signup:      true,
 		scope:       req.Scope,
 		redirectURI: &req.RedirectURI,
 	}); err != nil {

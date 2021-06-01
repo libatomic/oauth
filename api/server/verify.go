@@ -50,8 +50,11 @@ type (
 		uri     oauth.URI
 		channel oauth.NotificationChannel
 		signup  bool
+		verify  bool
 		context map[string]interface{}
 	}
+
+	VerifySendMode string
 )
 
 func init() {
@@ -163,9 +166,7 @@ func VerifySend(ctx context.Context, params *VerifySendParams) error {
 
 	scope := []string{oauth.ScopeOpenID, oauth.ScopeProfile, oauth.ScopeEmailVerify}
 
-	if params.Signup {
-		scope = append(scope, oauth.ScopeSession)
-	}
+	scope = append(scope, oauth.ScopeSession)
 
 	if len(params.scope) > 0 {
 		scope = append(scope, params.scope...)
