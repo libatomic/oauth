@@ -172,6 +172,10 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 			c.Principal = prin
 		}
 
+		if c.User != nil {
+			ctx = api.SetContextUser(ctx, c.User.Login)
+		}
+
 		return NewContext(ctx, c), nil
 	}
 }
