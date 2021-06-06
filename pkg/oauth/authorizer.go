@@ -133,6 +133,11 @@ func (a *authorizer) Authorize(opts ...AuthOption) api.Authorizer {
 		}
 
 		if token.ClientID() != "" {
+
+			log := api.Log(ctx).WithField("clientId", token.ClientID())
+
+			ctx = api.SetContextLog(ctx, log)
+
 			app, err := a.ctrl.ApplicationGet(NewContext(ctx, aud), token.ClientID())
 			if err != nil {
 				return errDone(ctx, api.ErrForbidden.WithMessage("%w: invalid client", err))
