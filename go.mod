@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/sessions v1.2.0
 	github.com/imdario/mergo v0.3.11
-	github.com/libatomic/api v0.1.20
+	github.com/libatomic/api v0.1.21
 	github.com/libatomic/litmus v0.5.4
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.1
