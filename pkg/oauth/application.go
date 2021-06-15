@@ -75,6 +75,11 @@ type (
 		//
 		TokenLifetime int64 `json:"token_lifetime,omitempty"`
 
+		// The lifetime for refresh tokens in seconds, provided the call requested the
+		// `offline_access` scopes.
+		//
+		RefreshTokenLifetime int64 `json:"refresh_token_lifetime,omitempty"`
+
 		// The application type
 		// Enum: [web native machine]
 		Type string `json:"type,omitempty"`
