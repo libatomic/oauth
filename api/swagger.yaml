@@ -205,6 +205,12 @@ definitions:
           The lifetime for identity tokens in seconds, provided the call requested the 
           `openid` scopes.
         format: "int64"
+      refresh_token_lifetime:
+        type: "integer"
+        description: |
+          The lifetime for refresh tokens in seconds, provided the call requested the 
+          `offline_access` scopes.
+        format: "int64"
       permissions:
         $ref: "#/definitions/PermissionSet"
 
