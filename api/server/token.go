@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/mitchellh/mapstructure"
+	"github.com/spf13/cast"
 )
 
 type (
@@ -352,7 +354,11 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		if scope.Contains(oauth.ScopeOffline) {
 			refreshCode := *code
 
-			refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 30).Unix()
+			if refreshTTL, ok := os.LookupEnv("OAUTH_REFRESH_TOKEN_TTL"); ok {
+				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * time.Duration(cast.ToInt(refreshTTL))).Unix()
+			} else {
+				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 30).Unix()
+			}
 
 			refreshCode.CodeChallenge = nil
 
