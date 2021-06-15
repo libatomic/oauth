@@ -354,10 +354,12 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		if scope.Contains(oauth.ScopeOffline) {
 			refreshCode := *code
 
-			if refreshTTL, ok := os.LookupEnv("OAUTH_REFRESH_TOKEN_TTL"); ok {
+			if app.RefreshTokenLifetime > 0 {
+				refreshCode.ExpiresAt = time.Now().Add(time.Second * time.Duration(app.RefreshTokenLifetime)).Unix()
+			} else if refreshTTL, ok := os.LookupEnv("OAUTH_REFRESH_TOKEN_TTL"); ok {
 				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * time.Duration(cast.ToInt(refreshTTL))).Unix()
 			} else {
-				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 30).Unix()
+				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
 			}
 
 			refreshCode.CodeChallenge = nil
