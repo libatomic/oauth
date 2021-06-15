@@ -352,7 +352,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		if scope.Contains(oauth.ScopeOffline) {
 			refreshCode := *code
 
-			refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
+			refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 30).Unix()
 
 			refreshCode.CodeChallenge = nil
 
