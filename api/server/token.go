@@ -260,7 +260,7 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			maxAge := time.Hour * 24 * time.Duration(app.RefreshTokenMaxAge)
 
 			if issAt.Add(maxAge).Before(time.Now()) {
-				return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "refresh token expired")
+				return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "refresh token age limit exceeded")
 			}
 		}
 
@@ -356,8 +356,8 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		if scope.Contains(oauth.ScopeOffline) {
 			refreshCode := *code
 
-			if app.RefreshTokenTTL > 0 {
-				refreshCode.ExpiresAt = time.Now().Add(time.Second * time.Duration(app.RefreshTokenTTL)).Unix()
+			if app.RefreshTokenLifetime > 0 {
+				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * time.Duration(app.RefreshTokenLifetime)).Unix()
 			} else {
 				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
 			}
