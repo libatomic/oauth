@@ -208,7 +208,13 @@ definitions:
       refresh_token_lifetime:
         type: "integer"
         description: |
-          The lifetime for refresh tokens in seconds, provided the call requested the 
+          The lifetime for refresh tokens in days, provided the call requested the 
+          `offline_access` scopes.
+        format: "int64"
+      refresh_token_ttl:
+        type: "integer"
+        description: |
+          The ttl for refresh tokens in hours, provided the call requested the 
           `offline_access` scopes.
         format: "int64"
       permissions:

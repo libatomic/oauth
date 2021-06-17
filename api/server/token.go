@@ -23,7 +23,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -31,7 +30,6 @@ import (
 	"github.com/libatomic/api/pkg/api"
 	"github.com/libatomic/oauth/pkg/oauth"
 	"github.com/mitchellh/mapstructure"
-	"github.com/spf13/cast"
 )
 
 type (
@@ -256,18 +254,14 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 			}
 		}
 
-		issAt := time.Unix(code.IssuedAt, 0)
+		if app.RefreshTokenMaxAge > 0 {
+			issAt := time.Unix(code.IssuedAt, 0)
 
-		codeTTL := time.Hour * 24 * 7
+			maxAge := time.Hour * 24 * time.Duration(app.RefreshTokenMaxAge)
 
-		if app.RefreshTokenLifetime > 0 {
-			codeTTL = time.Second * time.Duration(app.RefreshTokenLifetime)
-		} else if refreshTTL, ok := os.LookupEnv("OAUTH_REFRESH_TOKEN_TTL"); ok {
-			codeTTL = time.Hour * 24 * time.Duration(cast.ToInt(refreshTTL))
-		}
-
-		if issAt.Add(codeTTL).Before(time.Now()) {
-			return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "refresh token expired")
+			if issAt.Add(maxAge).Before(time.Now()) {
+				return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "refresh token expired")
+			}
 		}
 
 		fallthrough
@@ -362,10 +356,8 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 		if scope.Contains(oauth.ScopeOffline) {
 			refreshCode := *code
 
-			if app.RefreshTokenLifetime > 0 {
-				refreshCode.ExpiresAt = time.Now().Add(time.Second * time.Duration(app.RefreshTokenLifetime)).Unix()
-			} else if refreshTTL, ok := os.LookupEnv("OAUTH_REFRESH_TOKEN_TTL"); ok {
-				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * time.Duration(cast.ToInt(refreshTTL))).Unix()
+			if app.RefreshTokenTTL > 0 {
+				refreshCode.ExpiresAt = time.Now().Add(time.Second * time.Duration(app.RefreshTokenTTL)).Unix()
 			} else {
 				refreshCode.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
 			}
