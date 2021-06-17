@@ -258,7 +258,15 @@ func token(ctx context.Context, params *TokenParams) api.Responder {
 
 		issAt := time.Unix(code.IssuedAt, 0)
 
-		if issAt.Add(time.Hour * 24 * 7).Before(time.Now()) {
+		codeTTL := time.Hour * 24 * 7
+
+		if app.RefreshTokenLifetime > 0 {
+			codeTTL = time.Second * time.Duration(app.RefreshTokenLifetime)
+		} else if refreshTTL, ok := os.LookupEnv("OAUTH_REFRESH_TOKEN_TTL"); ok {
+			codeTTL = time.Hour * 24 * time.Duration(cast.ToInt(refreshTTL))
+		}
+
+		if issAt.Add(codeTTL).Before(time.Now()) {
 			return oauth.Errorf(oauth.ErrorCodeInvalidGrant, "refresh token expired")
 		}
 
