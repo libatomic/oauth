@@ -110,7 +110,7 @@ func signup(ctx context.Context, params *SignupParams) api.Responder {
 	}, safestr(params.InviteCode))
 	if err != nil {
 		if params.SignupOnly {
-			return api.ErrServerError.WithError(err)
+			return api.Error(err)
 		}
 
 		return api.Redirect(u, err)
